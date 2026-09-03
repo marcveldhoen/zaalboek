@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zaalboek</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/interface.css">
+</head>
+<body>
+
+<header>
+  <span class="wordmark">Zaalboek</span>
+  <span class="crumb" id="kruimel"></span>
+  <span class="spacer"></span>
+  <span class="status" id="status"></span>
+  <button class="ghost" id="ongedaan" disabled>Ongedaan maken</button>
+</header>
+
+<main>
+  <!-- Wat je kunt plaatsen. Wordt gevuld vanuit de meubellijst in het model. -->
+  <aside class="left" id="gereedschap"></aside>
+
+  <div class="stage">
+    <svg id="plan" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="arcering" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect width="14" height="14" fill="#EDECE6"/>
+          <line x1="0" y1="0" x2="0" y2="14" stroke="#8D958F" stroke-width="3"/>
+        </pattern>
+      </defs>
+      <g id="wereld">
+        <g id="raster"></g>
+        <g id="ruimte"></g>
+        <g id="vast"></g>
+        <g id="elementen"></g>
+        <g id="schaalstok"></g>
+      </g>
+    </svg>
+
+    <div class="zoombar">
+      <button id="zoomin" title="Inzoomen">+</button>
+      <button id="zoomuit" title="Uitzoomen">&minus;</button>
+      <button id="zoompassend" class="wide">Passend</button>
+    </div>
+
+    <div class="hint">
+      Slepen om te verplaatsen &middot; <kbd>R</kbd> draaien &middot; pijltjes verschuiven<br>
+      Lege ruimte slepen om de plattegrond te verschuiven
+    </div>
+  </div>
+
+  <aside class="right">
+    <div id="eigenschappen"></div>
+    <div class="tally" id="telling"></div>
+  </aside>
+</main>
+
+<!-- De sleutel invullen. Verschijnt alleen als er nog geen sleutel is, of als
+     GitHub hem niet meer accepteert. -->
+<div class="overlay" id="sleutelvenster" hidden>
+  <div class="kaart">
+    <h1>Sleutel invullen</h1>
+    <p id="sleutelmelding"></p>
+    <input type="password" id="sleutelveld" autocomplete="off" spellcheck="false"
+           placeholder="github_pat_...">
+    <button class="ghost" id="sleutelbewaren">Bewaren en openen</button>
+    <p class="klein">De sleutel blijft op deze computer en staat nergens in de
+      code. Je vult hem een keer per computer in.</p>
+  </div>
+</div>
+
+<!-- Een melding die je niet kunt wegklikken, voor het geval doorwerken zinloos
+     of gevaarlijk is: een botsing, of gegevens die niet opgehaald konden worden. -->
+<div class="overlay" id="meldingvenster" hidden>
+  <div class="kaart">
+    <h1 id="meldingtitel"></h1>
+    <p id="meldingtekst"></p>
+    <button class="ghost" id="meldingverversen">Pagina verversen</button>
+  </div>
+</div>
+
+<!-- De volgorde telt: een bestand mag alleen bestanden gebruiken die erboven staan.
+     Deze ouderwetse vorm is met opzet gekozen: zo start de applicatie ook
+     wanneer je de map op een schijf zet en dit bestand aanklikt. -->
+<script src="js/model.js"></script>
+<script src="js/opslag.js"></script>
+<script src="js/zaalvorm.js"></script>
+<script src="js/vormen.js"></script>
+<script src="js/kring.js"></script>
+<script src="js/telling.js"></script>
+<script src="js/tekening.js"></script>
+<script src="js/schermen/tekenen.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

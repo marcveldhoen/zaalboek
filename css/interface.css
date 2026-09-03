@@ -1,0 +1,177 @@
+/* interface.css — de schermen eromheen.
+   De kleuren hieronder worden ook door de tekening gebruikt (var(--oak) enzovoort),
+   dus dit bestand is nodig om de plattegrond goed te zien. */
+
+:root{
+  --ink:#232B2B;
+  --ink-soft:#5A6462;
+  --ink-faint:#949C99;
+  --desk:#DCDCD3;
+  --panel:#F0EFE9;
+  --floor:#F7F6F2;
+  --line:#C9C8BF;
+  --oak:#B08A5E;
+  --oak-light:#DBC9AF;
+  --wood:#8A6741;
+  --slate:#7C8B8A;
+  --accent:#2F6F6A;
+  --warn:#9A5B2C;
+  --tool-h:38px;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  font-family:Archivo, "Helvetica Neue", Arial, sans-serif;
+  font-size:14px;
+  color:var(--ink);
+  background:var(--desk);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit}
+
+/* ---------- kop ---------- */
+header{
+  display:flex;align-items:baseline;gap:18px;
+  padding:14px 20px 12px;
+  background:var(--panel);
+  border-bottom:1px solid var(--line);
+  flex:0 0 auto;
+}
+.wordmark{
+  font-family:Newsreader, Georgia, serif;
+  font-size:20px;letter-spacing:.01em;
+}
+.crumb{color:var(--ink-soft);font-size:13px}
+.crumb b{font-weight:500;color:var(--ink)}
+header .spacer{flex:1}
+.ghost{
+  border:1px solid var(--line);background:transparent;
+  border-radius:2px;padding:6px 12px;cursor:pointer;
+}
+.ghost:hover{border-color:var(--ink-soft)}
+.ghost:disabled{opacity:.4;cursor:default}
+
+/* ---------- indeling ---------- */
+main{flex:1;display:flex;min-height:0}
+aside{
+  background:var(--panel);
+  flex:0 0 200px;
+  overflow-y:auto;
+  padding:16px 14px 40px;
+}
+aside.left{border-right:1px solid var(--line)}
+aside.right{flex-basis:236px;border-left:1px solid var(--line)}
+.stage{flex:1;position:relative;min-width:0;background:var(--desk)}
+
+h2{
+  font-size:11px;font-weight:600;letter-spacing:.04em;
+  color:var(--ink-soft);margin:0 0 8px;
+}
+.group{margin-bottom:22px}
+
+.tool{
+  display:flex;align-items:center;gap:10px;width:100%;
+  height:var(--tool-h);padding:0 8px;margin-bottom:3px;
+  background:transparent;border:1px solid transparent;border-radius:2px;
+  cursor:pointer;text-align:left;
+}
+.tool:hover{background:#E5E4DC;border-color:var(--line)}
+.tool .swatch{flex:0 0 30px;height:18px;position:relative}
+.tool .swatch i{
+  position:absolute;inset:0;display:block;
+  background:var(--oak);border:1px solid var(--ink);
+}
+.tool .swatch.sq i{left:6px;right:6px}
+.tool .swatch.md i{left:3px;right:3px}
+.tool .swatch.chair i{left:9px;right:9px;background:var(--oak-light)}
+.tool .swatch.obj i{background:var(--slate);top:4px;bottom:4px}
+.tool .dim{color:var(--ink-faint);font-size:12px;margin-left:auto}
+
+/* ---------- de tekening ---------- */
+svg#plan{width:100%;height:100%;display:block;touch-action:none;cursor:default}
+svg#plan.panning{cursor:grabbing}
+.zoombar{
+  position:absolute;left:14px;bottom:14px;display:flex;gap:4px;
+}
+.zoombar button{
+  width:30px;height:30px;line-height:1;
+  border:1px solid var(--line);background:var(--panel);
+  border-radius:2px;cursor:pointer;
+}
+.zoombar button.wide{width:auto;padding:0 10px}
+.zoombar button:hover{border-color:var(--ink-soft)}
+.hint{
+  position:absolute;right:14px;bottom:16px;
+  color:var(--ink-faint);font-size:12px;text-align:right;line-height:1.6;
+}
+
+/* ---------- eigenschappen ---------- */
+.empty{color:var(--ink-soft);line-height:1.65;font-size:13px}
+.selname{
+  font-family:Newsreader,Georgia,serif;font-size:19px;
+  margin:0 0 2px;
+}
+.selsub{color:var(--ink-faint);font-size:12px;margin:0 0 16px}
+.field{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.field label{color:var(--ink-soft)}
+.stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:2px}
+.stepper button{
+  width:26px;height:26px;border:0;background:transparent;cursor:pointer;color:var(--ink-soft);
+}
+.stepper button:hover{color:var(--ink)}
+.stepper span{width:30px;text-align:center;font-variant-numeric:tabular-nums}
+select{
+  font:inherit;color:inherit;border:1px solid var(--line);border-radius:2px;
+  background:#fff;padding:4px 6px;
+}
+.row{display:flex;gap:6px;margin-top:14px}
+.row .ghost{flex:1;text-align:center}
+
+/* ---------- telling ---------- */
+.tally{border-top:1px solid var(--line);margin-top:26px;padding-top:16px}
+.tline{display:flex;justify-content:space-between;padding:3px 0;color:var(--ink-soft)}
+.tline b{font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+.tline.over b{color:var(--warn)}
+.note{
+  margin-top:12px;color:var(--warn);font-size:12.5px;line-height:1.6;
+  border-left:2px solid var(--warn);padding-left:10px;
+}
+kbd{
+  font:inherit;font-size:11.5px;border:1px solid var(--line);
+  border-bottom-width:2px;border-radius:3px;padding:0 4px;background:#fff;
+}
+
+@media (max-width:900px){
+  aside.left{flex-basis:150px}
+  aside.right{flex-basis:190px}
+  .hint{display:none}
+}
+
+/* ---------- bewaren ---------- */
+.status{color:var(--ink-faint);font-size:12.5px;font-variant-numeric:tabular-nums}
+.status.warn{color:var(--warn)}
+
+/* Twee vensters die de rest afsluiten: de sleutel invullen, en een melding
+   waarbij doorwerken geen zin heeft. */
+.overlay{
+  position:fixed;inset:0;z-index:10;
+  background:rgba(35,43,43,.35);
+  display:flex;align-items:center;justify-content:center;
+}
+.overlay[hidden]{display:none}
+.kaart{
+  background:var(--panel);border:1px solid var(--line);border-radius:3px;
+  padding:28px 30px;width:430px;max-width:calc(100vw - 40px);
+}
+.kaart h1{
+  font-family:Newsreader,Georgia,serif;font-size:22px;font-weight:400;
+  margin:0 0 10px;
+}
+.kaart p{line-height:1.65;color:var(--ink-soft);margin:0 0 16px}
+.kaart input{
+  font:inherit;width:100%;padding:8px 10px;margin-bottom:14px;
+  border:1px solid var(--line);border-radius:2px;background:#fff;
+}
+.kaart .klein{font-size:12.5px;color:var(--ink-faint);margin:16px 0 0}
