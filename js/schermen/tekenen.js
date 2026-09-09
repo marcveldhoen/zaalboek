@@ -16,6 +16,10 @@ const SchermTekenen = {
     this.opstelling = opstelling;
     this.zaal = Model.zaal(opstelling.zaalId);
 
+    const gebouw = Model.gebouw(this.zaal.gebouwId);
+    document.getElementById("kruimel").innerHTML =
+      `${gebouw.naam} &nbsp;/&nbsp; <b>${this.zaal.naam}</b>`;
+
     this.svg = document.getElementById("plan");
     this.gElementen = document.getElementById("elementen");
 
@@ -328,30 +332,53 @@ const SchermTekenen = {
   /* ---------------- knoppen en toetsen ---------------- */
 
   bedieningAanzetten() {
-    document.getElementById("gereedschap").addEventListener("click", ev => {
+    this._onGereedschapKlik = ev => {
       const knop = ev.target.closest("[data-plaats]");
       if (knop) this.plaats(knop.dataset.plaats, knop.dataset.meubel || null);
-    });
+    };
+    document.getElementById("gereedschap").addEventListener("click", this._onGereedschapKlik);
 
-    this.svg.addEventListener("pointerdown", ev => this.sleepBegin(ev));
-    this.svg.addEventListener("pointermove", ev => this.sleepBeweeg(ev));
-    this.svg.addEventListener("pointerup",   () => this.sleepEinde());
-    this.svg.addEventListener("wheel", ev => {
+    this._onPointerDown = ev => this.sleepBegin(ev);
+    this._onPointerMove = ev => this.sleepBeweeg(ev);
+    this._onPointerUp   = () => this.sleepEinde();
+    this._onWheel = ev => {
       ev.preventDefault();
       const p = this.naarZaal(ev);
       this.zoom(ev.deltaY > 0 ? 1.12 : 0.89, p.x, p.y);
-    }, { passive: false });
+    };
+    this.svg.addEventListener("pointerdown", this._onPointerDown);
+    this.svg.addEventListener("pointermove", this._onPointerMove);
+    this.svg.addEventListener("pointerup",   this._onPointerUp);
+    this.svg.addEventListener("wheel", this._onWheel, { passive: false });
 
     document.getElementById("zoomin").onclick =
       () => this.zoom(0.8, this.beeld.x + this.beeld.w / 2, this.beeld.y + this.beeld.h / 2);
     document.getElementById("zoomuit").onclick =
       () => this.zoom(1.25, this.beeld.x + this.beeld.w / 2, this.beeld.y + this.beeld.h / 2);
     document.getElementById("zoompassend").onclick = () => this.passend();
-    document.getElementById("ongedaan").onclick = () => this.ongedaanMaken();
 
-    document.getElementById("eigenschappen").addEventListener("click", ev => this.paneelKlik(ev));
-    document.addEventListener("keydown", ev => this.toets(ev));
-    window.addEventListener("resize", () => this.toonBeeld());
+    this._onPaneelKlik = ev => this.paneelKlik(ev);
+    document.getElementById("eigenschappen").addEventListener("click", this._onPaneelKlik);
+
+    this._onKeydown = ev => this.toets(ev);
+    document.addEventListener("keydown", this._onKeydown);
+
+    this._onResize = () => this.toonBeeld();
+    window.addEventListener("resize", this._onResize);
+  },
+
+  /* Aangeroepen door app.js vlak voordat een ander scherm opent, zodat deze
+     bediening niet blijft meeluisteren op knoppen en toetsen die dan bij het
+     andere scherm horen. */
+  sluiten() {
+    document.getElementById("gereedschap").removeEventListener("click", this._onGereedschapKlik);
+    this.svg.removeEventListener("pointerdown", this._onPointerDown);
+    this.svg.removeEventListener("pointermove", this._onPointerMove);
+    this.svg.removeEventListener("pointerup",   this._onPointerUp);
+    this.svg.removeEventListener("wheel", this._onWheel);
+    document.getElementById("eigenschappen").removeEventListener("click", this._onPaneelKlik);
+    document.removeEventListener("keydown", this._onKeydown);
+    window.removeEventListener("resize", this._onResize);
   },
 
   paneelKlik(ev) {
