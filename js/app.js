@@ -47,12 +47,12 @@ function toonStatus(status) {
 
 /* ---------------- schermen wisselen ---------------- */
 
-function naarTekenen() {
+function naarTekenen(opstelling) {
   if (HuidigScherm && HuidigScherm.sluiten) HuidigScherm.sluiten();
   HuidigScherm = SchermTekenen;
   document.getElementById("wisselScherm").textContent = "Zalen inrichten";
   document.getElementById("hint").innerHTML = HINT_TEKENEN;
-  SchermTekenen.open(Model.document.opstellingen[0]);
+  SchermTekenen.open(opstelling || Model.document.opstellingen[0]);
 }
 
 function naarZalenInrichten() {
