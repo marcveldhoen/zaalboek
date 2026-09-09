@@ -151,5 +151,41 @@ const Model = {
       return kring;
     }
     throw new Error("Onbekend soort element: " + type);
+  },
+
+  /* ---------- gebouwen en zalen aanmaken ----------
+     Gebruikt door het zaal-inrichtscherm (scherm 6). Een leesbare sleutel
+     afgeleid van de naam, zodat het document met het blote oog te volgen
+     blijft; bij een botsing komt er een cijfer achteraan. */
+
+  slug(tekst) {
+    const basis = tekst.toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")   // accenten weg
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    return basis || "zaal";
+  },
+
+  uniekeId(voorstel, bestaandeIds) {
+    if (!bestaandeIds.includes(voorstel)) return voorstel;
+    let i = 2;
+    while (bestaandeIds.includes(`${voorstel}-${i}`)) i++;
+    return `${voorstel}-${i}`;
+  },
+
+  nieuwGebouw(naam) {
+    const id = this.uniekeId(this.slug(naam), this.document.gebouwen.map(g => g.id));
+    const gebouw = { id, naam, volgorde: this.document.gebouwen.length + 1 };
+    this.document.gebouwen.push(gebouw);
+    return gebouw;
+  },
+
+  nieuweZaal(gebouwId, naam, vorm) {
+    const voorstel = `${gebouwId}-${this.slug(naam)}`;
+    const id = this.uniekeId(voorstel, this.document.zalen.map(z => z.id));
+    const volgorde = this.document.zalen.filter(z => z.gebouwId === gebouwId).length + 1;
+    const zaal = { id, gebouwId, naam, volgorde, vorm, vasteObjecten: [], voorraad: {} };
+    this.document.zalen.push(zaal);
+    return zaal;
   }
 };
