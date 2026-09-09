@@ -45,6 +45,10 @@ header{
 }
 .crumb{color:var(--ink-soft);font-size:13px}
 .crumb b{font-weight:500;color:var(--ink)}
+.crumb select{
+  font:inherit;color:var(--ink);border:none;background:transparent;
+  padding:0;cursor:pointer;
+}
 header .spacer{flex:1}
 .ghost{
   border:1px solid var(--line);background:transparent;
