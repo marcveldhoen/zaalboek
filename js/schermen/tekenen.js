@@ -16,9 +16,7 @@ const SchermTekenen = {
     this.opstelling = opstelling;
     this.zaal = Model.zaal(opstelling.zaalId);
 
-    const gebouw = Model.gebouw(this.zaal.gebouwId);
-    document.getElementById("kruimel").innerHTML =
-      `${gebouw.naam} &nbsp;/&nbsp; <b>${this.zaal.naam}</b>`;
+    this.vulZaalKiezer();
 
     this.svg = document.getElementById("plan");
     this.gElementen = document.getElementById("elementen");
@@ -39,6 +37,21 @@ const SchermTekenen = {
   /* Wordt door app.js ingevuld en na elke wijziging aangeroepen. Zo hoeft dit
      scherm niets te weten van waar de gegevens bewaard worden. */
   opWijziging: null,
+
+  /* Tijdelijk bruggetje zolang scherm 1 (het startscherm) er nog niet is: een
+     keuzelijst in de kop waarmee je alsnog een andere zaal kunt gaan tekenen.
+     Verdwijnt zodra er een echt startscherm is. */
+  vulZaalKiezer() {
+    const opties = Model.document.zalen.map(z => {
+      const gebouw = Model.gebouw(z.gebouwId);
+      return `<option value="${z.id}" ${z.id === this.zaal.id ? "selected" : ""}>
+        ${gebouw.naam} / ${z.naam}</option>`;
+    }).join("");
+
+    document.getElementById("kruimel").innerHTML = `<select id="kruimelZaal">${opties}</select>`;
+    document.getElementById("kruimelZaal").onchange = ev =>
+      naarTekenen(Model.opstellingVoorZaal(ev.target.value));
+  },
 
   /* Opnieuw tekenen na elke wijziging. Tijdens het slepen gebeurt dit met opzet
      niet: dan wordt alleen het gesleepte element verplaatst. Zie sleepBeweeg. */
