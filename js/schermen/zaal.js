@@ -26,7 +26,11 @@ const SchermZaal = {
     document.getElementById("telling").innerHTML = "";
 
     this.lijst();
-    this.selecteer(Model.document.zalen[0] || null);
+    // Altijd starten met een lege, nieuwe zaal — nooit vanzelf een bestaande
+    // selecteren. Die kan nog vaste objecten uit een eerdere invoer bevatten
+    // (denk aan de voorbeeldzaal uit bouwstap 1), en dat moet je zien aankomen
+    // doordat je zelf op die zaal klikt, niet doordat het scherm hem al opende.
+    this.selecteer(null);
     this.bedieningAanzetten();
   },
 
@@ -109,6 +113,14 @@ const SchermZaal = {
 
       <div class="row"><button class="ghost" id="zBewaren">Bewaren</button></div>
       ${z ? `<div class="row"><button class="ghost" id="zVerwijderen">Verwijderen</button></div>` : ""}
+      ${z && z.vasteObjecten && z.vasteObjecten.length ? `
+        <p class="selsub" style="margin-top:16px;color:var(--warn)">
+          Deze zaal heeft nog ${z.vasteObjecten.length} vast(e) object(en) uit een
+          eerdere invoer (deuren, ramen e.d.). Het echt plaatsen van de juiste
+          komt in de volgende stap — wil je de oude nu alvast wissen?
+        </p>
+        <div class="row"><button class="ghost" id="zVasteObjectenWissen">Vaste objecten wissen</button></div>
+      ` : ""}
     `;
 
     this.vormVelden(vormType, z ? z.vorm : null);
@@ -172,6 +184,14 @@ const SchermZaal = {
 
     const verwijderKnop = document.getElementById("zVerwijderen");
     if (verwijderKnop) verwijderKnop.onclick = () => this.verwijderen();
+
+    const wisKnop = document.getElementById("zVasteObjectenWissen");
+    if (wisKnop) wisKnop.onclick = () => {
+      if (!confirm(`Alle vaste objecten van "${this.zaal.naam}" wissen? Dit kan niet ongedaan gemaakt worden.`)) return;
+      this.zaal.vasteObjecten = [];
+      if (this.opWijziging) this.opWijziging();
+      this.selecteer(this.zaal);
+    };
   },
 
   /* Leest het formulier, zonder iets te bewaren. Geeft null zolang de
