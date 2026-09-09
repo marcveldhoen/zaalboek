@@ -129,6 +129,18 @@ select{
 .row{display:flex;gap:6px;margin-top:14px}
 .row .ghost{flex:1;text-align:center}
 
+/* ---------- formuliervelden (scherm 6) ----------
+   Anders dan .field (label links, stepper rechts): hier staat het label
+   erboven, want een naam of een gebouw is te lang om naast een label te zetten. */
+.veld-vol{margin-bottom:12px}
+.veld-vol label{display:block;color:var(--ink-soft);margin-bottom:4px}
+.veld-vol input, .veld-vol select{width:100%}
+.veld-vol input, .field input[type=number]{
+  font:inherit;border:1px solid var(--line);border-radius:2px;padding:5px 7px;background:#fff;
+}
+.field input[type=number]{width:76px;text-align:right}
+.tool.gekozen{background:#E5E4DC;border-color:var(--ink-soft)}
+
 /* ---------- telling ---------- */
 .tally{border-top:1px solid var(--line);margin-top:26px;padding-top:16px}
 .tline{display:flex;justify-content:space-between;padding:3px 0;color:var(--ink-soft)}
