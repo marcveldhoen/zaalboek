@@ -21,20 +21,24 @@ const Tafelkring = {
      De schuine zijden van een trapezium wijzen naar één punt: het midden van de
      kring. Hoe sneller de tafel toeloopt, hoe groter de hoek en hoe minder
      tafels er in een rondje passen. Bij een rechthoekige tafel lopen de zijden
-     evenwijdig; dan is er geen natuurlijke hoek en geeft deze functie 0. */
+     evenwijdig; dan is er geen natuurlijke hoek en geeft deze functie 0.
+
+     De helft van het verschil tussen de lange en de korte zijde, gedeeld door
+     de diepte, is de tangens van de halve hoek. Een halve zeshoek (160/80/69)
+     komt zo precies op 60 graden uit: zes tafels sluiten dan rond. */
   tafelhoek(meubel) {
     const verschil = meubel.breedte - this.korteZijde(meubel);
     if (verschil <= 0 || !meubel.diepte) return 0;
-    const sinus = Math.min(1, verschil / (2 * meubel.diepte));
-    return 2 * Math.asin(sinus) * 180 / Math.PI;
+    return 2 * Math.atan(verschil / (2 * meubel.diepte)) * 180 / Math.PI;
   },
 
-  /* Het aantal tafels waarbij de kring vanzelf rond is, zonder wiggen ertussen.
-     Bij een rechthoekige tafel bestaat dat aantal niet; dan beginnen we met acht. */
+  /* Het grootste aantal tafels dat nog in een rondje past. Naar beneden
+     afgerond: één tafel te veel zou de kring moeten oprekken, en dan ontstaan
+     er juist aan de binnenkant kieren. */
   passendAantal(meubel) {
     const hoek = this.tafelhoek(meubel);
     if (!hoek) return 8;
-    return Math.max(3, Math.min(16, Math.round(360 / hoek)));
+    return Math.max(3, Math.min(16, Math.floor(360 / hoek)));
   },
 
   /* De afstand van het midden van de kring tot de lange zijde van de tafels.
