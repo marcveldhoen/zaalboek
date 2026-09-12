@@ -36,11 +36,25 @@ const Vormen = {
       stroke: lijn, "stroke-width": 7, "stroke-linecap": "round" }, g);
   },
 
+  /* Een tafelblad van bovenaf. Rechthoekig, of toelopend als het meubeltype
+     `vorm: "trapezium"` heeft. Bij een trapezium ligt de lange zijde aan de
+     bovenkant (-y) en de korte aan de onderkant (+y); in een tafelkring wijst
+     die korte zijde daardoor naar het midden. */
   tafelblad(g, meubel, gemarkeerd) {
-    this.el("rect", { x: -meubel.breedte / 2, y: -meubel.diepte / 2,
-      width: meubel.breedte, height: meubel.diepte, rx: 4,
-      fill: "var(--oak)", stroke: gemarkeerd ? "var(--accent)" : "var(--ink)",
-      "stroke-width": gemarkeerd ? 7 : 4 }, g);
+    const b = meubel.breedte, d = meubel.diepte;
+    const lijn = gemarkeerd ? "var(--accent)" : "var(--ink)";
+    const dikte = gemarkeerd ? 7 : 4;
+
+    if (meubel.vorm === "trapezium") {
+      const k = meubel.korteZijde || b;
+      const punten = `${-b / 2},${-d / 2} ${b / 2},${-d / 2} ${k / 2},${d / 2} ${-k / 2},${d / 2}`;
+      this.el("polygon", { points: punten, fill: "var(--oak)", stroke: lijn,
+        "stroke-width": dikte, "stroke-linejoin": "round" }, g);
+      return;
+    }
+
+    this.el("rect", { x: -b / 2, y: -d / 2, width: b, height: d, rx: 4,
+      fill: "var(--oak)", stroke: lijn, "stroke-width": dikte }, g);
   },
 
   /* De functie van een tafel: een kleed over het blad met een symbool erop.

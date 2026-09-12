@@ -111,6 +111,7 @@ const Tekening = {
     else if (element.type === "stoel")  Vormen.stoel(g, gemarkeerd);
     else if (element.type === "rij")    this.rij(g, element, gemarkeerd);
     else if (element.type === "kring")  this.kring(g, element, gemarkeerd);
+    else if (element.type === "tafelkring") this.tafelkring(g, element, gemarkeerd);
     else if (element.type === "object") Vormen.object(g, Model.meubel(element.meubelId), gemarkeerd, element.hoek);
 
     return g;
@@ -157,6 +158,27 @@ const Tekening = {
     Kring.posities(element).forEach(p => {
       const sg = this.el("g", { transform: `translate(${p.x} ${p.y}) rotate(${p.hoek})` }, g);
       Vormen.stoel(sg, gemarkeerd);
+    });
+  },
+
+  /* Een kring van tafels. De stoelen staan aan de buitenkant, want de tafels
+     staan met hun korte zijde tegen elkaar en laten binnen geen ruimte. Waar de
+     tafels komen te staan, rekent tafelkring.js uit. */
+  tafelkring(g, element, gemarkeerd) {
+    const meubel = Model.meubel(element.meubelId);
+    const afstand = Vormen.maat.stoelruimte + Vormen.maat.stoel / 2;
+
+    Tafelkring.posities(element).forEach(p => {
+      const tg = this.el("g", { transform: `translate(${p.x} ${p.y}) rotate(${p.hoek})` }, g);
+
+      // eerst de stoelen, dan het blad eroverheen — net als bij een gewone tafel
+      for (let i = 0; i < (element.stoelen || 0); i++) {
+        const x = meubel.breedte * (i + 0.5) / element.stoelen - meubel.breedte / 2;
+        const sg = this.el("g", { transform: `translate(${x} ${-meubel.diepte / 2 - afstand})` }, tg);
+        Vormen.stoel(sg, gemarkeerd);
+      }
+
+      Vormen.tafelblad(tg, meubel, gemarkeerd);
     });
   }
 };

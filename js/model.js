@@ -24,8 +24,18 @@ const Model = {
 
     /* De soort bepaalt waar iets terechtkomt in de lijst links.
        Bij een object bepaalt het symbool hoe het getekend wordt; de namen van de
-       symbolen staan in vormen.js. */
+       symbolen staan in vormen.js.
+
+       Een tafel is rechthoekig, tenzij er `vorm: "trapezium"` bij staat. Dan is
+       `breedte` de lange zijde, `korteZijde` de korte, en `diepte` de afstand
+       daartussen. Die drie maten bepalen hoe schuin de tafel toeloopt en dus
+       hoeveel er in een kring passen; zie tafelkring.js. */
     meubeltypen: [
+      { id: "tafel-kerk",      soort: "tafel", naam: "Tafel kerkzaal",  breedte: 120, diepte: 60, korteNaam: "Kerk",      meervoud: "Tafels kerkzaal" },
+      { id: "tafel-visnet",    soort: "tafel", naam: "Tafel 't Visnet", breedte: 120, diepte: 80, korteNaam: "Visnet",    meervoud: "Tafels 't Visnet" },
+      { id: "tafel-trapezium", soort: "tafel", naam: "Trapeziumtafel",  breedte: 160, diepte: 60, korteNaam: "Trapezium", meervoud: "Trapeziumtafels",
+        vorm: "trapezium", korteZijde: 80 },
+
       { id: "t180",       soort: "tafel",  naam: "Tafel lang",     breedte: 180, diepte: 80, korteNaam: "Lang",     meervoud: "Tafels lang" },
       { id: "t120",       soort: "tafel",  naam: "Tafel kort",     breedte: 120, diepte: 80, korteNaam: "Kort",     meervoud: "Tafels kort" },
       { id: "t80",        soort: "tafel",  naam: "Tafel vierkant", breedte:  80, diepte: 80, korteNaam: "Vierkant", meervoud: "Tafels vierkant" },
@@ -101,7 +111,26 @@ const Model = {
   },
 
   /* Een geladen document in gebruik nemen. */
-  gebruik(doc) { this.document = doc; },
+  gebruik(doc) {
+    this.document = doc;
+    this.meubeltypenAanvullen();
+  },
+
+  /* Tijdelijk bruggetje. Een document dat al bewaard is, kent de meubeltypen
+     nog niet die later zijn bijgekomen — er is immers nog geen scherm waarin je
+     ze zelf toevoegt. Ontbrekende typen worden daarom aangevuld uit de
+     voorbeeldlijst hierboven, op id.
+
+     Gevolg zolang dit erin zit: een meubeltype dat je zou wissen, komt bij de
+     volgende keer openen terug. Deze functie vervalt zodra scherm 7 (meubilair
+     beheren) er is; dan voeg je zelf toe en moet wissen ook echt wissen. */
+  meubeltypenAanvullen() {
+    if (!this.document.meubeltypen) this.document.meubeltypen = [];
+    const aanwezig = this.document.meubeltypen.map(m => m.id);
+    this.voorbeeld.meubeltypen
+      .filter(m => !aanwezig.includes(m.id))
+      .forEach(m => this.document.meubeltypen.push(JSON.parse(JSON.stringify(m))));
+  },
 
   /* Een pas aangemaakt bestand bevat alleen { "versie": 1 }. */
   isLeeg(doc) { return !doc || !doc.zalen || doc.zalen.length === 0; },
@@ -149,6 +178,16 @@ const Model = {
       const kring = Object.assign(basis, { n: 10, opening: 0, vorm: "rond", rx: 100, ry: 100 });
       Kring.passendMaken(kring);
       return kring;
+    }
+    if (type === "tafelkring") {
+      /* Anders dan bij een stoelenkring wordt de maat niet bewaard: bij
+         trapeziumtafels volgt de straal uit het aantal tafels en hun vorm.
+         Het beginaantal is het aantal waarbij de kring vanzelf rond is. */
+      return Object.assign(basis, {
+        meubelId,
+        n: Tafelkring.passendAantal(this.meubel(meubelId)),
+        stoelen: 2
+      });
     }
     throw new Error("Onbekend soort element: " + type);
   },
