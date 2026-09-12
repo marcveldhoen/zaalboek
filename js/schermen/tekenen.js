@@ -186,16 +186,47 @@ const SchermTekenen = {
         <div class="row"><button class="ghost" data-doe="passend">Passend maken</button></div>`;
     }
     else if (e.type === "tafelkring") {
-      const m = Model.meubel(e.meubelId);
-      const meter = (Tafelkring.doorsnede(e) / 100).toFixed(2).replace(".", ",");
+      const bochtTafel = Model.meubel(e.meubelId);
+      const maat = Tafelkring.buitenmaat(e);
+      const meter = cm => (cm / 100).toFixed(2).replace(".", ",");
+      const plaatsen = Tafelkring.plaatsen(e);
+      const staan = plaatsen.filter(p => !p.weggelaten).length;
+
       titel = "Tafelkring";
-      onder = `${e.n} × ${m.naam.toLowerCase()} · ${meter} m over de buitenkant`;
-      /* Geen maatvelden: bij een tafel die toeloopt bepaalt het aantal tafels de
-         maat van de kring. Daarom staat er ook geen knop "Passend maken" — de
-         kring is altijd al zo krap als kan. */
-      inhoud = `<h2>Maat</h2>
-        ${this.teller("Tafels", e.n, "aantal", 3, 16)}
-        ${this.teller("Stoelen per tafel", e.stoelen, "stoelenPerTafel", 0, 4)}`;
+      onder = `${staan} tafels · ${meter(maat.breedte)} × ${meter(maat.diepte)} m`;
+
+      // de rechte tafels: alleen de soorten die niet toelopen
+      const rechteSoorten = Model.meubeltypen("tafel").filter(m => m.vorm !== "trapezium");
+
+      /* Eén teller per paar tegenover elkaar liggende zijden. Tegenover elkaar
+         moet gelijk blijven, anders sluit de lus niet — zie tafelkring.js. */
+      const zijdenamen = ["Boven en onder", "Rechtsboven en linksonder",
+                          "Rechtsonder en linksboven"];
+      const tellers = e.zijden.map((aantal, i) =>
+        this.teller(zijdenamen[i] || `Zijden ${i + 1}`, aantal, `zijde${i}`, 0, 4)
+      ).join("");
+
+      inhoud = `<h2>Rechte tafels ertussen</h2>
+        <select id="rechtesoort">${rechteSoorten.map(m =>
+          `<option value="${m.id}" ${e.rechteMeubelId === m.id ? "selected" : ""}>
+             ${m.naam} ${m.breedte}×${m.diepte}</option>`).join("")}</select>
+        <div style="height:10px"></div>
+        ${tellers}
+        <h2 style="margin-top:20px">Stoelen</h2>
+        ${this.teller("Per tafel", e.stoelen, "stoelenPerTafel", 0, 4)}
+        <h2 style="margin-top:20px">Plaatsen</h2>
+        <p class="selsub" style="margin-bottom:8px">Klik een tafel weg om de kring
+          open te laten. De andere tafels blijven staan.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">
+          ${plaatsen.map(p => `
+            <button data-doe="weglaten:${p.nummer}" title="${p.meubel.naam}"
+              style="width:30px;height:27px;cursor:pointer;border-radius:2px;
+                     border:1px solid var(--line);
+                     background:${p.soort === "bocht" ? "var(--oak-light)" : "#fff"};
+                     ${p.weggelaten ? "opacity:.35;text-decoration:line-through" : ""}">
+              ${p.nummer + 1}</button>`).join("")}
+        </div>
+        <p class="selsub" style="margin-top:8px">Gekleurd = trapeziumtafel (de bochten).</p>`;
     }
     else if (e.type === "stoel") {
       const m = Model.meubel("stoel");
@@ -231,6 +262,13 @@ const SchermTekenen = {
       e.vorm = ev.target.value;
       // een ovaal begint als een afgeplatte versie van de ronde kring
       e.ry = e.vorm === "rond" ? e.rx : Math.max(70, Math.round(e.rx * 0.62 / 5) * 5);
+      this.teken();
+    };
+
+    const rechtesoort = document.getElementById("rechtesoort");
+    if (rechtesoort) rechtesoort.onchange = ev => {
+      this.momentopname();
+      e.rechteMeubelId = ev.target.value;
       this.teken();
     };
   },
@@ -440,6 +478,15 @@ const SchermTekenen = {
       else if (wat === "stoelenPerTafel") {
         e.stoelen = Math.max(0, Math.min(4, e.stoelen + richting));
       }
+      else if (wat.startsWith("zijde") && wat.length > 5) {
+        /* Een rechte tafel erbij of eraf, aan een paar tegenover elkaar
+           liggende zijden. Daarmee verschuiven alle plaatsen een nummer op, dus
+           de weggelaten plaatsen zouden naar een andere tafel wijzen: die keuze
+           gaat terug naar nul. */
+        const nummer = +wat.slice(5);
+        e.zijden[nummer] = Math.max(0, Math.min(4, e.zijden[nummer] + richting));
+        e.weggelaten = [];
+      }
       else if (wat === "opening") {
         e.opening = Math.max(0, Math.min(8, e.opening + richting));
       }
@@ -455,6 +502,14 @@ const SchermTekenen = {
     if (doe === "draai+")  e.hoek = (e.hoek + 15) % 360;
     if (doe === "draai-")  e.hoek = (e.hoek + 345) % 360;
     if (doe === "passend") Kring.passendMaken(e);
+
+    // een plaats in de tafelkring leegmaken of weer vullen
+    if (doe && doe.startsWith("weglaten:")) {
+      const nummer = +doe.slice(9);
+      e.weggelaten = e.weggelaten.includes(nummer)
+        ? e.weggelaten.filter(n => n !== nummer)
+        : e.weggelaten.concat(nummer);
+    }
     if (doe === "dupliceer") {
       const kopie = JSON.parse(JSON.stringify(e));
       kopie.x += 60; kopie.y += 60;
