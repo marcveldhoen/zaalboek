@@ -33,7 +33,7 @@ const Model = {
     meubeltypen: [
       { id: "tafel-kerk",      soort: "tafel", naam: "Tafel kerkzaal",  breedte: 120, diepte: 60, korteNaam: "Kerk",      meervoud: "Tafels kerkzaal" },
       { id: "tafel-visnet",    soort: "tafel", naam: "Tafel 't Visnet", breedte: 120, diepte: 80, korteNaam: "Visnet",    meervoud: "Tafels 't Visnet" },
-      { id: "tafel-trapezium", soort: "tafel", naam: "Trapeziumtafel",  breedte: 160, diepte: 60, korteNaam: "Trapezium", meervoud: "Trapeziumtafels",
+      { id: "tafel-trapezium", soort: "tafel", naam: "Trapeziumtafel",  breedte: 160, diepte: 69, korteNaam: "Trapezium", meervoud: "Trapeziumtafels",
         vorm: "trapezium", korteZijde: 80 },
 
       { id: "t180",       soort: "tafel",  naam: "Tafel lang",     breedte: 180, diepte: 80, korteNaam: "Lang",     meervoud: "Tafels lang" },
@@ -180,12 +180,16 @@ const Model = {
       return kring;
     }
     if (type === "tafelkring") {
-      /* Anders dan bij een stoelenkring wordt de maat niet bewaard: bij
-         trapeziumtafels volgt de straal uit het aantal tafels en hun vorm.
-         Het beginaantal is het aantal waarbij de kring vanzelf rond is. */
+      /* De maat wordt niet bewaard: die volgt uit de tafels zelf. Wat je wél
+         kiest, staat hier: hoeveel rechte tafels er per paar tegenover elkaar
+         liggende zijden bij komen, en welke plaatsen leeg blijven. */
+      const bochtTafel = this.meubel(meubelId);
+      const rechte = this.meubeltypen("tafel").find(m => m.vorm !== "trapezium");
       return Object.assign(basis, {
         meubelId,
-        n: Tafelkring.passendAantal(this.meubel(meubelId)),
+        rechteMeubelId: rechte ? rechte.id : null,
+        zijden: new Array(Tafelkring.aantalZijden(bochtTafel)).fill(0),
+        weggelaten: [],
         stoelen: 2
       });
     }

@@ -161,15 +161,16 @@ const Tekening = {
     });
   },
 
-  /* Een kring van tafels. De stoelen staan aan de buitenkant, want de tafels
-     staan met hun korte zijde tegen elkaar en laten binnen geen ruimte. Waar de
-     tafels komen te staan, rekent tafelkring.js uit. */
+  /* Een kring van tafels. De stoelen staan aan de buitenkant, want binnenin
+     staan de tafels tegen elkaar. Waar elke tafel komt te staan, rekent
+     tafelkring.js uit; een weggelaten plaats blijft gewoon leeg. */
   tafelkring(g, element, gemarkeerd) {
-    const meubel = Model.meubel(element.meubelId);
     const afstand = Vormen.maat.stoelruimte + Vormen.maat.stoel / 2;
 
-    Tafelkring.posities(element).forEach(p => {
-      const tg = this.el("g", { transform: `translate(${p.x} ${p.y}) rotate(${p.hoek})` }, g);
+    Tafelkring.plaatsen(element).forEach(plaats => {
+      if (plaats.weggelaten) return;
+      const meubel = plaats.meubel;
+      const tg = this.el("g", { transform: `translate(${plaats.x} ${plaats.y}) rotate(${plaats.hoek})` }, g);
 
       // eerst de stoelen, dan het blad eroverheen — net als bij een gewone tafel
       for (let i = 0; i < (element.stoelen || 0); i++) {
