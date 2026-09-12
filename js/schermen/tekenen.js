@@ -79,12 +79,18 @@ const SchermTekenen = {
       knop("tafel", m.id, m.korteNaam || m.naam, `${m.breedte}×${m.diepte}`, blokjeVoorTafel(m.breedte))
     ).join("");
 
+    /* Een kring van tafels heeft alleen zin bij een tafel die toeloopt; een
+       rechthoekige tafel sluit nooit aan. Vandaar één knop per trapeziumsoort. */
+    const tafelkringen = Model.meubeltypen("tafel").filter(m => m.vorm === "trapezium").map(m =>
+      knop("tafelkring", m.id, "Tafelkring", m.korteNaam || m.naam, "md")
+    ).join("");
+
     const objecten = Model.meubeltypen("object").map(m =>
       knop("object", m.id, m.naam, "", "obj")
     ).join("");
 
     balk.innerHTML = `
-      <div class="group"><h2>Tafels</h2>${tafels}</div>
+      <div class="group"><h2>Tafels</h2>${tafels}${tafelkringen}</div>
       <div class="group"><h2>Stoelen</h2>
         ${knop("rij", "", "Rij", "", "chair")}
         ${knop("kring", "", "Kring", "", "chair")}
@@ -178,6 +184,18 @@ const SchermTekenen = {
           ? this.teller("Breedte", e.rx * 2, "rx", 140, 1200) + this.teller("Diepte", e.ry * 2, "ry", 140, 1200)
           : this.teller("Doorsnede", e.rx * 2, "rx", 140, 1200)}
         <div class="row"><button class="ghost" data-doe="passend">Passend maken</button></div>`;
+    }
+    else if (e.type === "tafelkring") {
+      const m = Model.meubel(e.meubelId);
+      const meter = (Tafelkring.doorsnede(e) / 100).toFixed(2).replace(".", ",");
+      titel = "Tafelkring";
+      onder = `${e.n} × ${m.naam.toLowerCase()} · ${meter} m over de buitenkant`;
+      /* Geen maatvelden: bij een tafel die toeloopt bepaalt het aantal tafels de
+         maat van de kring. Daarom staat er ook geen knop "Passend maken" — de
+         kring is altijd al zo krap als kan. */
+      inhoud = `<h2>Maat</h2>
+        ${this.teller("Tafels", e.n, "aantal", 3, 16)}
+        ${this.teller("Stoelen per tafel", e.stoelen, "stoelenPerTafel", 0, 4)}`;
     }
     else if (e.type === "stoel") {
       const m = Model.meubel("stoel");
@@ -414,9 +432,13 @@ const SchermTekenen = {
         e.stoelen[zijde] = Math.max(0, Math.min(8, e.stoelen[zijde] + richting));
       }
       else if (wat === "aantal") {
-        const laagst = e.type === "kring" ? 3 : 2;
-        const hoogst = e.type === "kring" ? 40 : 30;
-        e.n = Math.max(laagst, Math.min(hoogst, e.n + richting));
+        // per soort een eigen grens: een stoelenkring mag veel groter zijn dan
+        // een tafelkring, die bij zestien tafels de zaal al vult
+        const grens = { kring: [3, 40], tafelkring: [3, 16] }[e.type] || [2, 30];
+        e.n = Math.max(grens[0], Math.min(grens[1], e.n + richting));
+      }
+      else if (wat === "stoelenPerTafel") {
+        e.stoelen = Math.max(0, Math.min(4, e.stoelen + richting));
       }
       else if (wat === "opening") {
         e.opening = Math.max(0, Math.min(8, e.opening + richting));
