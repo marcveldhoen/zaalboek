@@ -43,6 +43,16 @@ header{
   font-family:Newsreader, Georgia, serif;
   font-size:20px;letter-spacing:.01em;
   cursor:pointer;
+  display:inline-flex;align-items:baseline;gap:7px;
+}
+.kerksilhouet{
+  width:19px;height:19px;
+  fill:var(--accent);
+  align-self:center;
+  flex:0 0 auto;
+}
+.kerksilhouet .kruis{
+  fill:none;stroke:var(--accent);stroke-width:1.6;stroke-linecap:round;
 }
 .crumb{color:var(--ink-soft);font-size:13px}
 .crumb b{font-weight:500;color:var(--ink)}
