@@ -40,6 +40,9 @@ credentials*
 # Werkoverdracht tussen sessies: kan projectdetails bevatten, blijft lokaal
 OVERDRACHT.md
 
+# Ontwerpdocumenten en prototype: bevatten echte zaalnamen, blijven lokaal
+docs/
+
 # Lokale testopstelling: laadt de app tegen een nep-opslagserver in plaats
 # van de echte privé-opslagplaats, zodat testen nooit echte gegevens raakt.
 test-lokaal.html
