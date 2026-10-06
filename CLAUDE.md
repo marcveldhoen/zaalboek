@@ -22,3 +22,17 @@ browser (localStorage) en nooit in de code.
   - controleer vóór elke commit met `git status` en `git diff --staged` wat er
     meegaat. Twijfel je, commit dan niet en vraag het eerst.
 - Schrijf code, commentaar en namen in het Nederlands, net als de bestaande code.
+
+## De map zaalboek-gegevens
+
+Naast deze map staat `~/Documents/zaalboek-gegevens`, de aparte, privé
+opslagplaats met de daadwerkelijke gegevens (zalen, namen, opstellingen).
+
+- De gegevens horen **nooit** in deze openbare repository, ook niet als
+  voorbeeld of testgegevens.
+- Wil je iets wijzigen in de gegevens, toon dan eerst precies welke wijziging
+  je van plan bent en wacht op akkoord voordat je iets aanpast.
+- Commit en push gegevenswijzigingen pas na akkoord, en doe dat in die map
+  zelf (`git -C ~/Documents/zaalboek-gegevens ...`), niet in deze repository.
+- Voor wijzigingen aan de code van de app blijven de afspraken hierboven
+  gelden.
