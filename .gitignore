@@ -37,6 +37,9 @@ credentials*
 # Persoonlijke instellingen van Claude Code
 .claude/settings.local.json
 
+# Werkoverdracht tussen sessies: kan projectdetails bevatten, blijft lokaal
+OVERDRACHT.md
+
 # Systeem- en editorbestanden
 .DS_Store
 Thumbs.db

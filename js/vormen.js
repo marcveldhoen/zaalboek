@@ -156,33 +156,37 @@ const Vormen = {
 
   /* ---------------- vaste objecten van de zaal ---------------- */
 
-  raam(g, o) {
+  raam(g, o, gemarkeerd) {
+    const lijn = gemarkeerd ? "var(--accent)" : "var(--ink)";
     this.el("rect", { x: -o.breedte / 2, y: -o.diepte / 2, width: o.breedte, height: o.diepte,
-      fill: "var(--floor)", stroke: "var(--ink)", "stroke-width": 4 }, g);
+      fill: "var(--floor)", stroke: lijn, "stroke-width": gemarkeerd ? 6 : 4 }, g);
     this.el("line", { x1: -o.breedte / 2, y1: 0, x2: o.breedte / 2, y2: 0,
-      stroke: "var(--ink)", "stroke-width": 3 }, g);
+      stroke: lijn, "stroke-width": 3 }, g);
   },
 
-  beamerscherm(g, o) {
+  beamerscherm(g, o, gemarkeerd) {
     this.el("rect", { x: -o.breedte / 2, y: -o.diepte / 2, width: o.breedte, height: o.diepte,
-      fill: "var(--ink)", stroke: "none" }, g);
+      fill: "var(--ink)", stroke: gemarkeerd ? "var(--accent)" : "none",
+      "stroke-width": gemarkeerd ? 6 : 0 }, g);
   },
 
   /* Alles wat vast is en geen eigen symbool heeft: keuken, kast, uitgifte.
      De arcering maakt ze ook zonder kleur van meubilair te onderscheiden. */
-  vastBlok(g, o) {
+  vastBlok(g, o, gemarkeerd) {
+    const lijn = gemarkeerd ? "var(--accent)" : "var(--ink)";
     this.el("rect", { x: -o.breedte / 2, y: -o.diepte / 2, width: o.breedte, height: o.diepte,
-      fill: "url(#arcering)", stroke: "var(--ink)", "stroke-width": 4 }, g);
+      fill: "url(#arcering)", stroke: lijn, "stroke-width": gemarkeerd ? 6 : 4 }, g);
   },
 
   /* Een deur met haar draaicirkel. Dat is het snelste oriëntatiepunt op het blad. */
-  deur(g, o) {
+  deur(g, o, gemarkeerd) {
     const w = o.breedte, kant = o.kant;
+    const lijn = gemarkeerd ? "var(--accent)" : "var(--ink)";
     this.el("rect", { x: 0, y: -11, width: w, height: 22, fill: "var(--floor)" }, g);
     this.el("path", { d: `M ${w} 0 A ${w} ${w} 0 0 ${kant > 0 ? 1 : 0} 0 ${kant * w}`,
       fill: "none", stroke: "var(--ink-faint)", "stroke-width": 3 }, g);
     this.el("line", { x1: 0, y1: 0, x2: 0, y2: kant * w,
-      stroke: "var(--ink)", "stroke-width": 7 }, g);
+      stroke: lijn, "stroke-width": gemarkeerd ? 9 : 7 }, g);
   },
 
   /* Het opschrift van een vast object, midden op het object zelf. */

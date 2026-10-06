@@ -16,14 +16,17 @@ const Tekening = {
   },
 
   /* ---------------- de zaal ----------------
-     doelen: { raster, ruimte, vast, schaalstok } — vier lege groepen. */
-  zaal(zaal, doelen) {
+     doelen: { raster, ruimte, vast, schaalstok } — vier lege groepen.
+     geselecteerdVast: alleen gebruikt door het zaal-inrichtscherm, om een
+     aangeklikt vast object te markeren. Op het tekenscherm en het printblad
+     blijft dit altijd leeg. */
+  zaal(zaal, doelen, geselecteerdVast) {
     const omtrek = Zaalvorm.omtrek(zaal.vorm);
     const k = Zaalvorm.kader(omtrek);
 
     this.raster(doelen.raster, k);
     this.vloer(doelen.ruimte, omtrek, k, zaal.naam);
-    this.vasteObjecten(doelen.vast, zaal.vasteObjecten || []);
+    this.vasteObjecten(doelen.vast, zaal.vasteObjecten || [], geselecteerdVast);
     this.schaalstok(doelen.schaalstok, k);
   },
 
@@ -54,20 +57,30 @@ const Tekening = {
     t.textContent = naam;
   },
 
-  vasteObjecten(doel, objecten) {
+  /* geselecteerd: het object dat gemarkeerd getekend wordt (zaal-inrichtscherm),
+     of undefined als er niets te markeren valt. */
+  vasteObjecten(doel, objecten, geselecteerd) {
     doel.innerHTML = "";
 
-    // deuren als laatste: hun vloerstrook moet over de muur heen liggen
-    const volgorde = objecten.filter(o => o.soort !== "deur")
-                       .concat(objecten.filter(o => o.soort === "deur"));
+    // deuren als laatste: hun vloerstrook moet over de muur heen liggen.
+    // Het oorspronkelijke indexnummer blijft meegaan, want dat is waarmee het
+    // zaal-inrichtscherm een aangeklikt object terugvindt in zaal.vasteObjecten.
+    const metIndex = objecten.map((o, index) => ({ o, index }));
+    const volgorde = metIndex.filter(p => p.o.soort !== "deur")
+                       .concat(metIndex.filter(p => p.o.soort === "deur"));
 
-    volgorde.forEach(o => {
-      const g = this.el("g", { transform: `translate(${o.x} ${o.y}) rotate(${o.hoek})` }, doel);
+    volgorde.forEach(({ o, index }) => {
+      const g = this.el("g", {
+        transform: `translate(${o.x} ${o.y}) rotate(${o.hoek})`,
+        "data-vast": index,
+        style: "cursor:move"
+      }, doel);
+      const gemarkeerd = o === geselecteerd;
 
-      if (o.soort === "deur")        Vormen.deur(g, o);
-      else if (o.soort === "raam")   Vormen.raam(g, o);
-      else if (o.soort === "scherm") Vormen.beamerscherm(g, o);
-      else                           Vormen.vastBlok(g, o);
+      if (o.soort === "deur")        Vormen.deur(g, o, gemarkeerd);
+      else if (o.soort === "raam")   Vormen.raam(g, o, gemarkeerd);
+      else if (o.soort === "scherm") Vormen.beamerscherm(g, o, gemarkeerd);
+      else                           Vormen.vastBlok(g, o, gemarkeerd);
 
       if (o.opschrift) Vormen.opschrift(g, o.opschrift);
     });

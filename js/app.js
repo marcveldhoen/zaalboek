@@ -60,7 +60,7 @@ function naarZalenInrichten() {
   HuidigScherm = SchermZaal;
   document.getElementById("wisselScherm").textContent = "Terug naar tekenen";
   document.getElementById("hint").innerHTML = HINT_ZAAL;
-  document.getElementById("ongedaan").disabled = true;   // dit scherm heeft nog geen ongedaan-maken
+  document.getElementById("ongedaan").disabled = !SchermZaal.ongedaanStapel.length;
   SchermZaal.open();
 }
 

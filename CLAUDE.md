@@ -36,3 +36,11 @@ opslagplaats met de daadwerkelijke gegevens (zalen, namen, opstellingen).
   zelf (`git -C ~/Documents/zaalboek-gegevens ...`), niet in deze repository.
 - Voor wijzigingen aan de code van de app blijven de afspraken hierboven
   gelden.
+
+## OVERDRACHT.md
+
+Als er een bestand `OVERDRACHT.md` in deze map staat, lees dat dan eerst: het
+bevat de projectoverdracht (doel, ontwerpbeslissingen, stand van zaken,
+volgende stappen) uit een eerdere sessie. Dat bestand staat in `.gitignore`
+en wordt nooit gecommit — de inhoud ervan hoort niet in dit openbare
+CLAUDE.md.

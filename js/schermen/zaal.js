@@ -1,13 +1,12 @@
-/* schermen/zaal.js — scherm 6, stukje 1: een zaal vastleggen.
+/* schermen/zaal.js — scherm 6: een zaal vastleggen en inrichten.
 
-   In dit eerste stukje kun je een zaal aanmaken of aanpassen: gebouw, naam en
-   vorm (rechthoek of L-vorm). Alles wat je intypt geeft meteen een nieuwe
-   tekening — dat is de directe toets of zaalvorm.js een L-vorm goed omzet,
-   ruim voordat er iets bewaard wordt.
+   Stukje 1: een zaal aanmaken of aanpassen (gebouw, naam, vorm). Alles wat je
+   intypt geeft meteen een nieuwe tekening — dat is de directe toets of
+   zaalvorm.js een L-vorm goed omzet, ruim voordat er iets bewaard wordt.
 
-   Vaste objecten (deuren, ramen, kasten) en de voorraad komen in een volgend
-   stukje. Dit scherm tekent daarom alleen de lege omtrek, zonder meubilair:
-   er is hier geen opstelling.
+   Stukje 2: vaste objecten (deuren, ramen, kasten) plaatsen, verslepen en
+   aanpassen. Dat kan pas zodra de zaal zelf bewaard is — daarvoor bestaat er
+   nog geen `vasteObjecten`-lijst om iets aan toe te voegen.
 
    Net als schermen/tekenen.js gebruikt dit de svg-groepen uit index.html, en
    heeft het een sluiten() zodat app.js netjes kan wisselen tussen de twee
@@ -15,21 +14,26 @@
 
 const SchermZaal = {
 
-  zaal: null,           // de zaal die nu in het formulier staat; null = nog niet bewaard
+  zaal: null,               // de zaal die nu in het formulier staat; null = nog niet bewaard
+  geselecteerdObject: null, // een aangeklikt vast object, of null
   beeld: { x: 0, y: 0, w: 0, h: 0 },
   sleep: null,
+  ongedaanStapel: [],       // momentopnamen van zaal.vasteObjecten
 
   open() {
     this.svg = document.getElementById("plan");
 
     document.getElementById("kruimel").innerHTML = "Zalen inrichten";
     document.getElementById("telling").innerHTML = "";
+    // het meubilair van het tekenscherm staat in een eigen groep die dit
+    // scherm verder niet gebruikt; zonder dit blijft het als een spook
+    // zichtbaar boven de lege omtrek
+    document.getElementById("elementen").innerHTML = "";
 
     this.lijst();
     // Altijd starten met een lege, nieuwe zaal — nooit vanzelf een bestaande
-    // selecteren. Die kan nog vaste objecten uit een eerdere invoer bevatten
-    // (denk aan de voorbeeldzaal uit bouwstap 1), en dat moet je zien aankomen
-    // doordat je zelf op die zaal klikt, niet doordat het scherm hem al opende.
+    // selecteren. Zo zie je zelf aankomen welke zaal en welke vaste objecten
+    // je opent, in plaats van dat het scherm die al toont.
     this.selecteer(null);
     this.bedieningAanzetten();
   },
@@ -65,6 +69,9 @@ const SchermZaal = {
   },
 
   selecteer(zaal) {
+    // alleen een andere zaal maakt de vorige objectkeuze ongeldig; bewaren()
+    // roept dit ook aan met dezelfde zaal, en dat mag de keuze laten staan
+    if (zaal !== this.zaal) this.geselecteerdObject = null;
     this.zaal = zaal;
     this.lijst();        // opnieuw, voor de markering van de gekozen zaal
     this.formulier();
@@ -113,18 +120,12 @@ const SchermZaal = {
 
       <div class="row"><button class="ghost" id="zBewaren">Bewaren</button></div>
       ${z ? `<div class="row"><button class="ghost" id="zVerwijderen">Verwijderen</button></div>` : ""}
-      ${z && z.vasteObjecten && z.vasteObjecten.length ? `
-        <p class="selsub" style="margin-top:16px;color:var(--warn)">
-          Deze zaal heeft nog ${z.vasteObjecten.length} vast(e) object(en) uit een
-          eerdere invoer (deuren, ramen e.d.). Het echt plaatsen van de juiste
-          komt in de volgende stap — wil je de oude nu alvast wissen?
-        </p>
-        <div class="row"><button class="ghost" id="zVasteObjectenWissen">Vaste objecten wissen</button></div>
-      ` : ""}
+      ${z ? this.vasteObjectenSectie() : ""}
     `;
 
     this.vormVelden(vormType, z ? z.vorm : null);
     this.basisBediening();
+    this.objectVeldBediening();
     this.herteken();
   },
 
@@ -184,14 +185,6 @@ const SchermZaal = {
 
     const verwijderKnop = document.getElementById("zVerwijderen");
     if (verwijderKnop) verwijderKnop.onclick = () => this.verwijderen();
-
-    const wisKnop = document.getElementById("zVasteObjectenWissen");
-    if (wisKnop) wisKnop.onclick = () => {
-      if (!confirm(`Alle vaste objecten van "${this.zaal.naam}" wissen? Dit kan niet ongedaan gemaakt worden.`)) return;
-      this.zaal.vasteObjecten = [];
-      if (this.opWijziging) this.opWijziging();
-      this.selecteer(this.zaal);
-    };
   },
 
   /* Leest het formulier, zonder iets te bewaren. Geeft null zolang de
@@ -230,13 +223,21 @@ const SchermZaal = {
     });
     if (!vorm) return;   // nog niet genoeg ingevuld om te tekenen
 
-    Tekening.zaal({ naam, vorm, vasteObjecten: [] }, {
+    const vasteObjecten = this.zaal ? this.zaal.vasteObjecten : [];
+    Tekening.zaal({ naam, vorm, vasteObjecten }, {
       raster:     document.getElementById("raster"),
       ruimte:     document.getElementById("ruimte"),
       vast:       document.getElementById("vast"),
       schaalstok: document.getElementById("schaalstok")
-    });
+    }, this.geselecteerdObject);
     this.passend(vorm);
+  },
+
+  /* Alleen de vaste objecten opnieuw tekenen, zonder de rest van het
+     formulier te herbouwen. Nodig tijdens het typen in het opschriftveld:
+     formulier() zou dat veld vervangen en daarmee de cursor kwijtraken. */
+  tekenVast() {
+    Tekening.vasteObjecten(document.getElementById("vast"), this.zaal.vasteObjecten, this.geselecteerdObject);
   },
 
   /* ---------------- bewaren en verwijderen ---------------- */
@@ -276,9 +277,118 @@ const SchermZaal = {
     this.selecteer(Model.document.zalen[0] || null);
   },
 
-  /* ---------------- zoomen en verschuiven ----------------
-     Hetzelfde principe als in schermen/tekenen.js, maar zonder meubilair om
-     te verslepen: hier is alleen de plattegrond zelf te bekijken. */
+  /* ---------------- vaste objecten ---------------- */
+
+  vasteObjectenSectie() {
+    const knoppen = Object.entries(Model.vasteObjectSoorten).map(([soort, basis]) =>
+      `<button class="ghost" data-vastnieuw="${soort}">+ ${basis.naam}</button>`
+    ).join("");
+
+    return `
+      <h2 style="margin-top:20px">Vaste objecten</h2>
+      <div class="row">${knoppen}</div>
+      ${this.objectFormulier()}
+    `;
+  },
+
+  objectFormulier() {
+    const o = this.geselecteerdObject;
+    if (!o || !this.zaal.vasteObjecten.includes(o)) {
+      this.geselecteerdObject = null;
+      return `<p class="selsub" style="margin-top:12px">Klik een deur, raam of
+        kast aan om hem te verslepen of aan te passen.</p>`;
+    }
+
+    const basis = Model.vasteObjectSoorten[o.soort];
+    const naam = (basis && basis.naam) || o.opschrift || o.soort;
+
+    return `
+      <p class="selname" style="margin-top:16px">${naam}</p>
+      ${this.teller("Breedte", o.breedte, "breedte", 20, 400)}
+      ${o.diepte != null ? this.teller("Diepte", o.diepte, "diepte", 5, 100) : ""}
+      ${o.soort === "deur" ? `
+        <div class="row"><button class="ghost" data-doe="kant">Scharnierkant spiegelen</button></div>
+      ` : ""}
+      ${o.opschrift != null ? `
+        <div class="veld-vol"><label>Opschrift</label>
+          <input type="text" id="vObjOpschrift" value="${o.opschrift}"></div>
+      ` : ""}
+      <div class="row">
+        <button class="ghost" data-doe="draai-">Draai ↺</button>
+        <button class="ghost" data-doe="draai+">Draai ↻</button>
+      </div>
+      <div class="row">
+        <button class="ghost" data-doe="dupliceer">Dupliceren</button>
+        <button class="ghost" data-doe="verwijder">Verwijderen</button>
+      </div>
+    `;
+  },
+
+  teller(label, waarde, actie, min, max) {
+    return `<div class="field"><label>${label}</label>
+      <span class="stepper">
+        <button data-stap="${actie}:-1" ${waarde <= min ? "disabled" : ""}>−</button>
+        <span>${waarde}</span>
+        <button data-stap="${actie}:1" ${waarde >= max ? "disabled" : ""}>+</button>
+      </span></div>`;
+  },
+
+  /* Het opschriftveld van een kast: bijwerken zonder het paneel te herbouwen,
+     zodat je niet bij elke letter de cursor kwijtraakt. */
+  objectVeldBediening() {
+    const veld = document.getElementById("vObjOpschrift");
+    if (!veld) return;
+
+    veld.addEventListener("focus", () => this.momentopname());
+    veld.addEventListener("input", () => {
+      this.geselecteerdObject.opschrift = veld.value;
+      this.tekenVast();
+      if (this.opWijziging) this.opWijziging();
+    });
+  },
+
+  plaatsNieuwVastObject(soort) {
+    if (!this.zaal) return;
+    this.momentopname();
+
+    const midden = {
+      x: Math.round((this.beeld.x + this.beeld.w / 2) / 5) * 5,
+      y: Math.round((this.beeld.y + this.beeld.h / 2) / 5) * 5
+    };
+    const object = Model.nieuwVastObject(soort, midden.x, midden.y);
+    this.zaal.vasteObjecten.push(object);
+    this.geselecteerdObject = object;
+    this.vastGewijzigd();
+  },
+
+  /* Na een wijziging aan een vast object: bewaren en het paneel + de
+     tekening verversen — net als teken() in schermen/tekenen.js. */
+  vastGewijzigd() {
+    if (this.opWijziging) this.opWijziging();
+    this.formulier();
+  },
+
+  /* ---------------- ongedaan maken ----------------
+     Alleen de vaste objecten vallen hieronder; vorm, naam en gebouw worden
+     pas gewijzigd op het moment van Bewaren en horen daar niet bij. */
+
+  momentopname() {
+    if (!this.zaal) return;
+    this.ongedaanStapel.push(JSON.stringify(this.zaal.vasteObjecten));
+    if (this.ongedaanStapel.length > 60) this.ongedaanStapel.shift();
+    document.getElementById("ongedaan").disabled = false;
+  },
+
+  ongedaanMaken() {
+    if (!this.zaal || !this.ongedaanStapel.length) return;
+    this.zaal.vasteObjecten = JSON.parse(this.ongedaanStapel.pop());
+    this.geselecteerdObject = null;    // de oude verwijzing bestaat niet meer
+    document.getElementById("ongedaan").disabled = !this.ongedaanStapel.length;
+    if (this.opWijziging) this.opWijziging();
+    this.formulier();
+  },
+
+  /* ---------------- zoomen en verschuiven ---------------- */
 
   toonBeeld() {
     this.svg.setAttribute("viewBox", `${this.beeld.x} ${this.beeld.y} ${this.beeld.w} ${this.beeld.h}`);
@@ -314,7 +424,75 @@ const SchermZaal = {
     return p.matrixTransform(this.svg.getScreenCTM().inverse());
   },
 
-  /* ---------------- knoppen en slepen ---------------- */
+  /* ---------------- slepen ----------------
+     Hetzelfde principe als in schermen/tekenen.js: een vast object aangeklikt
+     verplaatst dat object, lege ruimte aangeklikt verschuift de plattegrond. */
+
+  sleepBegin(ev) {
+    const groep = ev.target.closest("g[data-vast]");
+    const p = this.naarZaal(ev);
+
+    if (groep && this.zaal) {
+      const object = this.zaal.vasteObjecten[+groep.dataset.vast];
+      this.momentopname();
+      this.geselecteerdObject = object;
+      this.formulier();   // het paneel en de markering bijwerken
+
+      // het paneel is zojuist herbouwd; de gesleepte groep opnieuw opzoeken
+      const nummer = this.zaal.vasteObjecten.indexOf(object);
+      this.sleep = {
+        wat: "object",
+        object,
+        groep: document.getElementById("vast").querySelector(`g[data-vast="${nummer}"]`),
+        dx: p.x - object.x,
+        dy: p.y - object.y,
+        bewogen: false
+      };
+    } else {
+      this.geselecteerdObject = null;
+      if (this.zaal) this.formulier();
+      this.sleep = { wat: "beeld", x: ev.clientX, y: ev.clientY,
+                     beeldX: this.beeld.x, beeldY: this.beeld.y };
+      this.svg.classList.add("panning");
+    }
+    this.svg.setPointerCapture(ev.pointerId);
+  },
+
+  sleepBeweeg(ev) {
+    if (!this.sleep) return;
+
+    if (this.sleep.wat === "object") {
+      const p = this.naarZaal(ev);
+      const o = this.sleep.object;
+      o.x = Math.round((p.x - this.sleep.dx) / 5) * 5;   // vast op vijf centimeter
+      o.y = Math.round((p.y - this.sleep.dy) / 5) * 5;
+      this.sleep.bewogen = true;
+      this.sleep.groep.setAttribute("transform", `translate(${o.x} ${o.y}) rotate(${o.hoek})`);
+    } else {
+      const vak = this.svg.getBoundingClientRect();
+      const schaal = this.beeld.w / vak.width;
+      this.beeld.x = this.sleep.beeldX - (ev.clientX - this.sleep.x) * schaal;
+      this.beeld.y = this.sleep.beeldY - (ev.clientY - this.sleep.y) * schaal;
+      this.toonBeeld();
+    }
+  },
+
+  sleepEinde() {
+    if (this.sleep && this.sleep.wat === "object") {
+      if (this.sleep.bewogen) {
+        this.sleep = null;
+        this.vastGewijzigd();
+      } else {
+        // alleen aanklikken zonder verplaatsen hoeft niet ongedaan gemaakt te kunnen worden
+        this.ongedaanStapel.pop();
+        document.getElementById("ongedaan").disabled = !this.ongedaanStapel.length;
+      }
+    }
+    this.sleep = null;
+    this.svg.classList.remove("panning");
+  },
+
+  /* ---------------- knoppen en toetsen ---------------- */
 
   bedieningAanzetten() {
     // op de container geluisterd (niet op de knoppen zelf), want de lijst
@@ -326,20 +504,9 @@ const SchermZaal = {
     };
     document.getElementById("gereedschap").addEventListener("click", this._onGereedschapKlik);
 
-    this._onPointerDown = ev => {
-      this.sleep = { x: ev.clientX, y: ev.clientY, beeldX: this.beeld.x, beeldY: this.beeld.y };
-      this.svg.classList.add("panning");
-      this.svg.setPointerCapture(ev.pointerId);
-    };
-    this._onPointerMove = ev => {
-      if (!this.sleep) return;
-      const vak = this.svg.getBoundingClientRect();
-      const schaal = this.beeld.w / vak.width;
-      this.beeld.x = this.sleep.beeldX - (ev.clientX - this.sleep.x) * schaal;
-      this.beeld.y = this.sleep.beeldY - (ev.clientY - this.sleep.y) * schaal;
-      this.toonBeeld();
-    };
-    this._onPointerUp = () => { this.sleep = null; this.svg.classList.remove("panning"); };
+    this._onPointerDown = ev => this.sleepBegin(ev);
+    this._onPointerMove = ev => this.sleepBeweeg(ev);
+    this._onPointerUp   = () => this.sleepEinde();
     this._onWheel = ev => {
       ev.preventDefault();
       const p = this.naarZaal(ev);
@@ -358,6 +525,12 @@ const SchermZaal = {
       const vorm = this.vormUitFormulier();
       if (vorm) this.passend(vorm);
     };
+
+    this._onPaneelKlik = ev => this.paneelKlik(ev);
+    document.getElementById("eigenschappen").addEventListener("click", this._onPaneelKlik);
+
+    this._onKeydown = ev => this.toets(ev);
+    document.addEventListener("keydown", this._onKeydown);
   },
 
   /* Aangeroepen door app.js vlak voordat er naar het tekenscherm wordt
@@ -368,5 +541,85 @@ const SchermZaal = {
     this.svg.removeEventListener("pointermove", this._onPointerMove);
     this.svg.removeEventListener("pointerup",   this._onPointerUp);
     this.svg.removeEventListener("wheel", this._onWheel);
+    document.getElementById("eigenschappen").removeEventListener("click", this._onPaneelKlik);
+    document.removeEventListener("keydown", this._onKeydown);
+  },
+
+  paneelKlik(ev) {
+    const vastKnop = ev.target.closest("[data-vastnieuw]");
+    if (vastKnop) { this.plaatsNieuwVastObject(vastKnop.dataset.vastnieuw); return; }
+
+    const o = this.geselecteerdObject;
+    if (!o) return;
+
+    const stap = ev.target.dataset.stap;
+    const doe = ev.target.dataset.doe;
+    if (!stap && !doe) return;
+
+    this.momentopname();
+
+    if (stap) {
+      const delen = stap.split(":");
+      const richting = +delen[1];
+      if (delen[0] === "breedte") o.breedte = Math.max(20, Math.min(400, o.breedte + richting * 5));
+      if (delen[0] === "diepte")  o.diepte  = Math.max(5,  Math.min(100, o.diepte  + richting * 5));
+    }
+
+    // vaste objecten staan tegen rechte muren, dus draaien gaat in stappen van 90°
+    if (doe === "draai+") o.hoek = (o.hoek + 90) % 360;
+    if (doe === "draai-") o.hoek = (o.hoek + 270) % 360;
+    if (doe === "kant")   o.kant = -o.kant;
+
+    if (doe === "dupliceer") {
+      const kopie = JSON.parse(JSON.stringify(o));
+      kopie.x += 30; kopie.y += 30;
+      this.zaal.vasteObjecten.push(kopie);
+      this.geselecteerdObject = kopie;
+    }
+    if (doe === "verwijder") {
+      this.zaal.vasteObjecten = this.zaal.vasteObjecten.filter(x => x !== o);
+      this.geselecteerdObject = null;
+    }
+
+    this.vastGewijzigd();
+  },
+
+  toets(ev) {
+    if (ev.target.tagName === "SELECT" || ev.target.tagName === "INPUT") return;
+
+    if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === "z") {
+      ev.preventDefault();
+      this.ongedaanMaken();
+      return;
+    }
+
+    const o = this.geselecteerdObject;
+    if (!o) return;
+
+    const stap = ev.shiftKey ? 25 : 5;
+    const verschuiven = {
+      ArrowLeft:  [-stap, 0], ArrowRight: [stap, 0],
+      ArrowUp:    [0, -stap], ArrowDown:  [0, stap]
+    };
+
+    if (verschuiven[ev.key]) {
+      ev.preventDefault();
+      this.momentopname();
+      o.x += verschuiven[ev.key][0];
+      o.y += verschuiven[ev.key][1];
+      this.vastGewijzigd();
+    }
+    if (ev.key === "r" || ev.key === "R") {
+      this.momentopname();
+      o.hoek = (o.hoek + (ev.shiftKey ? 270 : 90)) % 360;
+      this.vastGewijzigd();
+    }
+    if (ev.key === "Backspace" || ev.key === "Delete") {
+      ev.preventDefault();
+      this.momentopname();
+      this.zaal.vasteObjecten = this.zaal.vasteObjecten.filter(x => x !== o);
+      this.geselecteerdObject = null;
+      this.vastGewijzigd();
+    }
   }
 };

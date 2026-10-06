@@ -196,6 +196,27 @@ const Model = {
     throw new Error("Onbekend soort element: " + type);
   },
 
+  /* ---------- vaste objecten van een zaal ----------
+     Net als bij nieuwElement: één plek met de standaardmaten van een vast
+     object. Een deur heeft geen `diepte`: Vormen.deur tekent een vaste
+     hoogte, alleen de breedte telt. */
+  vasteObjectSoorten: {
+    deur: { naam: "Deur", breedte:  95 },
+    raam: { naam: "Raam", breedte: 150, diepte: 16 },
+    kast: { naam: "Kast", breedte: 120, diepte: 50, opschrift: "Kast" }
+  },
+
+  nieuwVastObject(soort, x, y) {
+    const basis = this.vasteObjectSoorten[soort];
+    if (!basis) throw new Error("Onbekend soort vast object: " + soort);
+
+    const object = { soort, x, y, breedte: basis.breedte, hoek: 0 };
+    if (basis.diepte != null)    object.diepte = basis.diepte;
+    if (basis.opschrift != null) object.opschrift = basis.opschrift;
+    if (soort === "deur")        object.kant = 1;
+    return object;
+  },
+
   /* ---------- gebouwen en zalen aanmaken ----------
      Gebruikt door het zaal-inrichtscherm (scherm 6). Een leesbare sleutel
      afgeleid van de naam, zodat het document met het blote oog te volgen
