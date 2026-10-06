@@ -37,6 +37,24 @@ opslagplaats met de daadwerkelijke gegevens (zalen, namen, opstellingen).
 - Voor wijzigingen aan de code van de app blijven de afspraken hierboven
   gelden.
 
+## Veilig testen
+
+Wil je een wijziging in de browser proberen, test dan nooit rechtstreeks
+tegen de echte opslagplaats `zaalboek-gegevens`. Gebruik een lokale
+testopstelling:
+
+- `test-lokaal.html` — een kopie van `index.html` die `Opslag.adres()`
+  omleidt naar een lokale nep-opslagserver, vóórdat `js/app.js` draait. Dit
+  bestand staat in `.gitignore` en wordt nooit gecommit.
+- Een losse, lokale node-server die alleen een kopie van de gegevens serveert
+  (bijvoorbeeld op `localhost:8745`) — nooit het echte bestand zelf.
+
+Overschrijf nooit achteraf, bijvoorbeeld via de devtools-console, de
+opslagfuncties van een al geladen `index.html`: dat gaf eerder een race
+tussen een paginaherlaad en de overschrijving, waardoor gegevens in
+`zaalboek-gegevens` verloren gingen. Richt de omleiding altijd in vóórdat de
+pagina laadt, zoals in `test-lokaal.html`.
+
 ## OVERDRACHT.md
 
 Als er een bestand `OVERDRACHT.md` in deze map staat, lees dat dan eerst: het
