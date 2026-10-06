@@ -1,0 +1,47 @@
+# Deze repository is openbaar. Alles hieronder blijft op je eigen computer.
+
+# Gegevens: de zalen, opstellingen en namen horen in de privé-opslagplaats
+# zaalboek-gegevens, nooit hier.
+zaalboek.json
+zaalboek*.json
+gegevens/
+data/
+backup/
+backups/
+*.backup
+*.bak
+*.csv
+*.xlsx
+*.xls
+
+# Omgevingsbestanden met instellingen en sleutels
+.env
+.env.*
+!.env.example
+
+# Wachtwoorden, sleutels en certificaten
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+id_rsa*
+id_ed25519*
+secrets.*
+geheim*
+wachtwoord*
+sleutel*.txt
+*token*.txt
+credentials*
+
+# Persoonlijke instellingen van Claude Code
+.claude/settings.local.json
+
+# Systeem- en editorbestanden
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.log
+node_modules/
