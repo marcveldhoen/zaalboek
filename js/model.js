@@ -274,24 +274,26 @@ const Model = {
     return zaal;
   },
 
-  /* Zolang scherm 1 (het startscherm) er nog niet is, moet het tekenscherm
-     ook een zaal kunnen tonen die nog geen opstelling heeft — vandaar dit:
-     de eerste opstelling van de zaal, of een kale nieuwe als die er nog niet
-     is. Bewust zonder vereniging: die koppeling hoort bij scherm 1/5, niet
-     bij dit tijdelijke bruggetje. */
-  opstellingVoorZaal(zaalId) {
-    let opstelling = this.document.opstellingen.find(o => o.zaalId === zaalId);
-    if (!opstelling) {
-      const id = this.uniekeId(`${zaalId}-opstelling`, this.document.opstellingen.map(o => o.id));
-      opstelling = {
-        id, zaalId, verenigingId: null,
-        aantalPersonen: 0, aantalPersonenHandmatig: false,
-        gebruiksmoment: null, verantwoordelijke: "koster", opmerkingen: "",
-        gewijzigdOp: new Date().toISOString().slice(0, 10),
-        teControleren: false, elementen: []
-      };
-      this.document.opstellingen.push(opstelling);
-    }
+  nieuweVereniging(naam) {
+    const id = this.uniekeId(this.slug(naam), this.document.verenigingen.map(v => v.id));
+    const vereniging = { id, naam };
+    this.document.verenigingen.push(vereniging);
+    return vereniging;
+  },
+
+  /* Gebruikt door het startscherm (scherm 1) om een nieuwe, lege opstelling
+     voor een zaal aan te maken. De koster kiest de vereniging al bij het
+     aanmaken; de rest (gebruiksmoment, opmerkingen) vult hij later in. */
+  nieuweOpstelling(zaalId, verenigingId) {
+    const id = this.uniekeId(`${zaalId}-opstelling`, this.document.opstellingen.map(o => o.id));
+    const opstelling = {
+      id, zaalId, verenigingId: verenigingId || null,
+      aantalPersonen: 0, aantalPersonenHandmatig: false,
+      gebruiksmoment: null, verantwoordelijke: "koster", opmerkingen: "",
+      gewijzigdOp: new Date().toISOString().slice(0, 10),
+      teControleren: false, elementen: []
+    };
+    this.document.opstellingen.push(opstelling);
     return opstelling;
   }
 };

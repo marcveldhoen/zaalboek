@@ -1,12 +1,9 @@
 /* app.js — het startpunt.
 
    Hier komen de twee helften bij elkaar: opslag.js haalt het document op en
-   bewaart het, de schermen laten het zien. Er is nog geen startscherm
-   (bouwstap 3); tot die tijd wisselt de knop in de kop tussen het tekenscherm
-   en het zaal-inrichtscherm, zodat scherm 6 nu al te proberen is zonder op
-   bouwstap 3 te wachten. */
+   bewaart het, de schermen laten het zien. */
 
-let HuidigScherm = null;   // SchermTekenen of SchermZaal — wie de knoppen in de kop bedient
+let HuidigScherm = null;   // SchermStart, SchermTekenen of SchermZaal — wie de knoppen in de kop bedient
 
 const HINT_TEKENEN = `Slepen om te verplaatsen &middot; <kbd>R</kbd> draaien &middot; pijltjes verschuiven<br>
   Lege ruimte slepen om de plattegrond te verschuiven`;
@@ -47,18 +44,49 @@ function toonStatus(status) {
 
 /* ---------------- schermen wisselen ---------------- */
 
+/* Scherm 1 (het overzicht) heeft geen plattegrond en geen gereedschap- of
+   eigenschappenpaneel; de andere twee schermen gebruiken juist precies dat.
+   Hier staat op één plek welke delen van `main` bij welk scherm horen. */
+function toonLayout(scherm) {
+  const isStart = scherm === "start";
+  document.getElementById("gereedschap").hidden = isStart;
+  document.querySelector(".stage").hidden = isStart;
+  document.getElementById("paneelRechts").hidden = isStart;
+  document.getElementById("startscherm").hidden = !isStart;
+  document.getElementById("ongedaan").hidden = isStart;
+}
+
+function naarStart() {
+  if (HuidigScherm && HuidigScherm.sluiten) HuidigScherm.sluiten();
+  HuidigScherm = SchermStart;
+  toonLayout("start");
+  document.getElementById("kruimel").textContent = "";
+  document.getElementById("wisselScherm").textContent = "Zalen inrichten";
+  SchermStart.open();
+}
+
 function naarTekenen(opstelling) {
   if (HuidigScherm && HuidigScherm.sluiten) HuidigScherm.sluiten();
   HuidigScherm = SchermTekenen;
-  document.getElementById("wisselScherm").textContent = "Zalen inrichten";
+  toonLayout("tekenen");
+
+  const zaal = Model.zaal(opstelling.zaalId);
+  const gebouw = Model.gebouw(zaal.gebouwId);
+  const vereniging = opstelling.verenigingId && Model.vereniging(opstelling.verenigingId);
+  document.getElementById("kruimel").textContent =
+    `${gebouw.naam} / ${zaal.naam}` + (vereniging ? ` — ${vereniging.naam}` : "");
+
+  document.getElementById("wisselScherm").textContent = "Terug naar overzicht";
   document.getElementById("hint").innerHTML = HINT_TEKENEN;
-  SchermTekenen.open(opstelling || Model.document.opstellingen[0]);
+  SchermTekenen.open(opstelling);
 }
 
 function naarZalenInrichten() {
   if (HuidigScherm && HuidigScherm.sluiten) HuidigScherm.sluiten();
   HuidigScherm = SchermZaal;
-  document.getElementById("wisselScherm").textContent = "Terug naar tekenen";
+  toonLayout("zaal");
+  document.getElementById("kruimel").textContent = "Zalen inrichten";
+  document.getElementById("wisselScherm").textContent = "Terug naar overzicht";
   document.getElementById("hint").innerHTML = HINT_ZAAL;
   document.getElementById("ongedaan").disabled = !SchermZaal.ongedaanStapel.length;
   SchermZaal.open();
@@ -104,9 +132,10 @@ async function openen() {
      opleveren. Was het bestand leeg, dan moet er juist wel bewaard worden. */
   Opslag.laatstBewaard = wasLeeg ? null : Model.alsTekst();
 
+  SchermStart.opWijziging   = () => Opslag.bewaarStraks(Model.alsTekst());
   SchermTekenen.opWijziging = () => Opslag.bewaarStraks(Model.alsTekst());
   SchermZaal.opWijziging    = () => Opslag.bewaarStraks(Model.alsTekst());
-  naarTekenen();
+  naarStart();
 }
 
 function start() {
@@ -128,8 +157,9 @@ function start() {
     if (HuidigScherm && HuidigScherm.ongedaanMaken) HuidigScherm.ongedaanMaken();
   };
   document.getElementById("wisselScherm").onclick = () => {
-    if (HuidigScherm === SchermZaal) naarTekenen(); else naarZalenInrichten();
+    if (HuidigScherm === SchermStart) naarZalenInrichten(); else naarStart();
   };
+  document.getElementById("wordmark").onclick = () => naarStart();
 
   if (!Opslag.heeftSleutel()) {
     vraagSleutel("Plak hier de sleutel die je bij GitHub hebt aangemaakt.");
