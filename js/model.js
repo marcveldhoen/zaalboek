@@ -114,6 +114,7 @@ const Model = {
   gebruik(doc) {
     this.document = doc;
     this.meubeltypenAanvullen();
+    this.tafelkringenRepareren();
   },
 
   /* Tijdelijk bruggetje. Een document dat al bewaard is, kent de meubeltypen
@@ -130,6 +131,26 @@ const Model = {
     this.voorbeeld.meubeltypen
       .filter(m => !aanwezig.includes(m.id))
       .forEach(m => this.document.meubeltypen.push(JSON.parse(JSON.stringify(m))));
+  },
+
+  /* Een tafelkring-element van vóór dit schema had alleen `n`: een gesloten
+     lus van n trapeziumtafels, zonder rechte tafels ertussen. Zonder `zijden`
+     loopt het eigenschappenpaneel in schermen/tekenen.js vast zodra zo'n
+     tafelkring aangeklikt wordt — je kunt hem dan niet eens meer verwijderen.
+     Dit vult de ontbrekende velden aan met het equivalent in het huidige
+     schema: dezelfde gesloten lus, nu met een lege `zijden`-rij. */
+  tafelkringenRepareren() {
+    this.document.opstellingen.forEach(opstelling => {
+      opstelling.elementen.forEach(element => {
+        if (element.type !== "tafelkring" || element.zijden) return;
+        const bochtTafel = this.meubel(element.meubelId);
+        const rechte = this.meubeltypen("tafel").find(m => m.vorm !== "trapezium");
+        element.zijden = new Array(Tafelkring.aantalZijden(bochtTafel)).fill(0);
+        element.weggelaten = [];
+        element.rechteMeubelId = rechte ? rechte.id : null;
+        delete element.n;
+      });
+    });
   },
 
   /* Een pas aangemaakt bestand bevat alleen { "versie": 1 }. */

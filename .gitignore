@@ -40,6 +40,10 @@ credentials*
 # Werkoverdracht tussen sessies: kan projectdetails bevatten, blijft lokaal
 OVERDRACHT.md
 
+# Lokale testopstelling: laadt de app tegen een nep-opslagserver in plaats
+# van de echte privé-opslagplaats, zodat testen nooit echte gegevens raakt.
+test-lokaal.html
+
 # Systeem- en editorbestanden
 .DS_Store
 Thumbs.db
