@@ -13,7 +13,7 @@ const SchermStart = {
 
   zoekterm: "",
   nieuwIn: null,    // de zaal-id waarvoor het "nieuwe opstelling"-formulier openstaat
-  bewerkIn: null,   // de opstelling-id waarvoor het "vereniging wijzigen"-formulier openstaat
+  bewerkIn: null,   // de opstelling-id waarvoor het wijzig-formulier openstaat
 
   open() {
     this.zoekterm = "";
@@ -95,7 +95,7 @@ const SchermStart = {
         <span class="startaantal">${o.aantalPersonen || 0} personen</span>
         ${o.teControleren ? '<span class="startvlag">te controleren</span>' : ""}
       </button>
-      <button class="ghost klein" data-bewerk="${o.id}">Vereniging wijzigen</button>
+      <button class="ghost klein" data-bewerk="${o.id}">Wijzigen</button>
       <button class="ghost klein" data-verwijder="${o.id}">Verwijderen</button>
     </div>`;
   },
@@ -115,7 +115,7 @@ const SchermStart = {
     const opties = Model.document.verenigingen.map(v =>
       `<option value="${v.id}">${v.naam}</option>`).join("");
 
-    return `<div class="startnieuw">
+    return `<div class="startnieuw startformulier">
       <select class="startnieuwselect">
         <option value="">Geen vereniging</option>
         ${opties}
@@ -146,22 +146,56 @@ const SchermStart = {
   /* ---------------- een opstelling wijzigen of verwijderen ----------------
      Een opstelling heeft geen eigen naam — wat je in de lijst ziet is de
      naam van zijn vereniging. "De naam wijzigen" is dus: een andere
-     vereniging koppelen (of loskoppelen). Andere velden (gebruiksmoment,
-     aantal personen, opmerkingen) horen bij scherm 2, dat er nog niet is. */
+     vereniging koppelen (of loskoppelen). Hier staat ook het vaste
+     gebruiksmoment (dag, dagdeel, begin- en eindtijd). Aantal personen,
+     verantwoordelijke en opmerkingen horen bij scherm 2, dat er nog niet is. */
+
+  DAGEN: ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag", "zondag"],
+  DAGDELEN: ["ochtend", "middag", "avond"],
+
+  dagOpties(huidigeDag) {
+    return `<option value="" ${!huidigeDag ? "selected" : ""}>Geen vast moment</option>` +
+      this.DAGEN.map(d =>
+        `<option value="${d}" ${huidigeDag === d ? "selected" : ""}>${this.hoofdletter(d)}</option>`).join("");
+  },
+
+  dagdeelOpties(huidigDagdeel) {
+    return `<option value="" ${!huidigDagdeel ? "selected" : ""}>Geen dagdeel</option>` +
+      this.DAGDELEN.map(d =>
+        `<option value="${d}" ${huidigDagdeel === d ? "selected" : ""}>${this.hoofdletter(d)}</option>`).join("");
+  },
 
   opstellingBewerkFormulier(o) {
     const opties = Model.document.verenigingen.map(v =>
       `<option value="${v.id}" ${o.verenigingId === v.id ? "selected" : ""}>${v.naam}</option>`).join("");
+    const m = o.gebruiksmoment || {};
 
-    return `<div class="startnieuw">
-      <select class="startnieuwselect">
-        <option value="" ${!o.verenigingId ? "selected" : ""}>Geen vereniging</option>
-        ${opties}
-        <option value="__nieuw__">+ Nieuwe vereniging…</option>
-      </select>
+    return `<div class="startbewerk startformulier">
+      <div class="veld-vol">
+        <label>Vereniging</label>
+        <select class="startnieuwselect">
+          <option value="" ${!o.verenigingId ? "selected" : ""}>Geen vereniging</option>
+          ${opties}
+          <option value="__nieuw__">+ Nieuwe vereniging…</option>
+        </select>
+      </div>
       <input type="text" class="startnieuwnaam" placeholder="Naam van de nieuwe vereniging" hidden>
-      <button class="ghost" data-opslaan="${o.id}">Opslaan</button>
-      <button class="ghost" data-annuleerbewerk="${o.id}">Annuleren</button>
+
+      <div class="veld-vol">
+        <label>Dag</label>
+        <select class="bwDag">${this.dagOpties(m.dag)}</select>
+      </div>
+      <div class="veld-vol">
+        <label>Dagdeel</label>
+        <select class="bwDagdeel">${this.dagdeelOpties(m.dagdeel)}</select>
+      </div>
+      <div class="veld-vol"><label>Van</label><input type="time" class="bwBegin" value="${m.begin || ""}"></div>
+      <div class="veld-vol"><label>Tot</label><input type="time" class="bwEind" value="${m.eind || ""}"></div>
+
+      <div class="row">
+        <button class="ghost" data-opslaan="${o.id}">Opslaan</button>
+        <button class="ghost" data-annuleerbewerk="${o.id}">Annuleren</button>
+      </div>
     </div>`;
   },
 
@@ -176,7 +210,19 @@ const SchermStart = {
       verenigingId = Model.nieuweVereniging(naam).id;
     }
 
+    const dag = wrap.querySelector(".bwDag").value;
+    const dagdeel = wrap.querySelector(".bwDagdeel").value;
+    const begin = wrap.querySelector(".bwBegin").value;
+    const eind = wrap.querySelector(".bwEind").value;
+
+    if (dag && (!begin || !eind)) {
+      alert("Vul een begin- en eindtijd in bij een vast gebruiksmoment.");
+      return;
+    }
+
     opstelling.verenigingId = verenigingId;
+    opstelling.gebruiksmoment = dag ? { dag, dagdeel: dagdeel || null, begin, eind } : null;
+
     this.bewerkIn = null;
     if (this.opWijziging) this.opWijziging();
     this.tekenLijst();
@@ -204,7 +250,7 @@ const SchermStart = {
       if (annuleer) { this.nieuwIn = null; this.tekenLijst(); return; }
 
       const aanmaken = ev.target.closest("[data-aanmaken]");
-      if (aanmaken) { this.opstellingAanmaken(this.nieuwIn, aanmaken.closest(".startnieuw")); return; }
+      if (aanmaken) { this.opstellingAanmaken(this.nieuwIn, aanmaken.closest(".startformulier")); return; }
 
       const bewerk = ev.target.closest("[data-bewerk]");
       if (bewerk) { this.bewerkIn = bewerk.dataset.bewerk; this.tekenLijst(); return; }
@@ -213,7 +259,7 @@ const SchermStart = {
       if (annuleerBewerk) { this.bewerkIn = null; this.tekenLijst(); return; }
 
       const opslaan = ev.target.closest("[data-opslaan]");
-      if (opslaan) { this.opstellingBewerken(opslaan.dataset.opslaan, opslaan.closest(".startnieuw")); return; }
+      if (opslaan) { this.opstellingBewerken(opslaan.dataset.opslaan, opslaan.closest(".startformulier")); return; }
 
       const verwijder = ev.target.closest("[data-verwijder]");
       if (verwijder) { this.opstellingVerwijderen(verwijder.dataset.verwijder); return; }
@@ -225,7 +271,7 @@ const SchermStart = {
 
     this._onChange = ev => {
       if (!ev.target.classList.contains("startnieuwselect")) return;
-      const wrap = ev.target.closest(".startnieuw");
+      const wrap = ev.target.closest(".startformulier");
       wrap.querySelector(".startnieuwnaam").hidden = ev.target.value !== "__nieuw__";
     };
     document.getElementById("startscherm").addEventListener("change", this._onChange);
