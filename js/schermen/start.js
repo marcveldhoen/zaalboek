@@ -12,11 +12,13 @@
 const SchermStart = {
 
   zoekterm: "",
-  nieuwIn: null,   // de zaal-id waarvoor het "nieuwe opstelling"-formulier openstaat
+  nieuwIn: null,    // de zaal-id waarvoor het "nieuwe opstelling"-formulier openstaat
+  bewerkIn: null,   // de opstelling-id waarvoor het "vereniging wijzigen"-formulier openstaat
 
   open() {
     this.zoekterm = "";
     this.nieuwIn = null;
+    this.bewerkIn = null;
 
     document.getElementById("startscherm").innerHTML = `
       <div class="startkop">
@@ -83,13 +85,19 @@ const SchermStart = {
   },
 
   opstellingRegel(o) {
+    if (this.bewerkIn === o.id) return this.opstellingBewerkFormulier(o);
+
     const vereniging = o.verenigingId && Model.vereniging(o.verenigingId);
-    return `<button class="startregel" data-opstelling="${o.id}">
-      <span class="startvereniging">${vereniging ? vereniging.naam : "Naamloze opstelling"}</span>
-      <span class="startmoment">${this.momentTekst(o.gebruiksmoment)}</span>
-      <span class="startaantal">${o.aantalPersonen || 0} personen</span>
-      ${o.teControleren ? '<span class="startvlag">te controleren</span>' : ""}
-    </button>`;
+    return `<div class="startregel">
+      <button class="startregelnaam" data-opstelling="${o.id}">
+        <span class="startvereniging">${vereniging ? vereniging.naam : "Naamloze opstelling"}</span>
+        <span class="startmoment">${this.momentTekst(o.gebruiksmoment)}</span>
+        <span class="startaantal">${o.aantalPersonen || 0} personen</span>
+        ${o.teControleren ? '<span class="startvlag">te controleren</span>' : ""}
+      </button>
+      <button class="ghost klein" data-bewerk="${o.id}">Vereniging wijzigen</button>
+      <button class="ghost klein" data-verwijder="${o.id}">Verwijderen</button>
+    </div>`;
   },
 
   momentTekst(m) {
@@ -135,6 +143,56 @@ const SchermStart = {
     naarTekenen(opstelling);
   },
 
+  /* ---------------- een opstelling wijzigen of verwijderen ----------------
+     Een opstelling heeft geen eigen naam — wat je in de lijst ziet is de
+     naam van zijn vereniging. "De naam wijzigen" is dus: een andere
+     vereniging koppelen (of loskoppelen). Andere velden (gebruiksmoment,
+     aantal personen, opmerkingen) horen bij scherm 2, dat er nog niet is. */
+
+  opstellingBewerkFormulier(o) {
+    const opties = Model.document.verenigingen.map(v =>
+      `<option value="${v.id}" ${o.verenigingId === v.id ? "selected" : ""}>${v.naam}</option>`).join("");
+
+    return `<div class="startnieuw">
+      <select class="startnieuwselect">
+        <option value="" ${!o.verenigingId ? "selected" : ""}>Geen vereniging</option>
+        ${opties}
+        <option value="__nieuw__">+ Nieuwe vereniging…</option>
+      </select>
+      <input type="text" class="startnieuwnaam" placeholder="Naam van de nieuwe vereniging" hidden>
+      <button class="ghost" data-opslaan="${o.id}">Opslaan</button>
+      <button class="ghost" data-annuleerbewerk="${o.id}">Annuleren</button>
+    </div>`;
+  },
+
+  opstellingBewerken(id, wrap) {
+    const opstelling = Model.opstelling(id);
+    const select = wrap.querySelector(".startnieuwselect");
+    let verenigingId = select.value || null;
+
+    if (verenigingId === "__nieuw__") {
+      const naam = wrap.querySelector(".startnieuwnaam").value.trim();
+      if (!naam) { alert("Vul een naam voor de nieuwe vereniging in."); return; }
+      verenigingId = Model.nieuweVereniging(naam).id;
+    }
+
+    opstelling.verenigingId = verenigingId;
+    this.bewerkIn = null;
+    if (this.opWijziging) this.opWijziging();
+    this.tekenLijst();
+  },
+
+  opstellingVerwijderen(id) {
+    const opstelling = Model.opstelling(id);
+    const vereniging = opstelling.verenigingId && Model.vereniging(opstelling.verenigingId);
+    const naam = vereniging ? `de opstelling van "${vereniging.naam}"` : "deze naamloze opstelling";
+    if (!confirm(`Wil je ${naam} verwijderen? Dit kan niet ongedaan gemaakt worden.`)) return;
+
+    Model.document.opstellingen = Model.document.opstellingen.filter(x => x !== opstelling);
+    if (this.opWijziging) this.opWijziging();
+    this.tekenLijst();
+  },
+
   /* ---------------- knoppen en zoekveld ---------------- */
 
   bedieningAanzetten() {
@@ -147,6 +205,18 @@ const SchermStart = {
 
       const aanmaken = ev.target.closest("[data-aanmaken]");
       if (aanmaken) { this.opstellingAanmaken(this.nieuwIn, aanmaken.closest(".startnieuw")); return; }
+
+      const bewerk = ev.target.closest("[data-bewerk]");
+      if (bewerk) { this.bewerkIn = bewerk.dataset.bewerk; this.tekenLijst(); return; }
+
+      const annuleerBewerk = ev.target.closest("[data-annuleerbewerk]");
+      if (annuleerBewerk) { this.bewerkIn = null; this.tekenLijst(); return; }
+
+      const opslaan = ev.target.closest("[data-opslaan]");
+      if (opslaan) { this.opstellingBewerken(opslaan.dataset.opslaan, opslaan.closest(".startnieuw")); return; }
+
+      const verwijder = ev.target.closest("[data-verwijder]");
+      if (verwijder) { this.opstellingVerwijderen(verwijder.dataset.verwijder); return; }
 
       const regel = ev.target.closest("[data-opstelling]");
       if (regel) naarTekenen(Model.opstelling(regel.dataset.opstelling));

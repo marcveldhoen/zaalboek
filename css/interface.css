@@ -206,11 +206,18 @@ kbd{
 .startzaalkop{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
 .startzaalnaam{font-family:Newsreader,Georgia,serif;font-size:17px}
 .startregel{
-  display:flex;align-items:center;gap:16px;width:100%;
-  padding:8px 10px;margin-bottom:3px;background:var(--panel);
-  border:1px solid var(--line);border-radius:2px;cursor:pointer;text-align:left;
+  display:flex;align-items:center;gap:4px;width:100%;
+  margin-bottom:3px;background:var(--panel);
+  border:1px solid var(--line);border-radius:2px;
 }
 .startregel:hover{border-color:var(--ink-soft)}
+.startregelnaam{
+  display:flex;align-items:center;gap:16px;flex:1;min-width:0;
+  padding:8px 10px;background:transparent;border:0;cursor:pointer;text-align:left;
+}
+.startregel .ghost.klein{
+  flex:0 0 auto;padding:5px 9px;font-size:12px;margin-right:6px;
+}
 .startvereniging{flex:1;font-weight:500}
 .startmoment{color:var(--ink-soft);font-size:12.5px}
 .startaantal{color:var(--ink-faint);font-size:12.5px;width:80px;text-align:right}
