@@ -124,9 +124,21 @@ const SchermTekenen = {
         svg.setAttribute("viewBox", `-120 ${-t.H / 2} 240 ${t.H}`);
         svg.setAttribute("aria-hidden", "true");
         knop.querySelector(".tart").appendChild(svg);
-        Tekening.element(t.voorbeeld, svg, 0, false);
+        grid.appendChild(knop);   // eerst aan de pagina hangen, anders geeft getBBox() hieronder niets terug
 
-        grid.appendChild(knop);
+        const g = Tekening.element(t.voorbeeld, svg, 0, false);
+
+        /* Een tafelkring heeft geen vast formaat zoals de andere tegels: hoeveel
+           tafels en stoelen erin passen volgt uit de maat van de trapeziumtafel,
+           en dat is al snel groter dan het gedeelde kader van 240 cm breed —
+           dan viel een deel van de kring erbuiten. Dit type krijgt daarom zijn
+           eigen kader, afgemeten op de tekening zelf. */
+        if (t.plaats === "tafelkring") {
+          const b = g.getBBox();
+          const marge = 16;
+          svg.setAttribute("viewBox",
+            `${b.x - marge} ${b.y - marge} ${b.width + marge * 2} ${b.height + marge * 2}`);
+        }
       });
     });
   },
