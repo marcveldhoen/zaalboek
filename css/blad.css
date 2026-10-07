@@ -18,25 +18,31 @@
    elk blad hierdoor op zijn eigen afgedrukte pagina.
 
    Een vaste hoogte (geen minimum): zo kan een blad nooit meer ruimte innemen
-   dan er is, en moet .bladplan hieronder (zonder eigen minimumhoogte)
-   meekrimpen als de koptekst, de gegevens of de benodigdheden meer ruimte
-   vragen — op het scherm al net zo goed als op papier, zodat je hier al ziet
-   wat je straks krijgt. */
+   dan er is, en moet .bladplan hieronder meekrimpen als de koptekst, de
+   gegevens of de benodigdheden meer ruimte vragen — op het scherm al net zo
+   goed als op papier, zodat je hier al ziet wat je straks krijgt.
+
+   Dit is een CSS-grid met vier rijen (kop, gegevens, tekening, benodigdheden),
+   bewust geen flexbox: flexbox's "krimp wat niet past" (`flex:1` met
+   `min-height:0` op .bladplan) bleek in de échte afdruk van Chrome niet
+   betrouwbaar — op het scherm paste alles precies, maar op papier liep het
+   toch door op een volgende pagina. Bij liggend (verderop, met een
+   zijbalk-indeling) werkte diezelfde proef wél meteen goed met een grid, dus
+   is staand nu op dezelfde manier opgebouwd. */
 .blad{
   width:210mm;height:297mm;
   background:#fff;box-shadow:0 2px 10px rgba(35,43,43,.25);
   padding:15mm;
-  display:flex;flex-direction:column;
-  /* een vaste hoogte is op zichzelf geen garantie: in de echte afdruk van
-     Chrome bleek inhoud die net te veel ruimte vraagt niet netjes te krimpen
-     maar gewoon door te lopen op een volgende, grotendeels lege pagina — per
-     opstelling dus een extra witte pagina. overflow:hidden knipt zoiets nu
-     af in plaats van er een nieuwe pagina bij te laten komen; in de normale
-     situatie (alles past) heeft dit geen enkel effect. */
+  display:grid;
+  grid-template-rows:auto auto 1fr auto;
+  /* een vaste hoogte is op zichzelf geen garantie: mocht er, ondanks de grid-
+     indeling, toch iets net te veel ruimte vragen, dan knipt dit het af in
+     plaats van er een nieuwe, grotendeels lege pagina bij te laten komen. In
+     de normale situatie (alles past) heeft dit geen enkel effect. */
   overflow:hidden;
-  /* .blad is zelf ook een flex-item van .bladvoorbeeld (bij meer dan één
-     blad): zonder dit zou diezelfde overflow:hidden de automatische
-     minimumhoogte op 0 zetten, waardoor meerdere bladen onder elkaar in het
+  /* .blad is zelf een flex-item van .bladvoorbeeld (bij meer dan één blad):
+     zonder dit zou diezelfde overflow:hidden de automatische minimumhoogte
+     op 0 zetten, waardoor meerdere bladen onder elkaar in het
      schermvoorbeeld plat worden gedrukt in plaats van dat het voorbeeldvak
      gewoon scrolt. */
   flex-shrink:0;
@@ -49,8 +55,10 @@
 .afdrukscherm.liggend .blad{width:297mm;height:210mm}
 
 /* een tussenblad: alleen de naam van de zaal en het gebouw, zodat een dikke
-   stapel bladen (de hele map) te doorbladeren blijft. */
-.bladtussen{align-items:center;justify-content:center;text-align:center}
+   stapel bladen (de hele map) te doorbladeren blijft. Eigen, eenvoudige
+   flex-indeling (.blad hierboven is zelf een grid, voor de rijen van een
+   gewoon blad — die heeft een tussenblad niet nodig). */
+.bladtussen{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 .bladtussen h1{font-family:Newsreader,Georgia,serif;font-weight:400;font-size:40px;margin:0 0 10px}
 .bladtussen p{color:var(--ink-soft);font-size:15px;margin:0}
 
@@ -65,12 +73,11 @@
 .bladmeta span{display:block;color:var(--ink-soft);font-size:11px;margin-bottom:2px}
 .bladmeta b{font-weight:500}
 
-/* geen eigen minimumhoogte: bij weinig tekst eromheen krijgt de tekening de
-   ruimte die @media print hieronder overlaat, bij veel tekst (bijvoorbeeld
-   meerdere tekort-waarschuwingen) krimpt de tekening juist mee, zodat het
-   blad altijd op één pagina blijft passen in plaats van door te lopen op een
-   tweede. */
-.bladplan{flex:1;width:100%;min-height:0}
+/* vult de derde (flexibele) rij van .blad hierboven: bij weinig tekst
+   eromheen krijgt de tekening de ruimte die overblijft, bij veel tekst
+   (bijvoorbeeld meerdere tekort-waarschuwingen) krimpt de tekening juist
+   mee, zodat het blad altijd op één pagina blijft passen. */
+.bladplan{width:100%;height:100%;min-height:0}
 
 .bladvoet{
   display:flex;gap:24px;margin-top:10mm;padding-top:8mm;border-top:1px solid var(--line);
