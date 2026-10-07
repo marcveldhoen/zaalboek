@@ -22,23 +22,26 @@
    gegevens of de benodigdheden meer ruimte vragen — op het scherm al net zo
    goed als op papier, zodat je hier al ziet wat je straks krijgt.
 
-   Dit is een CSS-grid met vier rijen (kop, gegevens, tekening, benodigdheden),
-   bewust geen flexbox: flexbox's "krimp wat niet past" (`flex:1` met
-   `min-height:0` op .bladplan) bleek in de échte afdruk van Chrome niet
-   betrouwbaar — op het scherm paste alles precies, maar op papier liep het
-   toch door op een volgende pagina. Bij liggend (verderop, met een
-   zijbalk-indeling) werkte diezelfde proef wél meteen goed met een grid, dus
-   is staand nu op dezelfde manier opgebouwd. */
+   Staand (de gewone volgorde, geen class "liggend") staat hierdoor gewoon
+   onder elkaar in de normale documentstroom: geen flexbox, geen CSS-grid.
+   Beide bleken in de échte afdruk van Chrome niet betrouwbaar om de
+   tekening te laten krimpen — op het scherm klopte de berekening altijd,
+   maar op papier liep het toch door op een volgende, grotendeels lege
+   pagina. De hoogte van .bladplan wordt daarom niet meer aan CSS
+   overgelaten, maar vlak voor het afdrukken met JavaScript uitgerekend en
+   als vaste pixelwaarde gezet — zie hoogtesVastzetten() in
+   schermen/afdrukken.js. Liggend (verderop) gebruikt wél nog een CSS-grid,
+   met een heel andere, al bevestigd werkende opzet (een zijbalk); daar is
+   niets aan veranderd. */
 .blad{
   width:210mm;height:297mm;
   background:#fff;box-shadow:0 2px 10px rgba(35,43,43,.25);
   padding:15mm;
-  display:grid;
-  grid-template-rows:auto auto 1fr auto;
-  /* een vaste hoogte is op zichzelf geen garantie: mocht er, ondanks de grid-
-     indeling, toch iets net te veel ruimte vragen, dan knipt dit het af in
-     plaats van er een nieuwe, grotendeels lege pagina bij te laten komen. In
-     de normale situatie (alles past) heeft dit geen enkel effect. */
+  /* een vaste hoogte is op zichzelf geen garantie: mocht er, ondanks de
+     uitgerekende hoogte van .bladplan, toch iets net te veel ruimte vragen,
+     dan knipt dit het af in plaats van er een nieuwe, grotendeels lege
+     pagina bij te laten komen. In de normale situatie (alles past) heeft
+     dit geen enkel effect. */
   overflow:hidden;
   /* .blad is zelf een flex-item van .bladvoorbeeld (bij meer dan één blad):
      zonder dit zou diezelfde overflow:hidden de automatische minimumhoogte
@@ -55,9 +58,9 @@
 .afdrukscherm.liggend .blad{width:297mm;height:210mm}
 
 /* een tussenblad: alleen de naam van de zaal en het gebouw, zodat een dikke
-   stapel bladen (de hele map) te doorbladeren blijft. Eigen, eenvoudige
-   flex-indeling (.blad hierboven is zelf een grid, voor de rijen van een
-   gewoon blad — die heeft een tussenblad niet nodig). */
+   stapel bladen (de hele map) te doorbladeren blijft. Een eigen flex-
+   indeling om de titel te centreren; .blad hierboven is voor een gewoon
+   blad gewone documentstroom, een tussenblad heeft daar niets aan. */
 .bladtussen{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 .bladtussen h1{font-family:Newsreader,Georgia,serif;font-weight:400;font-size:40px;margin:0 0 10px}
 .bladtussen p{color:var(--ink-soft);font-size:15px;margin:0}
@@ -73,11 +76,12 @@
 .bladmeta span{display:block;color:var(--ink-soft);font-size:11px;margin-bottom:2px}
 .bladmeta b{font-weight:500}
 
-/* vult de derde (flexibele) rij van .blad hierboven: bij weinig tekst
-   eromheen krijgt de tekening de ruimte die overblijft, bij veel tekst
-   (bijvoorbeeld meerdere tekort-waarschuwingen) krimpt de tekening juist
-   mee, zodat het blad altijd op één pagina blijft passen. */
-.bladplan{width:100%;height:100%;min-height:0}
+/* de hoogte zelf staat niet hier, maar wordt met JavaScript gezet (zie
+   hierboven bij .blad) — bij weinig tekst eromheen krijgt de tekening de
+   ruimte die overblijft, bij veel tekst (bijvoorbeeld meerdere tekort-
+   waarschuwingen) krimpt de tekening juist mee, zodat het blad altijd op
+   één pagina blijft passen. */
+.bladplan{width:100%}
 
 .bladvoet{
   display:flex;gap:24px;margin-top:10mm;padding-top:8mm;border-top:1px solid var(--line);
@@ -105,10 +109,10 @@
   .bladvoorbeeld{overflow:visible;padding:0;display:block}
   /* vaste hoogte = papierhoogte min de marge uit @page (2 × 15mm), met een
      paar mm marge erbovenop: net als op het scherm hierboven, maar dan op de
-     echte papiermaat, zodat .bladplan ook hier meekrimpt in plaats van op
-     een tweede pagina door te lopen. De marge (267mm/180mm zou precies
-     passen) vangt afrondingsverschillen tussen schermvoorbeeld en de echte
-     afdruk op; overflow:hidden hierboven is de laatste vangrail. */
+     echte papiermaat. hoogtesVastzetten() in schermen/afdrukken.js rekent
+     hiermee de hoogte van .bladplan uit; de marge (267mm/180mm zou precies
+     passen) is een beetje speling voor afrondingsverschillen, overflow:hidden
+     hierboven is de laatste vangrail. */
   .blad{box-shadow:none;margin:0 auto;padding:0;width:180mm;height:264mm}
   .afdrukscherm.liggend .blad{width:267mm;height:177mm}
   /* elk blad na het eerste begint op een nieuwe pagina; zo komt er nooit een

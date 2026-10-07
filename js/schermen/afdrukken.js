@@ -78,6 +78,32 @@ const SchermAfdrukken = {
     bladen.forEach((blad, i) => this.tekenBlad(blad, svgs[i]));
 
     this.papierRichtingToepassen();
+    this.hoogtesVastzetten();
+  },
+
+  /* Bij liggend (een zijbalk naast de tekening, css/blad.css) regelt een
+     CSS-grid de hoogte van .bladplan, en dat is al bevestigd goed op papier.
+     Bij staand (de gewone volgorde, gewoon onder elkaar) bleken zowel
+     flexbox als CSS-grid dat niet betrouwbaar te doen in de échte afdruk van
+     Chrome — op het scherm klopte het altijd, op papier liep het soms toch
+     door op een extra, grotendeels lege pagina. Daarom hier met de hand:
+     .bladplan tijdelijk op 0 zetten, kijken hoeveel ruimte er dan nog onder
+     de benodigdheden overblijft (dat is precies de ruimte die de tekening
+     mag krijgen), en die hoogte als vaste pixelwaarde zetten. Wordt zowel na
+     het tekenen aangeroepen (voor het schermvoorbeeld) als vlak voor het
+     echte afdrukken (zie bedieningAanzetten hieronder), want de hoogte van
+     .blad zelf verschilt tussen scherm en papier. */
+  hoogtesVastzetten() {
+    document.querySelectorAll("#afdrukscherm .blad:not(.bladtussen)").forEach(blad => {
+      const plan = blad.querySelector(".bladplan");
+      if (this.liggend) { plan.style.height = ""; return; }   // liggend regelt dit zelf, via de zijbalk-grid
+
+      const voet = blad.querySelector(".bladvoet");
+      plan.style.height = "0px";
+      const bladOnder = blad.getBoundingClientRect().bottom - parseFloat(getComputedStyle(blad).paddingBottom);
+      const voetOnder = voet.getBoundingClientRect().bottom;
+      plan.style.height = Math.max(0, bladOnder - voetOnder) + "px";
+    });
   },
 
   /* Staand of liggend wordt in de app gekozen (het vinkje hierboven), niet
@@ -182,14 +208,26 @@ const SchermAfdrukken = {
       if (ev.target.id !== "afdrukLiggend") return;
       this.liggend = ev.target.checked;
       this.papierRichtingToepassen();
+      this.hoogtesVastzetten();
     };
     document.getElementById("afdrukscherm").addEventListener("change", this._onChange);
+
+    /* vlak voor het echte afdrukken gelden de @media print-regels al (ander
+       papierformaat, geen opmaak meer rond het blad), dus moet de hoogte van
+       de tekening opnieuw uitgerekend worden — en na afloop weer terug voor
+       het schermvoorbeeld. */
+    this._onBeforePrint = () => this.hoogtesVastzetten();
+    this._onAfterPrint = () => this.hoogtesVastzetten();
+    window.addEventListener("beforeprint", this._onBeforePrint);
+    window.addEventListener("afterprint", this._onAfterPrint);
   },
 
   /* Aangeroepen door app.js vlak voordat een ander scherm opent. */
   sluiten() {
     document.getElementById("afdrukscherm").removeEventListener("click", this._onKlik);
     document.getElementById("afdrukscherm").removeEventListener("change", this._onChange);
+    window.removeEventListener("beforeprint", this._onBeforePrint);
+    window.removeEventListener("afterprint", this._onAfterPrint);
     document.getElementById("afdrukPapier")?.remove();
   }
 };
