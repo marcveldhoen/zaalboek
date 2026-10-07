@@ -16,7 +16,7 @@ const Tekening = {
   },
 
   /* ---------------- de zaal ----------------
-     doelen: { raster, ruimte, vast, schaalstok } — vier lege groepen.
+     doelen: { raster, ruimte, vast, schaalstok, naam } — vijf lege groepen.
      geselecteerdVast: alleen gebruikt door het zaal-inrichtscherm, om een
      aangeklikt vast object te markeren. Op het tekenscherm en het printblad
      blijft dit altijd leeg. */
@@ -25,9 +25,10 @@ const Tekening = {
     const k = Zaalvorm.kader(omtrek);
 
     this.raster(doelen.raster, k);
-    this.vloer(doelen.ruimte, omtrek, k, zaal.naam);
+    this.vloer(doelen.ruimte, omtrek, k);
     this.vasteObjecten(doelen.vast, zaal.vasteObjecten || [], geselecteerdVast);
     this.schaalstok(doelen.schaalstok, k);
+    this.naam(doelen.naam, k, zaal.naam);
   },
 
   raster(doel, k) {
@@ -43,7 +44,7 @@ const Tekening = {
     }
   },
 
-  vloer(doel, omtrek, k, naam) {
+  vloer(doel, omtrek, k) {
     doel.innerHTML = "";
     const punten = omtrek.map(p => p.join(",")).join(" ");
 
@@ -51,8 +52,17 @@ const Tekening = {
     this.el("polygon", { points: punten, fill: "var(--floor)", stroke: "var(--ink)",
       "stroke-width": 18, "stroke-linejoin": "miter" }, doel);
     this.el("polygon", { points: punten, fill: "var(--floor)", stroke: "none" }, doel);
+  },
 
+  /* De zaalnaam, als vaag watermerk. Een eigen laag, bovenop het meubilair
+     (zie de volgorde van de groepen in index.html) — stond hij bij de vloer,
+     dan verdween hij zodra de zaal vol getekend werd. Vaag genoeg gehouden
+     om een achtergrondmerk te blijven; pointer-events uit, zodat je er
+     dwars doorheen op het meubilair eronder kunt klikken. */
+  naam(doel, k, naam) {
+    doel.innerHTML = "";
     const t = this.el("text", { x: k.x0 + 40, y: k.y0 + 90, fill: "#C6C3B8",
+      "fill-opacity": 0.55, "pointer-events": "none",
       "font-family": "Newsreader, Georgia, serif", "font-size": 72 }, doel);
     t.textContent = naam;
   },

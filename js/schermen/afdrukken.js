@@ -52,6 +52,7 @@ const SchermAfdrukken = {
             <g id="bladRuimte"></g>
             <g id="bladVast"></g>
             <g id="bladElementen"></g>
+            <g id="bladNaam"></g>
             <g id="bladSchaal"></g>
           </svg>
 
@@ -76,7 +77,8 @@ const SchermAfdrukken = {
       raster,
       ruimte: document.getElementById("bladRuimte"),
       vast: document.getElementById("bladVast"),
-      schaalstok: document.getElementById("bladSchaal")
+      schaalstok: document.getElementById("bladSchaal"),
+      naam: document.getElementById("bladNaam")
     });
     Tekening.elementen(opstelling, document.getElementById("bladElementen"), null);
   },

@@ -218,7 +218,7 @@ const SchermZaal = {
     const naamVeld = document.getElementById("zNaam");
     const naam = (naamVeld && naamVeld.value.trim()) || "Nieuwe zaal";
 
-    ["raster", "ruimte", "vast", "schaalstok"].forEach(id => {
+    ["raster", "ruimte", "vast", "schaalstok", "naam"].forEach(id => {
       document.getElementById(id).innerHTML = "";
     });
     if (!vorm) return;   // nog niet genoeg ingevuld om te tekenen
@@ -228,7 +228,8 @@ const SchermZaal = {
       raster:     document.getElementById("raster"),
       ruimte:     document.getElementById("ruimte"),
       vast:       document.getElementById("vast"),
-      schaalstok: document.getElementById("schaalstok")
+      schaalstok: document.getElementById("schaalstok"),
+      naam:       document.getElementById("naam")
     }, this.geselecteerdObject);
     this.passend(vorm);
   },

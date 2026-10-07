@@ -24,7 +24,8 @@ const SchermTekenen = {
       raster:     document.getElementById("raster"),
       ruimte:     document.getElementById("ruimte"),
       vast:       document.getElementById("vast"),
-      schaalstok: document.getElementById("schaalstok")
+      schaalstok: document.getElementById("schaalstok"),
+      naam:       document.getElementById("naam")
     });
 
     this.bedieningAanzetten();
