@@ -8,19 +8,32 @@
 /* net als aside.right in interface.css: display:flex overschrijft anders het
    hidden-attribuut dat app.js zet zodra een ander scherm opent. */
 .afdrukscherm[hidden]{display:none}
-.afdrukbalk{flex:0 0 auto;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
+.afdrukbalk{flex:0 0 auto;display:flex;align-items:center;gap:20px;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
+.afdrukliggend{display:flex;align-items:center;gap:7px;color:var(--ink-soft);font-size:13px}
 .bladvoorbeeld{flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:24px;padding:40px 20px}
 .bladleeg{align-self:flex-start;max-width:420px}
 
 /* het blad zelf: op het scherm een A4-vel met schaduw, op papier gewoon de pagina.
    Bij meer dan één blad (alle opstellingen van een zaal, of de hele map) komt
-   elk blad hierdoor op zijn eigen afgedrukte pagina. */
+   elk blad hierdoor op zijn eigen afgedrukte pagina.
+
+   Een vaste hoogte (geen minimum): zo kan een blad nooit meer ruimte innemen
+   dan er is, en moet .bladplan hieronder (zonder eigen minimumhoogte)
+   meekrimpen als de koptekst, de gegevens of de benodigdheden meer ruimte
+   vragen — op het scherm al net zo goed als op papier, zodat je hier al ziet
+   wat je straks krijgt. */
 .blad{
-  width:210mm;min-height:297mm;
+  width:210mm;height:297mm;
   background:#fff;box-shadow:0 2px 10px rgba(35,43,43,.25);
   padding:15mm;
   display:flex;flex-direction:column;
 }
+
+/* Staand of liggend is een keuze in de app (het vinkje in de afdrukbalk,
+   zie schermen/afdrukken.js), niet in het afdrukvenster van de browser: dat
+   bleek bij het beproeven op papier niet betrouwbaar door te geven welke
+   richting gekozen was. */
+.afdrukscherm.liggend .blad{width:297mm;height:210mm}
 
 /* een tussenblad: alleen de naam van de zaal en het gebouw, zodat een dikke
    stapel bladen (de hele map) te doorbladeren blijft. */
@@ -61,28 +74,22 @@
 .bladopmerkingen p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.6;white-space:pre-wrap}
 
 @media print{
-  @page{size:A4;margin:15mm}
+  /* de papiermaat zelf (portrait/landscape) wordt niet hier vastgelegd, maar
+     bij het afdrukken als eigen stijlregel ingevoegd door
+     schermen/afdrukken.js — zie papierRichtingToepassen() daar */
+  @page{margin:15mm}
   html,body{height:auto;overflow:visible;background:#fff}
   header, .afdrukbalk{display:none !important}
   main{display:block}
   .afdrukscherm{display:block;background:#fff}
   .bladvoorbeeld{overflow:visible;padding:0;display:block}
-  .blad{box-shadow:none;margin:0 auto;width:auto;padding:0}
+  /* vaste hoogte = papierhoogte min de marge uit @page (2 × 15mm): net als
+     op het scherm hierboven, maar dan op de echte papiermaat, zodat
+     .bladplan ook hier meekrimpt in plaats van op een tweede pagina door te
+     lopen */
+  .blad{box-shadow:none;margin:0 auto;padding:0;width:180mm;height:267mm}
+  .afdrukscherm.liggend .blad{width:267mm;height:180mm}
   /* elk blad na het eerste begint op een nieuwe pagina; zo komt er nooit een
      lege pagina achteraan, zoals page-break-after op het laatste blad zou geven */
   .blad + .blad{page-break-before:always;break-before:page}
-}
-
-/* De hoogte van het blad wordt vastgezet op precies de papierhoogte minus de
-   marge uit @page hierboven (2 × 15mm), in plaats van alleen een minimum: zo
-   kan een blad nooit meer ruimte innemen dan er is, en dwingt dat .bladplan
-   hierboven (zonder eigen minimumhoogte) om mee te krimpen in plaats van op
-   een tweede pagina door te lopen. Geldt voor zowel een gewoon blad als een
-   tussenblad, en voor zowel staand als liggend — welke van de twee het is,
-   bepaalt de papierrichting die bij het afdrukken gekozen wordt. */
-@media print and (orientation:portrait){
-  .blad{height:267mm}
-}
-@media print and (orientation:landscape){
-  .blad{height:180mm}
 }

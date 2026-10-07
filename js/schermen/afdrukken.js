@@ -16,6 +16,7 @@ const SchermAfdrukken = {
   scope: null,          // "opstelling" | "zaal" | "alles"
   opstelling: null,      // alleen gevuld bij scope "opstelling"
   zaal: null,             // alleen gevuld bij scope "zaal"
+  liggend: false,         // staand of liggend A4 — een keuze in de app, niet in het afdrukvenster van de browser
 
   /* selectie: { scope: "opstelling", opstelling } of { scope: "zaal", zaal }
      of { scope: "alles" }. */
@@ -23,6 +24,7 @@ const SchermAfdrukken = {
     this.scope = selectie.scope;
     this.opstelling = selectie.opstelling || null;
     this.zaal = selectie.zaal || null;
+    this.liggend = false;
     this.teken();
     this.bedieningAanzetten();
   },
@@ -64,12 +66,37 @@ const SchermAfdrukken = {
 
     document.getElementById("afdrukscherm").innerHTML = `
       <div class="afdrukbalk no-print">
+        <label class="afdrukliggend">
+          <input type="checkbox" id="afdrukLiggend" ${this.liggend ? "checked" : ""}>
+          Liggend afdrukken
+        </label>
         <button class="ghost" id="afdrukUitvoeren" ${bladen.length ? "" : "disabled"}>${knopLabel}</button>
       </div>
       <div class="bladvoorbeeld">${inhoud}</div>`;
 
     const svgs = document.querySelectorAll("#afdrukscherm .bladplan");
     bladen.forEach((blad, i) => this.tekenBlad(blad, svgs[i]));
+
+    this.papierRichtingToepassen();
+  },
+
+  /* Staand of liggend wordt in de app gekozen (het vinkje hierboven), niet
+     overgelaten aan het afdrukvenster van de browser — dat bleek bij het
+     beproeven op papier niet betrouwbaar door te geven welke richting
+     gekozen was, waardoor het blad in geen van beide gevallen op één pagina
+     paste. `@page` kan niet rechtstreeks aan een class gekoppeld worden,
+     dus wordt de papiermaat hier als eigen stijlregel ingevoegd; de hoogte
+     van `.blad` zelf regelt css/blad.css via de class "liggend". */
+  papierRichtingToepassen() {
+    document.getElementById("afdrukscherm").classList.toggle("liggend", this.liggend);
+
+    let stijl = document.getElementById("afdrukPapier");
+    if (!stijl) {
+      stijl = document.createElement("style");
+      stijl.id = "afdrukPapier";
+      document.head.appendChild(stijl);
+    }
+    stijl.textContent = `@page{size:A4 ${this.liggend ? "landscape" : "portrait"}}`;
   },
 
   groepHtml(groep, metTussenblad, bladen) {
@@ -150,10 +177,19 @@ const SchermAfdrukken = {
   bedieningAanzetten() {
     this._onKlik = ev => { if (ev.target.closest("#afdrukUitvoeren")) window.print(); };
     document.getElementById("afdrukscherm").addEventListener("click", this._onKlik);
+
+    this._onChange = ev => {
+      if (ev.target.id !== "afdrukLiggend") return;
+      this.liggend = ev.target.checked;
+      this.papierRichtingToepassen();
+    };
+    document.getElementById("afdrukscherm").addEventListener("change", this._onChange);
   },
 
   /* Aangeroepen door app.js vlak voordat een ander scherm opent. */
   sluiten() {
     document.getElementById("afdrukscherm").removeEventListener("click", this._onKlik);
+    document.getElementById("afdrukscherm").removeEventListener("change", this._onChange);
+    document.getElementById("afdrukPapier")?.remove();
   }
 };
