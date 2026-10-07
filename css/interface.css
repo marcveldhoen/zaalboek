@@ -141,15 +141,17 @@ h2{
 svg#plan{width:100%;height:100%;display:block;touch-action:none;cursor:default}
 svg#plan.panning{cursor:grabbing}
 .zoombar{
-  position:absolute;left:14px;bottom:14px;display:flex;gap:4px;
+  position:absolute;left:50%;bottom:14px;transform:translateX(-50%);
+  display:flex;align-items:center;
+  background:var(--panel);border:1px solid var(--line);border-radius:2px;
 }
 .zoombar button{
-  width:30px;height:30px;line-height:1;
-  border:1px solid var(--line);background:var(--panel);
-  border-radius:2px;cursor:pointer;
+  height:32px;border:0;background:transparent;cursor:pointer;color:var(--ink-soft);
 }
-.zoombar button.wide{width:auto;padding:0 10px}
-.zoombar button:hover{border-color:var(--ink-soft)}
+.zoombar button:hover{color:var(--ink)}
+.zoombar .sq{width:32px;font-size:16px;line-height:1}
+.zoombar .wide{padding:0 12px;border-left:1px solid var(--line)}
+.zpct{width:52px;text-align:center;font-variant-numeric:tabular-nums;color:var(--ink-soft);font-size:13px}
 .hint{
   position:absolute;right:14px;bottom:16px;
   color:var(--ink-faint);font-size:12px;text-align:right;line-height:1.6;

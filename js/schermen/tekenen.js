@@ -278,8 +278,11 @@ const SchermTekenen = {
 
   toonBeeld() {
     this.svg.setAttribute("viewBox", `${this.beeld.x} ${this.beeld.y} ${this.beeld.w} ${this.beeld.h}`);
+    if (this.fitW) document.getElementById("zpct").textContent = Math.round(this.fitW / this.beeld.w * 100) + "%";
   },
 
+  /* fitW is de breedte van het passende beeld: het getal waartegen het
+     percentage in de zoombalk wordt afgezet ("100%" is dus "passend"). */
   passend() {
     const k = Tekening.kader(this.zaal), M = 220;
     const zaalB = k.x1 - k.x0 + M * 2, zaalD = k.y1 - k.y0 + M * 2;
@@ -290,6 +293,7 @@ const SchermTekenen = {
     if (zaalB / zaalD > verhouding) d = zaalB / verhouding; else b = zaalD * verhouding;
 
     this.beeld = { x: k.x0 - M - (b - zaalB) / 2, y: k.y0 - M - (d - zaalD) / 2, w: b, h: d };
+    this.fitW = b;
     this.toonBeeld();
   },
 

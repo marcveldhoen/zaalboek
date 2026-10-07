@@ -392,6 +392,7 @@ const SchermZaal = {
 
   toonBeeld() {
     this.svg.setAttribute("viewBox", `${this.beeld.x} ${this.beeld.y} ${this.beeld.w} ${this.beeld.h}`);
+    if (this.fitW) document.getElementById("zpct").textContent = Math.round(this.fitW / this.beeld.w * 100) + "%";
   },
 
   passend(vorm) {
@@ -405,6 +406,7 @@ const SchermZaal = {
     if (zaalB / zaalD > verhouding) d = zaalB / verhouding; else b = zaalD * verhouding;
 
     this.beeld = { x: k.x0 - M - (b - zaalB) / 2, y: k.y0 - M - (d - zaalD) / 2, w: b, h: d };
+    this.fitW = b;
     this.toonBeeld();
   },
 
