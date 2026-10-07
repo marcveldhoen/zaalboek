@@ -45,7 +45,7 @@ const SchermAfdrukken = {
             <div><span>Vereniging</span><b>${vereniging ? vereniging.naam : "Geen vereniging"}</b></div>
             <div><span>Moment</span><b>${SchermStart.momentTekst(opstelling.gebruiksmoment)}</b></div>
             <div><span>Aantal personen</span><b>${Telling.aantalPersonen(opstelling)}</b></div>
-            <div><span>Verantwoordelijke</span><b>${opstelling.verantwoordelijke || "—"}</b></div>
+            <div><span>Verantwoordelijke</span><b>${Model.verantwoordelijkheden[opstelling.verantwoordelijke] || "—"}</b></div>
           </div>
 
           <svg class="bladplan" viewBox="${viewBox}">

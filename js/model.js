@@ -168,6 +168,15 @@ const Model = {
     spreek: "Spreektafel"
   },
 
+  /* Wie verantwoordelijk is voor het klaarzetten van een opstelling. Bewust
+     een rol, geen naam met telefoonnummer: een naam veroudert bij een
+     bestuurswisseling, een rol niet. */
+  verantwoordelijkheden: {
+    koster:     "Koster",
+    vereniging: "De vereniging zelf",
+    vorige:     "De vereniging die ervoor zat"
+  },
+
   /* ---------- opzoeken ---------- */
 
   gebouw(id)      { return this.document.gebouwen.find(g => g.id === id); },

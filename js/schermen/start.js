@@ -146,9 +146,9 @@ const SchermStart = {
   /* ---------------- een opstelling wijzigen of verwijderen ----------------
      Een opstelling heeft geen eigen naam — wat je in de lijst ziet is de
      naam van zijn vereniging. "De naam wijzigen" is dus: een andere
-     vereniging koppelen (of loskoppelen). Hier staat ook het vaste
-     gebruiksmoment (dag, dagdeel, begin- en eindtijd). Aantal personen,
-     verantwoordelijke en opmerkingen horen bij scherm 2, dat er nog niet is. */
+     vereniging koppelen (of loskoppelen). Hier staan ook de verantwoordelijke
+     en het vaste gebruiksmoment (dag, dagdeel, begin- en eindtijd). Aantal
+     personen en opmerkingen horen bij scherm 2, dat er nog niet is. */
 
   DAGEN: ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag", "zondag"],
   DAGDELEN: ["ochtend", "middag", "avond"],
@@ -182,6 +182,12 @@ const SchermStart = {
       <input type="text" class="startnieuwnaam" placeholder="Naam van de nieuwe vereniging" hidden>
 
       <div class="veld-vol">
+        <label>Verantwoordelijke</label>
+        <select class="bwVerantwoordelijke">${Object.entries(Model.verantwoordelijkheden).map(([k, v]) =>
+          `<option value="${k}" ${o.verantwoordelijke === k ? "selected" : ""}>${v}</option>`).join("")}</select>
+      </div>
+
+      <div class="veld-vol">
         <label>Dag</label>
         <select class="bwDag">${this.dagOpties(m.dag)}</select>
       </div>
@@ -210,6 +216,7 @@ const SchermStart = {
       verenigingId = Model.nieuweVereniging(naam).id;
     }
 
+    const verantwoordelijke = wrap.querySelector(".bwVerantwoordelijke").value;
     const dag = wrap.querySelector(".bwDag").value;
     const dagdeel = wrap.querySelector(".bwDagdeel").value;
     const begin = wrap.querySelector(".bwBegin").value;
@@ -221,6 +228,7 @@ const SchermStart = {
     }
 
     opstelling.verenigingId = verenigingId;
+    opstelling.verantwoordelijke = verantwoordelijke;
     opstelling.gebruiksmoment = dag ? { dag, dagdeel: dagdeel || null, begin, eind } : null;
 
     this.bewerkIn = null;
