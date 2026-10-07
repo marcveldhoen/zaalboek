@@ -16,6 +16,7 @@
   --slate:#7C8B8A;
   --accent:#2F6F6A;
   --warn:#9A5B2C;
+  --warn-wash:#F4EADF;
   --tool-h:38px;
 }
 *{box-sizing:border-box}
@@ -33,6 +34,7 @@ button{font:inherit;color:inherit}
 
 /* ---------- kop ---------- */
 header{
+  position:relative;
   display:flex;align-items:baseline;gap:18px;
   padding:14px 20px 12px;
   background:var(--panel);
@@ -63,6 +65,41 @@ header .spacer{flex:1}
 }
 .ghost:hover{border-color:var(--ink-soft)}
 .ghost:disabled{opacity:.4;cursor:default}
+.help-btn{width:32px;padding:6px 0;text-align:center;font-weight:500}
+
+/* ---------- opslagstatus: altijd pictogram + tekst, nooit alleen kleur ---------- */
+.status{
+  display:flex;align-items:center;gap:7px;
+  font-size:12.5px;color:var(--ink-faint);font-variant-numeric:tabular-nums;
+}
+.status .ico{
+  flex:0 0 15px;width:15px;height:15px;
+  fill:none;stroke:currentColor;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round;
+}
+.status[data-state="bewaard"] .ico{color:var(--accent)}
+.status[data-state="bezig"] .ico{animation:draai 1s linear infinite}
+.status[data-state="fout"]{
+  color:var(--ink);background:var(--warn-wash);
+  border:1px solid var(--warn);border-radius:2px;padding:4px 10px;
+}
+.status[data-state="fout"] .ico{color:var(--warn)}
+@keyframes draai{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){
+  .status[data-state="bezig"] .ico{animation:none}
+}
+
+/* ---------- hulpkaartje ---------- */
+.help{
+  position:absolute;right:20px;top:calc(100% + 8px);z-index:10;
+  width:320px;padding:16px 18px 18px;
+  background:var(--panel);border:1px solid var(--ink-soft);border-radius:2px;
+}
+.help[hidden]{display:none}
+.help h2{margin-bottom:10px}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;margin:0;font-size:13px}
+.keys dt{white-space:nowrap}
+.keys dd{margin:0;color:var(--ink-soft)}
 
 /* ---------- indeling ---------- */
 main{flex:1;display:flex;min-height:0}
@@ -171,10 +208,6 @@ kbd{
   aside.right{flex-basis:190px}
   .hint{display:none}
 }
-
-/* ---------- bewaren ---------- */
-.status{color:var(--ink-faint);font-size:12.5px;font-variant-numeric:tabular-nums}
-.status.warn{color:var(--warn)}
 
 /* Twee vensters die de rest afsluiten: de sleutel invullen, en een melding
    waarbij doorwerken geen zin heeft. */

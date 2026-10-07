@@ -9,20 +9,34 @@ const HINT_TEKENEN = `Slepen om te verplaatsen &middot; <kbd>R</kbd> draaien &mi
   Lege ruimte slepen om de plattegrond te verschuiven`;
 const HINT_ZAAL = "Lege ruimte slepen om de plattegrond te verschuiven.";
 
-/* ---------------- de statusregel in de kop ---------------- */
+/* ---------------- de statusregel in de kop ----------------
+   Drie uiterlijke toestanden, elk met pictogram én tekst, zodat ze ook
+   zonder kleur (of voor een kleurenblinde koster) uit elkaar vallen:
+   bewaard (vinkje), bezig (draaiend icoon — dekt laden/wachten/bezig) en
+   fout (waarschuwing, met een eigen pictogram voor een verlopen sleutel). */
+const STATUS_ICON = {
+  bewaard: '<path d="M3.5 8.5l3 3 6-7"/>',
+  bezig:   '<path d="M13 8a5 5 0 1 1-1.6-3.7"/><path d="M13 3v3h-3"/>',
+  fout:    '<path d="M8 2.5l6 10.5H2z"/><path d="M8 7v3"/><path d="M8 11.8v.2"/>'
+};
+
+function pictogram(naam) {
+  return `<svg class="ico" viewBox="0 0 16 16" aria-hidden="true">${STATUS_ICON[naam]}</svg>`;
+}
 
 function toonStatus(status) {
   const regel = document.getElementById("status");
-  regel.classList.remove("warn");
 
-  if (status.staat === "laden")   { regel.textContent = "gegevens ophalen..."; return; }
-  if (status.staat === "wachten") { regel.textContent = "nog niet bewaard"; return; }
-  if (status.staat === "bezig")   { regel.textContent = "bewaren..."; return; }
+  if (status.staat === "laden")   { regel.dataset.state = "bezig"; regel.innerHTML = pictogram("bezig") + "<span>gegevens ophalen...</span>"; return; }
+  if (status.staat === "wachten") { regel.dataset.state = "bezig"; regel.innerHTML = pictogram("bezig") + "<span>nog niet bewaard</span>"; return; }
+  if (status.staat === "bezig")   { regel.dataset.state = "bezig"; regel.innerHTML = pictogram("bezig") + "<span>bewaren...</span>"; return; }
 
   if (status.staat === "bewaard") {
     const t = status.tijd;
     const tweecijfers = n => String(n).padStart(2, "0");
-    regel.textContent = `bewaard om ${tweecijfers(t.getHours())}:${tweecijfers(t.getMinutes())}`;
+    regel.dataset.state = "bewaard";
+    regel.innerHTML = pictogram("bewaard") +
+      `<span>bewaard om ${tweecijfers(t.getHours())}:${tweecijfers(t.getMinutes())}</span>`;
     return;
   }
 
@@ -37,8 +51,8 @@ function toonStatus(status) {
       vraagSleutel(status.fout.tekst);
       return;
     }
-    regel.classList.add("warn");
-    regel.textContent = "niet bewaard - " + status.fout.tekst;
+    regel.dataset.state = "fout";
+    regel.innerHTML = pictogram("fout") + `<span>niet bewaard - ${status.fout.tekst}</span>`;
   }
 }
 
@@ -54,6 +68,8 @@ function toonLayout(scherm) {
   document.getElementById("paneelRechts").hidden = isStart;
   document.getElementById("startscherm").hidden = !isStart;
   document.getElementById("ongedaan").hidden = isStart;
+  document.getElementById("hulpKnop").hidden = isStart;
+  if (isStart) toonHulp(false);
 }
 
 function naarStart() {
@@ -104,6 +120,13 @@ function toonMelding(titel, tekst) {
   document.getElementById("meldingtitel").textContent = titel;
   document.getElementById("meldingtekst").textContent = tekst;
   document.getElementById("meldingvenster").hidden = false;
+}
+
+/* ---------------- het hulpkaartje ---------------- */
+
+function toonHulp(open) {
+  document.getElementById("hulpkaartje").hidden = !open;
+  document.getElementById("hulpKnop").setAttribute("aria-expanded", String(open));
 }
 
 /* ---------------- starten ---------------- */
@@ -160,6 +183,16 @@ function start() {
     if (HuidigScherm === SchermStart) naarZalenInrichten(); else naarStart();
   };
   document.getElementById("wordmark").onclick = () => naarStart();
+
+  const hulpKnop = document.getElementById("hulpKnop");
+  const hulpkaartje = document.getElementById("hulpkaartje");
+  hulpKnop.onclick = () => toonHulp(hulpkaartje.hidden);
+  document.addEventListener("click", ev => {
+    if (!hulpkaartje.hidden && !hulpkaartje.contains(ev.target) && !hulpKnop.contains(ev.target)) toonHulp(false);
+  });
+  document.addEventListener("keydown", ev => {
+    if (ev.key === "Escape" && !hulpkaartje.hidden) toonHulp(false);
+  });
 
   if (!Opslag.heeftSleutel()) {
     vraagSleutel("Plak hier de sleutel die je bij GitHub hebt aangemaakt.");
