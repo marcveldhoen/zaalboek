@@ -29,6 +29,7 @@
   <button class="ghost help-btn" id="hulpKnop" aria-expanded="false" aria-controls="hulpkaartje"
           aria-label="Hulp en sneltoetsen">?</button>
   <button class="ghost" id="afdrukKnop" hidden>Afdrukken</button>
+  <button class="ghost" id="beheerKnop" hidden>Beheer</button>
   <button class="ghost" id="wisselScherm">Zalen inrichten</button>
 
   <div class="help" id="hulpkaartje" role="dialog" aria-label="Hulp en sneltoetsen" hidden>
@@ -53,6 +54,9 @@
   <!-- Scherm 4: het blad afdrukken, voor de opstelling die openstond in het
        tekenscherm. -->
   <div class="afdrukscherm" id="afdrukscherm" hidden></div>
+
+  <!-- Schermen 5, 7 en 8: verenigingen, meubilair en voorraad beheren. -->
+  <div class="startscherm" id="beheerscherm" hidden></div>
 
   <!-- Wat je kunt plaatsen. Wordt gevuld vanuit de meubellijst in het model. -->
   <aside class="left" id="gereedschap"></aside>
@@ -133,6 +137,7 @@
 <script src="js/schermen/afdrukken.js"></script>
 <script src="js/schermen/tekenen.js"></script>
 <script src="js/schermen/zaal.js"></script>
+<script src="js/schermen/beheer.js"></script>
 <script src="js/app.js"></script>
 
 </body>

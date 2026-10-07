@@ -317,3 +317,11 @@ kbd{
 .startbewerk .veld-vol{margin-bottom:10px}
 .startbewerk .startnieuwnaam{width:100%;margin:-4px 0 10px}
 .startbewerk .row{margin-top:4px;margin-bottom:14px}
+
+/* ---------- beheerscherm (schermen 5, 7, 8) ---------- */
+.beheertabs{display:flex;gap:4px;margin-bottom:26px;border-bottom:1px solid var(--line);max-width:720px}
+.beheertab{padding:8px 14px;border:0;background:transparent;color:var(--ink-soft);cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-1px;font:inherit}
+.beheertab:hover{color:var(--ink)}
+.beheertab.actief{color:var(--ink);border-bottom-color:var(--accent)}
+.beheervak{max-width:360px}

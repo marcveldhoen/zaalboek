@@ -290,6 +290,42 @@ const Model = {
     return vereniging;
   },
 
+  /* Een vereniging met opstellingen mag niet verwijderd worden (functioneel
+     ontwerp, hoofdstuk 7) — anders raken die opstellingen hun vereniging
+     stilletjes kwijt. Gebruikt door het beheerscherm (scherm 5). */
+  verenigingInGebruik(id) {
+    return this.document.opstellingen.some(o => o.verenigingId === id);
+  },
+
+  /* Nieuwe tafelsoort of nieuw verrijdbaar object. `symbool` geldt alleen bij
+     soort "object" en moet een van de bestaande namen uit vormen.js zijn
+     (zie Model.objectSymbolen) — een nieuw symbool vraagt code, geen
+     gegevens. Gebruikt door het beheerscherm (scherm 7). */
+  nieuwMeubeltype(soort, naam, breedte, diepte, symbool) {
+    const id = this.uniekeId(this.slug(naam), this.document.meubeltypen.map(m => m.id));
+    const meubel = { id, soort, naam, breedte, diepte };
+    if (soort === "object") meubel.symbool = symbool;
+    this.document.meubeltypen.push(meubel);
+    return meubel;
+  },
+
+  /* De vier symbolen die vormen.js kent voor een verrijdbaar object, met een
+     Nederlandse uitleg voor in het keuzeveld. */
+  objectSymbolen: {
+    bordDonker:    "Donker bord (bijv. smartboard)",
+    bordLicht:     "Licht bord (bijv. whiteboard)",
+    klavier:       "Klavier (bijv. piano)",
+    klavierOrgel:  "Klavier met registerlijst (bijv. kabinetorgel)"
+  },
+
+  /* Een meubeltype dat in een opstelling gebruikt wordt (als meubilair, of als
+     de rechte tafel in een tafelkring) mag niet verwijderd worden: anders
+     verwijst dat element naar niets meer. Gebruikt door het beheerscherm. */
+  meubeltypeInGebruik(id) {
+    return this.document.opstellingen.some(o =>
+      o.elementen.some(e => e.meubelId === id || e.rechteMeubelId === id));
+  },
+
   /* Gebruikt door het startscherm (scherm 1) om een nieuwe, lege opstelling
      voor een zaal aan te maken. De koster kiest de vereniging al bij het
      aanmaken; de rest (gebruiksmoment, opmerkingen) vult hij later in. */

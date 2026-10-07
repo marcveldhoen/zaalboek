@@ -3,7 +3,7 @@
    Hier komen de twee helften bij elkaar: opslag.js haalt het document op en
    bewaart het, de schermen laten het zien. */
 
-let HuidigScherm = null;   // SchermStart, SchermTekenen, SchermZaal of SchermAfdrukken — wie de knoppen in de kop bedient
+let HuidigScherm = null;   // SchermStart, SchermTekenen, SchermZaal, SchermAfdrukken of SchermBeheer — wie de knoppen in de kop bedient
 
 const HINT_TEKENEN = `Slepen om te verplaatsen &middot; <kbd>R</kbd> draaien &middot; pijltjes verschuiven<br>
   Lege ruimte slepen om de plattegrond te verschuiven`;
@@ -65,16 +65,19 @@ function toonStatus(status) {
 function toonLayout(scherm) {
   const isStart = scherm === "start";
   const isAfdrukken = scherm === "afdrukken";
-  const zonderPlattegrond = isStart || isAfdrukken;
+  const isBeheer = scherm === "beheer";
+  const zonderPlattegrond = isStart || isAfdrukken || isBeheer;
 
   document.getElementById("gereedschap").hidden = zonderPlattegrond;
   document.querySelector(".stage").hidden = zonderPlattegrond;
   document.getElementById("paneelRechts").hidden = zonderPlattegrond;
   document.getElementById("startscherm").hidden = !isStart;
   document.getElementById("afdrukscherm").hidden = !isAfdrukken;
+  document.getElementById("beheerscherm").hidden = !isBeheer;
   document.getElementById("ongedaan").hidden = zonderPlattegrond;
   document.getElementById("hulpKnop").hidden = zonderPlattegrond;
   document.getElementById("afdrukKnop").hidden = scherm !== "tekenen";
+  document.getElementById("beheerKnop").hidden = !isStart;
   if (zonderPlattegrond) toonHulp(false);
 }
 
@@ -124,6 +127,15 @@ function naarZalenInrichten() {
   document.getElementById("hint").innerHTML = HINT_ZAAL;
   document.getElementById("ongedaan").disabled = !SchermZaal.ongedaanStapel.length;
   SchermZaal.open();
+}
+
+function naarBeheer() {
+  if (HuidigScherm && HuidigScherm.sluiten) HuidigScherm.sluiten();
+  HuidigScherm = SchermBeheer;
+  toonLayout("beheer");
+  document.getElementById("kruimel").textContent = "Beheer";
+  document.getElementById("wisselScherm").textContent = "Terug naar overzicht";
+  SchermBeheer.open();
 }
 
 /* ---------------- de twee vensters ---------------- */
@@ -176,6 +188,7 @@ async function openen() {
   SchermStart.opWijziging   = () => Opslag.bewaarStraks(Model.alsTekst());
   SchermTekenen.opWijziging = () => Opslag.bewaarStraks(Model.alsTekst());
   SchermZaal.opWijziging    = () => Opslag.bewaarStraks(Model.alsTekst());
+  SchermBeheer.opWijziging  = () => Opslag.bewaarStraks(Model.alsTekst());
   naarStart();
 }
 
@@ -205,6 +218,7 @@ function start() {
   document.getElementById("afdrukKnop").onclick = () => {
     if (HuidigScherm === SchermTekenen) naarAfdrukken(SchermTekenen.opstelling);
   };
+  document.getElementById("beheerKnop").onclick = () => naarBeheer();
   document.getElementById("wordmark").onclick = () => naarStart();
 
   const hulpKnop = document.getElementById("hulpKnop");
