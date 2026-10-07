@@ -1,0 +1,57 @@
+/* blad.css — uitsluitend het geprinte blad (scherm 4).
+
+   Dit bestand bepaalt zowel het voorbeeld op het scherm (een witte pagina op
+   de werktafelkleur) als het echte papier via @media print. De tekening zelf
+   komt uit tekening.js en gebruikt dezelfde kleuren als interface.css. */
+
+.afdrukscherm{flex:1;display:flex;flex-direction:column;min-height:0;background:var(--desk)}
+/* net als aside.right in interface.css: display:flex overschrijft anders het
+   hidden-attribuut dat app.js zet zodra een ander scherm opent. */
+.afdrukscherm[hidden]{display:none}
+.afdrukbalk{flex:0 0 auto;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
+.bladvoorbeeld{flex:1;overflow:auto;display:flex;justify-content:center;padding:40px 20px}
+
+/* het blad zelf: op het scherm een A4-vel met schaduw, op papier gewoon de pagina */
+.blad{
+  width:210mm;min-height:297mm;
+  background:#fff;box-shadow:0 2px 10px rgba(35,43,43,.25);
+  padding:15mm;
+  display:flex;flex-direction:column;
+}
+
+.bladkop{margin-bottom:14mm}
+.bladkop h1{font-family:Newsreader,Georgia,serif;font-weight:400;font-size:26px;margin:0 0 2px}
+.bladkop p{color:var(--ink-soft);margin:0;font-size:13px}
+
+.bladmeta{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+  margin-bottom:10mm;padding-bottom:10mm;border-bottom:1px solid var(--line);
+}
+.bladmeta span{display:block;color:var(--ink-faint);font-size:11px;margin-bottom:2px}
+.bladmeta b{font-weight:500}
+
+.bladplan{flex:1;width:100%;min-height:140mm}
+
+.bladvoet{
+  display:flex;gap:24px;margin-top:10mm;padding-top:8mm;border-top:1px solid var(--line);
+}
+.bladbenodigd{flex:1}
+.bladopmerkingen{flex:1}
+.bladbenodigd h2, .bladopmerkingen h2{
+  font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--ink-soft);margin:0 0 8px;
+}
+.bline{display:flex;justify-content:space-between;padding:2px 0;font-size:13px;color:var(--ink-soft)}
+.bline b{font-weight:500;color:var(--ink)}
+.bline.over b{color:var(--warn)}
+.bladwaarschuwing{margin-top:8px;color:var(--warn);font-size:12px;line-height:1.5}
+.bladopmerkingen p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.6;white-space:pre-wrap}
+
+@media print{
+  @page{size:A4;margin:15mm}
+  html,body{height:auto;overflow:visible;background:#fff}
+  header, .afdrukbalk{display:none !important}
+  main{display:block}
+  .afdrukscherm{display:block;background:#fff}
+  .bladvoorbeeld{overflow:visible;padding:0;display:block}
+  .blad{box-shadow:none;margin:0 auto;width:auto;min-height:auto;padding:0}
+}

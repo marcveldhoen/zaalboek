@@ -3,7 +3,7 @@
    Hier komen de twee helften bij elkaar: opslag.js haalt het document op en
    bewaart het, de schermen laten het zien. */
 
-let HuidigScherm = null;   // SchermStart, SchermTekenen of SchermZaal — wie de knoppen in de kop bedient
+let HuidigScherm = null;   // SchermStart, SchermTekenen, SchermZaal of SchermAfdrukken — wie de knoppen in de kop bedient
 
 const HINT_TEKENEN = `Slepen om te verplaatsen &middot; <kbd>R</kbd> draaien &middot; pijltjes verschuiven<br>
   Lege ruimte slepen om de plattegrond te verschuiven`;
@@ -58,18 +58,24 @@ function toonStatus(status) {
 
 /* ---------------- schermen wisselen ---------------- */
 
-/* Scherm 1 (het overzicht) heeft geen plattegrond en geen gereedschap- of
-   eigenschappenpaneel; de andere twee schermen gebruiken juist precies dat.
-   Hier staat op één plek welke delen van `main` bij welk scherm horen. */
+/* Scherm 1 (het overzicht) en scherm 4 (afdrukken) hebben geen plattegrond en
+   geen gereedschap- of eigenschappenpaneel; de andere twee schermen gebruiken
+   juist precies dat. Hier staat op één plek welke delen van `main` bij welk
+   scherm horen. */
 function toonLayout(scherm) {
   const isStart = scherm === "start";
-  document.getElementById("gereedschap").hidden = isStart;
-  document.querySelector(".stage").hidden = isStart;
-  document.getElementById("paneelRechts").hidden = isStart;
+  const isAfdrukken = scherm === "afdrukken";
+  const zonderPlattegrond = isStart || isAfdrukken;
+
+  document.getElementById("gereedschap").hidden = zonderPlattegrond;
+  document.querySelector(".stage").hidden = zonderPlattegrond;
+  document.getElementById("paneelRechts").hidden = zonderPlattegrond;
   document.getElementById("startscherm").hidden = !isStart;
-  document.getElementById("ongedaan").hidden = isStart;
-  document.getElementById("hulpKnop").hidden = isStart;
-  if (isStart) toonHulp(false);
+  document.getElementById("afdrukscherm").hidden = !isAfdrukken;
+  document.getElementById("ongedaan").hidden = zonderPlattegrond;
+  document.getElementById("hulpKnop").hidden = zonderPlattegrond;
+  document.getElementById("afdrukKnop").hidden = scherm !== "tekenen";
+  if (zonderPlattegrond) toonHulp(false);
 }
 
 function naarStart() {
@@ -95,6 +101,18 @@ function naarTekenen(opstelling) {
   document.getElementById("wisselScherm").textContent = "Terug naar overzicht";
   document.getElementById("hint").innerHTML = HINT_TEKENEN;
   SchermTekenen.open(opstelling);
+}
+
+function naarAfdrukken(opstelling) {
+  if (HuidigScherm && HuidigScherm.sluiten) HuidigScherm.sluiten();
+  HuidigScherm = SchermAfdrukken;
+  toonLayout("afdrukken");
+
+  const zaal = Model.zaal(opstelling.zaalId);
+  const gebouw = Model.gebouw(zaal.gebouwId);
+  document.getElementById("kruimel").textContent = `${gebouw.naam} / ${zaal.naam} — afdrukken`;
+  document.getElementById("wisselScherm").textContent = "Terug naar tekenen";
+  SchermAfdrukken.open(opstelling);
 }
 
 function naarZalenInrichten() {
@@ -180,7 +198,12 @@ function start() {
     if (HuidigScherm && HuidigScherm.ongedaanMaken) HuidigScherm.ongedaanMaken();
   };
   document.getElementById("wisselScherm").onclick = () => {
-    if (HuidigScherm === SchermStart) naarZalenInrichten(); else naarStart();
+    if (HuidigScherm === SchermStart) naarZalenInrichten();
+    else if (HuidigScherm === SchermAfdrukken) naarTekenen(SchermAfdrukken.opstelling);
+    else naarStart();
+  };
+  document.getElementById("afdrukKnop").onclick = () => {
+    if (HuidigScherm === SchermTekenen) naarAfdrukken(SchermTekenen.opstelling);
   };
   document.getElementById("wordmark").onclick = () => naarStart();
 

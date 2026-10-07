@@ -114,6 +114,9 @@ aside.right{
   flex-basis:236px;border-left:1px solid var(--line);
   display:flex;flex-direction:column;overflow:hidden;padding:0;
 }
+/* aside.right zet zelf display:flex, dus overschrijft dat anders het
+   hidden-attribuut (zoals .help[hidden] en .overlay[hidden] hieronder). */
+aside.right[hidden]{display:none}
 #eigenschappen{flex:1;overflow-y:auto;padding:16px 14px 20px}
 .stage{flex:1;position:relative;min-width:0;background:var(--desk)}
 
