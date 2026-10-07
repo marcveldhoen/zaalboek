@@ -106,16 +106,28 @@ function naarTekenen(opstelling) {
   SchermTekenen.open(opstelling);
 }
 
-function naarAfdrukken(opstelling) {
+/* selectie: { scope: "opstelling", opstelling } of { scope: "zaal", zaal } of
+   { scope: "alles" } — zie schermen/afdrukken.js. */
+function naarAfdrukken(selectie) {
   if (HuidigScherm && HuidigScherm.sluiten) HuidigScherm.sluiten();
   HuidigScherm = SchermAfdrukken;
   toonLayout("afdrukken");
 
-  const zaal = Model.zaal(opstelling.zaalId);
-  const gebouw = Model.gebouw(zaal.gebouwId);
-  document.getElementById("kruimel").textContent = `${gebouw.naam} / ${zaal.naam} — afdrukken`;
-  document.getElementById("wisselScherm").textContent = "Terug naar tekenen";
-  SchermAfdrukken.open(opstelling);
+  if (selectie.scope === "opstelling") {
+    const zaal = Model.zaal(selectie.opstelling.zaalId);
+    const gebouw = Model.gebouw(zaal.gebouwId);
+    document.getElementById("kruimel").textContent = `${gebouw.naam} / ${zaal.naam} — afdrukken`;
+    document.getElementById("wisselScherm").textContent = "Terug naar tekenen";
+  } else if (selectie.scope === "zaal") {
+    const gebouw = Model.gebouw(selectie.zaal.gebouwId);
+    document.getElementById("kruimel").textContent = `${gebouw.naam} / ${selectie.zaal.naam} — afdrukken`;
+    document.getElementById("wisselScherm").textContent = "Terug naar overzicht";
+  } else {
+    document.getElementById("kruimel").textContent = "Hele map afdrukken";
+    document.getElementById("wisselScherm").textContent = "Terug naar overzicht";
+  }
+
+  SchermAfdrukken.open(selectie);
 }
 
 function naarZalenInrichten() {
@@ -212,11 +224,14 @@ function start() {
   };
   document.getElementById("wisselScherm").onclick = () => {
     if (HuidigScherm === SchermStart) naarZalenInrichten();
-    else if (HuidigScherm === SchermAfdrukken) naarTekenen(SchermAfdrukken.opstelling);
+    else if (HuidigScherm === SchermAfdrukken) {
+      if (SchermAfdrukken.scope === "opstelling") naarTekenen(SchermAfdrukken.opstelling);
+      else naarStart();
+    }
     else naarStart();
   };
   document.getElementById("afdrukKnop").onclick = () => {
-    if (HuidigScherm === SchermTekenen) naarAfdrukken(SchermTekenen.opstelling);
+    if (HuidigScherm === SchermTekenen) naarAfdrukken({ scope: "opstelling", opstelling: SchermTekenen.opstelling });
   };
   document.getElementById("beheerKnop").onclick = () => naarBeheer();
   document.getElementById("wordmark").onclick = () => naarStart();

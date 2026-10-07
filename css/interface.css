@@ -275,6 +275,7 @@ kbd{
   max-width:720px;margin-bottom:28px;
 }
 .startkop h1{font-family:Newsreader,Georgia,serif;font-weight:400;font-size:26px;margin:0}
+.startkopacties{display:flex;align-items:center;gap:10px}
 .startkop input[type=search]{
   font:inherit;border:1px solid var(--line);border-radius:2px;background:#fff;
   padding:7px 10px;width:240px;
@@ -284,6 +285,7 @@ kbd{
 .startzaal{margin-top:14px}
 .startzaalkop{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
 .startzaalnaam{font-family:Newsreader,Georgia,serif;font-size:17px}
+.startzaalknoppen{display:flex;gap:6px}
 .startregel{
   display:flex;align-items:center;gap:4px;width:100%;
   margin-bottom:3px;background:var(--panel);

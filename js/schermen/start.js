@@ -23,7 +23,10 @@ const SchermStart = {
     document.getElementById("startscherm").innerHTML = `
       <div class="startkop">
         <h1>Overzicht</h1>
-        <input type="search" id="startZoek" placeholder="Zoek op vereniging…">
+        <div class="startkopacties">
+          <input type="search" id="startZoek" placeholder="Zoek op vereniging…">
+          <button class="ghost" id="startAfdrukken" ${Model.document.opstellingen.length ? "" : "disabled"}>Hele map afdrukken</button>
+        </div>
       </div>
       <div class="startlijst" id="startlijst"></div>`;
 
@@ -61,7 +64,10 @@ const SchermStart = {
   },
 
   zaalBlok(zaal, zoekterm) {
-    let opstellingen = Model.document.opstellingen.filter(o => o.zaalId === zaal.id);
+    // ongefilterd, voor de afdrukknop: die drukt altijd alles van deze zaal
+    // af, ook als het zoekveld de lijst eronder net versmalt
+    const alleOpstellingen = Model.document.opstellingen.filter(o => o.zaalId === zaal.id);
+    let opstellingen = alleOpstellingen;
 
     if (zoekterm) {
       opstellingen = opstellingen.filter(o => {
@@ -77,7 +83,10 @@ const SchermStart = {
     return `<div class="startzaal">
       <div class="startzaalkop">
         <span class="startzaalnaam">${zaal.naam}</span>
-        <button class="ghost" data-nieuwopstelling="${zaal.id}">+ Nieuwe opstelling</button>
+        <span class="startzaalknoppen">
+          ${alleOpstellingen.length ? `<button class="ghost" data-afdrukzaal="${zaal.id}">Afdrukken</button>` : ""}
+          <button class="ghost" data-nieuwopstelling="${zaal.id}">+ Nieuwe opstelling</button>
+        </span>
       </div>
       ${regels || '<p class="empty">Nog geen opstellingen</p>'}
       ${nieuwFormulier}
@@ -271,6 +280,12 @@ const SchermStart = {
 
       const verwijder = ev.target.closest("[data-verwijder]");
       if (verwijder) { this.opstellingVerwijderen(verwijder.dataset.verwijder); return; }
+
+      const afdrukZaal = ev.target.closest("[data-afdrukzaal]");
+      if (afdrukZaal) { naarAfdrukken({ scope: "zaal", zaal: Model.zaal(afdrukZaal.dataset.afdrukzaal) }); return; }
+
+      const afdrukAlles = ev.target.closest("#startAfdrukken");
+      if (afdrukAlles) { naarAfdrukken({ scope: "alles" }); return; }
 
       const regel = ev.target.closest("[data-opstelling]");
       if (regel) naarTekenen(Model.opstelling(regel.dataset.opstelling));
