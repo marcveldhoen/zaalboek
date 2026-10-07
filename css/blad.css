@@ -27,6 +27,19 @@
   background:#fff;box-shadow:0 2px 10px rgba(35,43,43,.25);
   padding:15mm;
   display:flex;flex-direction:column;
+  /* een vaste hoogte is op zichzelf geen garantie: in de echte afdruk van
+     Chrome bleek inhoud die net te veel ruimte vraagt niet netjes te krimpen
+     maar gewoon door te lopen op een volgende, grotendeels lege pagina — per
+     opstelling dus een extra witte pagina. overflow:hidden knipt zoiets nu
+     af in plaats van er een nieuwe pagina bij te laten komen; in de normale
+     situatie (alles past) heeft dit geen enkel effect. */
+  overflow:hidden;
+  /* .blad is zelf ook een flex-item van .bladvoorbeeld (bij meer dan één
+     blad): zonder dit zou diezelfde overflow:hidden de automatische
+     minimumhoogte op 0 zetten, waardoor meerdere bladen onder elkaar in het
+     schermvoorbeeld plat worden gedrukt in plaats van dat het voorbeeldvak
+     gewoon scrolt. */
+  flex-shrink:0;
 }
 
 /* Staand of liggend is een keuze in de app (het vinkje in de afdrukbalk,
@@ -83,13 +96,36 @@
   main{display:block}
   .afdrukscherm{display:block;background:#fff}
   .bladvoorbeeld{overflow:visible;padding:0;display:block}
-  /* vaste hoogte = papierhoogte min de marge uit @page (2 × 15mm): net als
-     op het scherm hierboven, maar dan op de echte papiermaat, zodat
-     .bladplan ook hier meekrimpt in plaats van op een tweede pagina door te
-     lopen */
-  .blad{box-shadow:none;margin:0 auto;padding:0;width:180mm;height:267mm}
-  .afdrukscherm.liggend .blad{width:267mm;height:180mm}
+  /* vaste hoogte = papierhoogte min de marge uit @page (2 × 15mm), met een
+     paar mm marge erbovenop: net als op het scherm hierboven, maar dan op de
+     echte papiermaat, zodat .bladplan ook hier meekrimpt in plaats van op
+     een tweede pagina door te lopen. De marge (267mm/180mm zou precies
+     passen) vangt afrondingsverschillen tussen schermvoorbeeld en de echte
+     afdruk op; overflow:hidden hierboven is de laatste vangrail. */
+  .blad{box-shadow:none;margin:0 auto;padding:0;width:180mm;height:264mm}
+  .afdrukscherm.liggend .blad{width:267mm;height:177mm}
   /* elk blad na het eerste begint op een nieuwe pagina; zo komt er nooit een
      lege pagina achteraan, zoals page-break-after op het laatste blad zou geven */
   .blad + .blad{page-break-before:always;break-before:page}
 }
+
+/* ---------- liggend: de gegevens naast de tekening in plaats van erboven en
+   eronder ----------
+   Zomaar het papier omdraaien hielp niet: de koptekst, de gegevens en de
+   benodigdheden blijven dan even hoog, maar een liggend vel is juist minder
+   hoog (210mm i.p.v. 297mm) — dan blijft er minder over voor de tekening,
+   niet meer. Pas door ze naast de tekening te zetten, in de extra breedte die
+   liggend wél oplevert, wordt de tekening groter in plaats van kleiner. Het
+   tussenblad (alleen een gecentreerde titel) hoeft dit niet: :not(.bladtussen). */
+.afdrukscherm.liggend .blad:not(.bladtussen){
+  display:grid;
+  grid-template-columns:72mm 1fr;
+  /* kop en gegevens op hun natuurlijke hoogte, de lege rij erna vangt het
+     restant op zodat de benodigdheden onderaan de zijbalk blijven staan */
+  grid-template-rows:auto auto 1fr auto;
+  column-gap:14mm;
+}
+.afdrukscherm.liggend .bladkop{grid-column:1;grid-row:1}
+.afdrukscherm.liggend .bladmeta{grid-column:1;grid-row:2;grid-template-columns:1fr;row-gap:10px;align-content:start}
+.afdrukscherm.liggend .bladplan{grid-column:2;grid-row:1 / -1;height:100%}
+.afdrukscherm.liggend .bladvoet{grid-column:1;grid-row:4;flex-direction:column}
