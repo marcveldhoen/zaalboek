@@ -45,41 +45,90 @@ const SchermTekenen = {
     if (this.opWijziging) this.opWijziging();
   },
 
-  /* ---------------- wat je kunt plaatsen ---------------- */
+  /* ---------------- wat je kunt plaatsen ----------------
+     Elke tegel toont een echte, kleine tekening van het meubelstuk — gemaakt
+     door Tekening.element() aan te roepen op een minimale voorbeeldwaarde.
+     Dat raakt de tekencode zelf niet aan, het gebruikt hem alleen. Alle
+     tegels delen dezelfde breedte in de viewBox (240 cm), zodat ze ook
+     onderling op schaal met elkaar te vergelijken blijven; alleen de hoogte
+     verschilt per soort. */
+
+  paletGroepen() {
+    const H = { tafel: 130, tafelkring: 260, rij: 80, kring: 200, stoel: 80, object: 100 };
+    const stoel = Model.meubel("stoel");
+
+    const tafels = Model.meubeltypen("tafel").map(m => ({
+      plaats: "tafel", meubelId: m.id, naam: m.korteNaam || m.naam,
+      maat: `${m.breedte}×${m.diepte}`, H: H.tafel,
+      voorbeeld: { type: "tafel", meubelId: m.id, x: 0, y: 0, hoek: 0,
+        stoelen: { boven: 0, onder: 0, links: 0, rechts: 0 }, functie: "geen" }
+    }));
+
+    /* Een kring van tafels heeft alleen zin bij een tafel die toeloopt; een
+       rechthoekige tafel sluit nooit aan. Vandaar één tegel per trapeziumsoort. */
+    const tafelkringen = Model.meubeltypen("tafel").filter(m => m.vorm === "trapezium").map(m => ({
+      plaats: "tafelkring", meubelId: m.id, naam: "Tafelkring", maat: m.korteNaam || m.naam, H: H.tafelkring,
+      voorbeeld: Model.nieuwElement("tafelkring", m.id, 0, 0)
+    }));
+
+    const objecten = Model.meubeltypen("object").map(m => ({
+      plaats: "object", meubelId: m.id, naam: m.naam,
+      maat: `${m.breedte}×${m.diepte}`, H: H.object,
+      voorbeeld: { type: "object", meubelId: m.id, x: 0, y: 0, hoek: 0 }
+    }));
+
+    return [
+      { titel: "Tafels", tegels: [...tafels, ...tafelkringen] },
+      { titel: "Stoelen", tegels: [
+        { plaats: "rij", meubelId: null, naam: "Rij", maat: "aantal kiezen", H: H.rij,
+          voorbeeld: { type: "rij", n: 4, x: 0, y: 0, hoek: 0 } },
+        { plaats: "kring", meubelId: null, naam: "Kring", maat: "aantal kiezen", H: H.kring,
+          voorbeeld: { type: "kring", n: 8, opening: 0, vorm: "rond", rx: 70, ry: 70, x: 0, y: 0, hoek: 0 } },
+        { plaats: "stoel", meubelId: null, naam: "Losse stoel",
+          maat: `${stoel.breedte}×${stoel.diepte}`, H: H.stoel,
+          voorbeeld: { type: "stoel", x: 0, y: 0, hoek: 0 } }
+      ] },
+      { titel: "Objecten", tegels: objecten }
+    ];
+  },
 
   vulGereedschap() {
     const balk = document.getElementById("gereedschap");
-    const knop = (plaats, meubelId, naam, maat, blokje) =>
-      `<button class="tool" data-plaats="${plaats}" data-meubel="${meubelId || ""}">
-         <span class="swatch ${blokje}"><i></i></span>${naam}
-         ${maat ? `<span class="dim">${maat}</span>` : ""}
-       </button>`;
+    balk.innerHTML = "";
 
-    // het blokje links in de knop volgt de breedte van de tafel
-    const blokjeVoorTafel = b => b >= 160 ? "" : b >= 100 ? "md" : "sq";
+    this.paletGroepen().forEach((groep, gi) => {
+      const wrap = document.createElement("div");
+      wrap.className = "pgroup";
+      wrap.innerHTML = `<button class="ghead" aria-expanded="true" aria-controls="pg${gi}">
+          ${groep.titel}
+          <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5l3.5 3.5 3.5-3.5"/></svg>
+        </button><div class="tgrid" id="pg${gi}"></div>`;
+      balk.appendChild(wrap);
 
-    const tafels = Model.meubeltypen("tafel").map(m =>
-      knop("tafel", m.id, m.korteNaam || m.naam, `${m.breedte}×${m.diepte}`, blokjeVoorTafel(m.breedte))
-    ).join("");
+      const grid = wrap.querySelector(".tgrid");
+      const head = wrap.querySelector(".ghead");
+      head.onclick = () => {
+        const open = head.getAttribute("aria-expanded") === "true";
+        head.setAttribute("aria-expanded", String(!open));
+        grid.hidden = open;
+      };
 
-    /* Een kring van tafels heeft alleen zin bij een tafel die toeloopt; een
-       rechthoekige tafel sluit nooit aan. Vandaar één knop per trapeziumsoort. */
-    const tafelkringen = Model.meubeltypen("tafel").filter(m => m.vorm === "trapezium").map(m =>
-      knop("tafelkring", m.id, "Tafelkring", m.korteNaam || m.naam, "md")
-    ).join("");
+      groep.tegels.forEach(t => {
+        const knop = document.createElement("button");
+        knop.className = "tile";
+        knop.dataset.plaats = t.plaats;
+        if (t.meubelId) knop.dataset.meubel = t.meubelId;
+        knop.innerHTML = `<span class="tart"></span><span class="tn">${t.naam}</span><span class="tm">${t.maat}</span>`;
 
-    const objecten = Model.meubeltypen("object").map(m =>
-      knop("object", m.id, m.naam, "", "obj")
-    ).join("");
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("viewBox", `-120 ${-t.H / 2} 240 ${t.H}`);
+        svg.setAttribute("aria-hidden", "true");
+        knop.querySelector(".tart").appendChild(svg);
+        Tekening.element(t.voorbeeld, svg, 0, false);
 
-    balk.innerHTML = `
-      <div class="group"><h2>Tafels</h2>${tafels}${tafelkringen}</div>
-      <div class="group"><h2>Stoelen</h2>
-        ${knop("rij", "", "Rij", "", "chair")}
-        ${knop("kring", "", "Kring", "", "chair")}
-        ${knop("stoel", "", "Losse stoel", "", "chair")}
-      </div>
-      <div class="group"><h2>Objecten</h2>${objecten}</div>`;
+        grid.appendChild(knop);
+      });
+    });
   },
 
   plaats(type, meubelId) {

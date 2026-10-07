@@ -137,6 +137,31 @@ h2{
 .tool .swatch.obj i{background:var(--slate);top:4px;bottom:4px}
 .tool .dim{color:var(--ink-faint);font-size:12px;margin-left:auto}
 
+/* ---------- palet met tegels (schermen/tekenen.js) ---------- */
+.pgroup{margin-bottom:10px}
+.ghead{
+  display:flex;align-items:center;justify-content:space-between;width:100%;
+  background:none;border:0;padding:6px 2px;cursor:pointer;
+  font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--ink-soft);
+}
+.ghead:hover{color:var(--ink)}
+.ghead svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+.ghead[aria-expanded="false"] svg{transform:rotate(-90deg)}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.tgrid[hidden]{display:none}
+.tile{
+  display:flex;flex-direction:column;align-items:center;
+  padding:6px 4px 8px;
+  background:transparent;border:1px solid transparent;border-radius:2px;
+  cursor:pointer;text-align:center;
+}
+.tile:hover{background:#E5E4DC;border-color:var(--line)}
+.tile:active{background:#DEDDD3}
+.tart{flex:1;display:flex;align-items:center;width:100%}
+.tart svg{width:100%;height:auto;display:block}
+.tn{font-size:13px;margin-top:4px}
+.tm{font-size:12px;color:var(--ink-faint);line-height:1.3}
+
 /* ---------- de tekening ---------- */
 svg#plan{width:100%;height:100%;display:block;touch-action:none;cursor:default}
 svg#plan.panning{cursor:grabbing}
