@@ -41,16 +41,9 @@
   width:210mm;height:297mm;
   background:#fff;box-shadow:0 2px 10px rgba(35,43,43,.25);
   padding:15mm;
-  /* een vaste hoogte is op zichzelf geen garantie: mocht er, ondanks de
-     uitgerekende hoogte van .bladplan, toch iets net te veel ruimte vragen,
-     dan knipt dit het af in plaats van er een nieuwe, grotendeels lege
-     pagina bij te laten komen. In de normale situatie (alles past) heeft
-     dit geen enkel effect. */
-  overflow:hidden;
   /* .blad is zelf een flex-item van .bladvoorbeeld (bij meer dan één blad):
-     zonder dit zou diezelfde overflow:hidden de automatische minimumhoogte
-     op 0 zetten, waardoor meerdere bladen onder elkaar in het
-     schermvoorbeeld plat worden gedrukt in plaats van dat het voorbeeldvak
+     zonder dit zou het bij meerdere bladen onder elkaar in het
+     schermvoorbeeld kunnen krimpen in plaats van dat het voorbeeldvak
      gewoon scrolt. */
   flex-shrink:0;
 }
@@ -115,18 +108,15 @@
   .bladvoorbeeld{overflow:visible;padding:0;display:block}
   /* vaste hoogte = papierhoogte min de marge uit @page (2 × 15mm): net als
      op het scherm hierboven, maar dan op de echte papiermaat. De vaste
-     hoogte van .bladplan (150mm, hierboven) past hier ruim binnen;
-     overflow:hidden hierboven is de vangrail voor een enkele zaal met
-     ongewoon veel tekst (bijvoorbeeld een lange, vrij getypte opmerking). */
+     hoogte van .bladplan (140mm, hierboven) past hier ruim binnen. Bewust
+     geen overflow:hidden en geen break-inside:avoid meer op .blad: die
+     bleken in Safari juist zelf een lege pagina na ieder blad te
+     veroorzaken, ook als alles al ruim paste — zie OVERDRACHT.md. */
   .blad{box-shadow:none;margin:0 auto;padding:0;width:180mm;height:264mm}
   .afdrukscherm.liggend .blad{width:267mm;height:177mm}
   /* elk blad na het eerste begint op een nieuwe pagina; zo komt er nooit een
      lege pagina achteraan, zoals page-break-after op het laatste blad zou geven */
   .blad + .blad{page-break-before:always;break-before:page}
-  /* vangnet: zonder dit kan een browser .bladvoet als geheel naar een
-     volgende pagina verplaatsen zodra hij niet meer ruim boven de
-     paginarand past */
-  .blad, .bladvoet{break-inside:avoid;page-break-inside:avoid}
 }
 
 /* ---------- liggend: de gegevens naast de tekening in plaats van erboven en
