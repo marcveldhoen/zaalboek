@@ -118,6 +118,10 @@
   /* elk blad na het eerste begint op een nieuwe pagina; zo komt er nooit een
      lege pagina achteraan, zoals page-break-after op het laatste blad zou geven */
   .blad + .blad{page-break-before:always;break-before:page}
+  /* vangnet: zonder dit kan Chrome .bladvoet als geheel naar een volgende
+     pagina verplaatsen zodra hij niet meer ruim boven de paginarand past,
+     ook al klopt de uitgerekende hoogte van .bladplan verder gewoon */
+  .blad, .bladvoet{break-inside:avoid;page-break-inside:avoid}
 }
 
 /* ---------- liggend: de gegevens naast de tekening in plaats van erboven en

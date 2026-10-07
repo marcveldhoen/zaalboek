@@ -85,24 +85,36 @@ const SchermAfdrukken = {
      CSS-grid de hoogte van .bladplan, en dat is al bevestigd goed op papier.
      Bij staand (de gewone volgorde, gewoon onder elkaar) bleken zowel
      flexbox als CSS-grid dat niet betrouwbaar te doen in de échte afdruk van
-     Chrome — op het scherm klopte het altijd, op papier liep het soms toch
-     door op een extra, grotendeels lege pagina. Daarom hier met de hand:
-     .bladplan tijdelijk op 0 zetten, kijken hoeveel ruimte er dan nog onder
-     de benodigdheden overblijft (dat is precies de ruimte die de tekening
-     mag krijgen), en die hoogte als vaste pixelwaarde zetten. Wordt zowel na
-     het tekenen aangeroepen (voor het schermvoorbeeld) als vlak voor het
-     echte afdrukken (zie bedieningAanzetten hieronder), want de hoogte van
-     .blad zelf verschilt tussen scherm en papier. */
+     Chrome. Een eerste poging om dit met de hand uit te rekenen (.bladplan
+     tijdelijk op 0, dan de resterende ruimte boven .bladvoet opmeten) loste
+     de overloop naar een tweede pagina wel op, maar duwde .bladvoet zelf van
+     de pagina af: die meting bleek vlak voor het afdrukken (het
+     beforeprint-moment) nog deels de afmetingen van het schermvoorbeeld te
+     gebruiken (297mm) in plaats van de kleinere papiermaat (264mm) — alsof
+     niet alle eigenschappen van @media print op dat moment al bijgewerkt
+     waren. Daarom hier geen enkele eigenschap van .blad zelf meer live
+     aflezen: de beschikbare hoogte staat vast (zie css/blad.css, hetzelfde
+     getal als daar), alleen de positie van .bladvoet wordt nog gemeten.
+     Wordt zowel na het tekenen aangeroepen (voor het schermvoorbeeld) als
+     vlak voor het echte afdrukken (zie bedieningAanzetten hieronder). */
   hoogtesVastzetten() {
+    const MM_PX = 96 / 25.4;                                // vaste omrekening, los van schermresolutie
+    const printend = window.matchMedia("print").matches;
+    // gelijk aan css/blad.css: op het scherm het volle vel (297mm) met 15mm
+    // opvulling rondom (dus 267mm inhoud, 15mm vanaf de bovenkant), op
+    // papier de al verkleinde maat uit @media print (264mm, zonder opvulling)
+    const inhoudBovenMm = printend ? 0 : 15;
+    const inhoudHoogteMm = printend ? 264 : 267;
+
     document.querySelectorAll("#afdrukscherm .blad:not(.bladtussen)").forEach(blad => {
       const plan = blad.querySelector(".bladplan");
       if (this.liggend) { plan.style.height = ""; return; }   // liggend regelt dit zelf, via de zijbalk-grid
 
       const voet = blad.querySelector(".bladvoet");
       plan.style.height = "0px";
-      const bladOnder = blad.getBoundingClientRect().bottom - parseFloat(getComputedStyle(blad).paddingBottom);
+      const inhoudOnder = blad.getBoundingClientRect().top + (inhoudBovenMm + inhoudHoogteMm) * MM_PX;
       const voetOnder = voet.getBoundingClientRect().bottom;
-      plan.style.height = Math.max(0, bladOnder - voetOnder) + "px";
+      plan.style.height = Math.max(0, inhoudOnder - voetOnder) + "px";
     });
   },
 
