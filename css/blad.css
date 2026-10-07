@@ -24,15 +24,19 @@
 
    Staand (de gewone volgorde, geen class "liggend") staat hierdoor gewoon
    onder elkaar in de normale documentstroom: geen flexbox, geen CSS-grid.
-   Beide bleken in de échte afdruk van Chrome niet betrouwbaar om de
-   tekening te laten krimpen — op het scherm klopte de berekening altijd,
-   maar op papier liep het toch door op een volgende, grotendeels lege
-   pagina. De hoogte van .bladplan wordt daarom niet meer aan CSS
-   overgelaten, maar vlak voor het afdrukken met JavaScript uitgerekend en
-   als vaste pixelwaarde gezet — zie hoogtesVastzetten() in
-   schermen/afdrukken.js. Liggend (verderop) gebruikt wél nog een CSS-grid,
-   met een heel andere, al bevestigd werkende opzet (een zijbalk); daar is
-   niets aan veranderd. */
+   Drie pogingen om .bladplan automatisch te laten krimpen (flexbox,
+   CSS-grid, en daarna een JavaScript-berekening vlak voor het afdrukken)
+   bleken alle drie niet betrouwbaar in de échte afdruk — flexbox en grid
+   werkten niet in Chrome, en de JavaScript-versie (die op het
+   beforeprint-moment opnieuw rekende) niet in Safari: wijzigingen die
+   JavaScript daar aanbrengt, komen in Safari's afdrukweergave niet
+   betrouwbaar terecht. .bladplan krijgt daarom nu gewoon een vaste hoogte
+   in deze CSS, net zo min "slim" als liggend hieronder (dat om dezelfde
+   reden altijd al zonder JavaScript werkte, en altijd al goed afdrukte).
+   Nadeel: bij weinig tekst eromheen blijft er wat onbenutte ruimte onderaan
+   staan in plaats van dat de tekening meegroeit — dat nadeel is bewust
+   geaccepteerd voor iets dat in elke browser hetzelfde, voorspelbare
+   resultaat geeft. */
 .blad{
   width:210mm;height:297mm;
   background:#fff;box-shadow:0 2px 10px rgba(35,43,43,.25);
@@ -76,12 +80,12 @@
 .bladmeta span{display:block;color:var(--ink-soft);font-size:11px;margin-bottom:2px}
 .bladmeta b{font-weight:500}
 
-/* de hoogte zelf staat niet hier, maar wordt met JavaScript gezet (zie
-   hierboven bij .blad) — bij weinig tekst eromheen krijgt de tekening de
-   ruimte die overblijft, bij veel tekst (bijvoorbeeld meerdere tekort-
-   waarschuwingen) krimpt de tekening juist mee, zodat het blad altijd op
-   één pagina blijft passen. */
-.bladplan{width:100%}
+/* een vaste hoogte (zie de toelichting bij .blad hierboven) — ruim genoeg
+   gekozen om kop, gegevens en benodigdheden (inclusief een paar regels
+   tekort-waarschuwing) altijd nog te laten passen binnen de 264mm die er op
+   papier in totaal is, zonder dat de precieze hoeveelheid tekst daar iets
+   aan verandert. */
+.bladplan{width:100%;height:140mm}
 
 .bladvoet{
   display:flex;gap:24px;margin-top:10mm;padding-top:8mm;border-top:1px solid var(--line);
@@ -107,20 +111,19 @@
   main{display:block}
   .afdrukscherm{display:block;background:#fff}
   .bladvoorbeeld{overflow:visible;padding:0;display:block}
-  /* vaste hoogte = papierhoogte min de marge uit @page (2 × 15mm), met een
-     paar mm marge erbovenop: net als op het scherm hierboven, maar dan op de
-     echte papiermaat. hoogtesVastzetten() in schermen/afdrukken.js rekent
-     hiermee de hoogte van .bladplan uit; de marge (267mm/180mm zou precies
-     passen) is een beetje speling voor afrondingsverschillen, overflow:hidden
-     hierboven is de laatste vangrail. */
+  /* vaste hoogte = papierhoogte min de marge uit @page (2 × 15mm): net als
+     op het scherm hierboven, maar dan op de echte papiermaat. De vaste
+     hoogte van .bladplan (150mm, hierboven) past hier ruim binnen;
+     overflow:hidden hierboven is de vangrail voor een enkele zaal met
+     ongewoon veel tekst (bijvoorbeeld een lange, vrij getypte opmerking). */
   .blad{box-shadow:none;margin:0 auto;padding:0;width:180mm;height:264mm}
   .afdrukscherm.liggend .blad{width:267mm;height:177mm}
   /* elk blad na het eerste begint op een nieuwe pagina; zo komt er nooit een
      lege pagina achteraan, zoals page-break-after op het laatste blad zou geven */
   .blad + .blad{page-break-before:always;break-before:page}
-  /* vangnet: zonder dit kan Chrome .bladvoet als geheel naar een volgende
-     pagina verplaatsen zodra hij niet meer ruim boven de paginarand past,
-     ook al klopt de uitgerekende hoogte van .bladplan verder gewoon */
+  /* vangnet: zonder dit kan een browser .bladvoet als geheel naar een
+     volgende pagina verplaatsen zodra hij niet meer ruim boven de
+     paginarand past */
   .blad, .bladvoet{break-inside:avoid;page-break-inside:avoid}
 }
 
