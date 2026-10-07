@@ -102,10 +102,12 @@
 .bladopmerkingen p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.6;white-space:pre-wrap}
 
 @media print{
-  /* de papiermaat zelf (portrait/landscape) wordt niet hier vastgelegd, maar
-     bij het afdrukken als eigen stijlregel ingevoegd door
-     schermen/afdrukken.js — zie papierRichtingToepassen() daar */
-  @page{margin:15mm}
+  /* staand (A4 portrait) is hiermee het gewone geval, vastgelegd op precies
+     één plek. Bij liggend voegt schermen/afdrukken.js (papierRichtingToepassen())
+     er een tweede @page-regel aan toe die alleen de papierrichting omdraait
+     naar landscape — bewust niet hier ook al een portrait/landscape-keuze
+     erbij, om te voorkomen dat twee @page-regels elkaar tegenspreken. */
+  @page{size:A4 portrait;margin:15mm}
   html,body{height:auto;overflow:visible;background:#fff}
   header, .afdrukbalk{display:none !important}
   main{display:block}

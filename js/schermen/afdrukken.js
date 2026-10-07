@@ -85,8 +85,12 @@ const SchermAfdrukken = {
      beproeven op papier niet betrouwbaar door te geven welke richting
      gekozen was, waardoor het blad in geen van beide gevallen op één pagina
      paste. `@page` kan niet rechtstreeks aan een class gekoppeld worden,
-     dus wordt de papiermaat hier als eigen stijlregel ingevoegd; de hoogte
-     van `.blad` zelf regelt css/blad.css via de class "liggend". */
+     dus wordt de papiermaat bij liggend hier als eigen stijlregel ingevoegd
+     (een tweede `@page`-regel, naast die van css/blad.css); staand is het
+     gewone geval en heeft aan de `@page` uit css/blad.css zelf genoeg, dus
+     blijft die stijlregel dan leeg — minder kans dat twee `@page`-regels
+     tegelijk door elkaar gaan lopen. De hoogte van `.blad` zelf regelt
+     css/blad.css via de class "liggend". */
   papierRichtingToepassen() {
     document.getElementById("afdrukscherm").classList.toggle("liggend", this.liggend);
 
@@ -96,7 +100,7 @@ const SchermAfdrukken = {
       stijl.id = "afdrukPapier";
       document.head.appendChild(stijl);
     }
-    stijl.textContent = `@page{size:A4 ${this.liggend ? "landscape" : "portrait"}}`;
+    stijl.textContent = this.liggend ? "@page{size:A4 landscape}" : "";
   },
 
   groepHtml(groep, metTussenblad, bladen) {
