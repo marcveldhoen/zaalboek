@@ -488,6 +488,8 @@ header[hidden]{display:none}
   color:var(--menu-tekst);cursor:pointer;text-align:left;
 }
 .menuzaal:hover{background:var(--menu-invoer)}
+/* de weekplanning staat los van het zoekveld erboven */
+.menuplanning{margin-top:18px}
 .menuzaal.actief{background:var(--menu-actief);color:var(--wit);font-weight:600}
 .vormicoon{flex:0 0 20px;width:20px;height:26px;fill:none;stroke:currentColor;stroke-width:1.5}
 .menuzaal .naam{flex:1;min-width:0}
