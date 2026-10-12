@@ -339,10 +339,25 @@ const Model = {
       id, zaalId, verenigingId: verenigingId || null,
       aantalPersonen: 0, aantalPersonenHandmatig: false,
       gebruiksmoment: null, verantwoordelijke: "koster", opmerkingen: "",
-      gewijzigdOp: new Date().toISOString().slice(0, 10),
+      gewijzigdOp: this.vandaag(),
       teControleren: false, elementen: []
     };
     this.document.opstellingen.push(opstelling);
     return opstelling;
+  },
+
+  /* De datum van vandaag als "2026-10-12", in de tijd van de computer zelf.
+     toISOString() rekent in Greenwich-tijd en geeft vlak na middernacht nog
+     de datum van gisteren. */
+  vandaag() {
+    const nu = new Date();
+    const twee = n => String(n).padStart(2, "0");
+    return `${nu.getFullYear()}-${twee(nu.getMonth() + 1)}-${twee(nu.getDate())}`;
+  },
+
+  /* Er is iets aan een opstelling veranderd: de datum op de kaart en onder
+     aan het blad bijwerken. Alleen openen of aanklikken telt niet. */
+  opstellingGewijzigd(opstelling) {
+    opstelling.gewijzigdOp = this.vandaag();
   }
 };

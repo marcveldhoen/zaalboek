@@ -16,6 +16,7 @@ const SchermTekenen = {
 
   open(opstelling) {
     this.opstelling = opstelling;
+    this.vorigeElementen = JSON.stringify(opstelling.elementen);
     this.zaal = Model.zaal(opstelling.zaalId);
 
     this.svg = document.getElementById("plan");
@@ -42,6 +43,14 @@ const SchermTekenen = {
   /* Opnieuw tekenen na elke wijziging. Tijdens het slepen gebeurt dit met opzet
      niet: dan wordt alleen het gesleepte element verplaatst. Zie sleepBeweeg. */
   teken() {
+    /* teken() loopt ook bij openen en bij aanklikken. Alleen als de elementen
+       echt anders zijn dan de vorige keer is de opstelling gewijzigd. */
+    const nu = JSON.stringify(this.opstelling.elementen);
+    if (nu !== this.vorigeElementen) {
+      this.vorigeElementen = nu;
+      Model.opstellingGewijzigd(this.opstelling);
+    }
+
     Tekening.elementen(this.opstelling, this.gElementen, this.geselecteerd);
     this.toonEigenschappen();
     this.toonTelling();

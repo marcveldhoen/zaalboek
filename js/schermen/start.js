@@ -382,9 +382,14 @@ const SchermStart = {
       return;
     }
 
+    // alleen bij een echte wijziging telt de datum; Opslaan zonder iets te veranderen niet
+    const voor = JSON.stringify([opstelling.verenigingId, opstelling.verantwoordelijke, opstelling.gebruiksmoment]);
     opstelling.verenigingId = verenigingId;
     opstelling.verantwoordelijke = verantwoordelijke;
     opstelling.gebruiksmoment = dag ? { dag, dagdeel: dagdeel || null, begin, eind } : null;
+    if (JSON.stringify([opstelling.verenigingId, opstelling.verantwoordelijke, opstelling.gebruiksmoment]) !== voor) {
+      Model.opstellingGewijzigd(opstelling);
+    }
 
     this.bewerkIn = null;
     if (this.opWijziging) this.opWijziging();
