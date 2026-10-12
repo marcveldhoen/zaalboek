@@ -5,8 +5,8 @@
 
 let HuidigScherm = null;   // SchermStart, SchermTekenen, SchermZaal, SchermAfdrukken of SchermBeheer — wie de knoppen in de kop bedient
 
-const HINT_TEKENEN = `Slepen om te verplaatsen &middot; <kbd>R</kbd> draaien &middot; pijltjes verschuiven<br>
-  Lege ruimte slepen om de plattegrond te verschuiven`;
+const HINT_TEKENEN = `<kbd>R</kbd> draait &middot; pijltjes verschuiven &middot; lege ruimte
+  slepen verschuift de plattegrond`;
 const HINT_ZAAL = "Lege ruimte slepen om de plattegrond te verschuiven.";
 
 /* ---------------- de statusregel in de kop ----------------
@@ -27,16 +27,16 @@ function pictogram(naam) {
 function toonStatus(status) {
   const regel = document.getElementById("status");
 
-  if (status.staat === "laden")   { regel.dataset.state = "bezig"; regel.innerHTML = pictogram("bezig") + "<span>gegevens ophalen...</span>"; return; }
-  if (status.staat === "wachten") { regel.dataset.state = "bezig"; regel.innerHTML = pictogram("bezig") + "<span>nog niet bewaard</span>"; return; }
-  if (status.staat === "bezig")   { regel.dataset.state = "bezig"; regel.innerHTML = pictogram("bezig") + "<span>bewaren...</span>"; return; }
+  if (status.staat === "laden")   { regel.dataset.state = "bezig"; regel.innerHTML = pictogram("bezig") + "<span>Gegevens ophalen...</span>"; return; }
+  if (status.staat === "wachten") { regel.dataset.state = "bezig"; regel.innerHTML = pictogram("bezig") + "<span>Nog niet bewaard</span>"; return; }
+  if (status.staat === "bezig")   { regel.dataset.state = "bezig"; regel.innerHTML = pictogram("bezig") + "<span>Bewaren...</span>"; return; }
 
   if (status.staat === "bewaard") {
     const t = status.tijd;
     const tweecijfers = n => String(n).padStart(2, "0");
     regel.dataset.state = "bewaard";
     regel.innerHTML = pictogram("bewaard") +
-      `<span>bewaard om ${tweecijfers(t.getHours())}:${tweecijfers(t.getMinutes())}</span>`;
+      `<span>Bewaard om ${tweecijfers(t.getHours())}:${tweecijfers(t.getMinutes())}</span>`;
     return;
   }
 
@@ -52,8 +52,26 @@ function toonStatus(status) {
       return;
     }
     regel.dataset.state = "fout";
-    regel.innerHTML = pictogram("fout") + `<span>niet bewaard - ${status.fout.tekst}</span>`;
+    regel.innerHTML = pictogram("fout") + `<span>Niet bewaard - ${status.fout.tekst}</span>`;
   }
+}
+
+/* ---------------- de kop: waar je bent ----------------
+   Twee regels in de donkere balk: klein het pad (gebouw / zaal), groot de
+   titel (de vereniging, of de naam van het scherm). */
+function toonKruimel(pad, titel) {
+  const kruimel = document.getElementById("kruimel");
+  kruimel.innerHTML = "";
+  if (pad) {
+    const p = document.createElement("span");
+    p.className = "kruimelpad";
+    p.textContent = pad;
+    kruimel.appendChild(p);
+  }
+  const t = document.createElement("b");
+  t.className = "kruimeltitel";
+  t.textContent = titel;
+  kruimel.appendChild(t);
 }
 
 /* ---------------- schermen wisselen ---------------- */
@@ -68,7 +86,10 @@ function toonLayout(scherm) {
   const isBeheer = scherm === "beheer";
   const zonderPlattegrond = isStart || isAfdrukken || isBeheer;
 
-  document.getElementById("gereedschap").hidden = zonderPlattegrond;
+  // het tekenscherm heeft de gereedschapsstrook met uitklappers; alleen
+  // Zalen inrichten gebruikt nog de lijst links
+  document.getElementById("gereedschap").hidden = scherm !== "zaal";
+  document.getElementById("strook").hidden = scherm !== "tekenen";
   document.querySelector(".stage").hidden = zonderPlattegrond;
   document.getElementById("paneelRechts").hidden = zonderPlattegrond;
   document.getElementById("startscherm").hidden = !isStart;
@@ -78,6 +99,8 @@ function toonLayout(scherm) {
   document.getElementById("hulpKnop").hidden = zonderPlattegrond;
   document.getElementById("afdrukKnop").hidden = scherm !== "tekenen";
   document.getElementById("beheerKnop").hidden = !isStart;
+  // "‹ Overzicht" links in de balk; niet nodig op het overzicht zelf
+  document.getElementById("wordmark").hidden = isStart;
   if (zonderPlattegrond) toonHulp(false);
 }
 
@@ -85,8 +108,9 @@ function naarStart() {
   if (HuidigScherm && HuidigScherm.sluiten) HuidigScherm.sluiten();
   HuidigScherm = SchermStart;
   toonLayout("start");
-  document.getElementById("kruimel").textContent = "";
+  toonKruimel("", "Overzicht");
   document.getElementById("wisselScherm").textContent = "Zalen inrichten";
+  document.getElementById("wisselScherm").hidden = false;
   SchermStart.open();
 }
 
@@ -98,10 +122,10 @@ function naarTekenen(opstelling) {
   const zaal = Model.zaal(opstelling.zaalId);
   const gebouw = Model.gebouw(zaal.gebouwId);
   const vereniging = opstelling.verenigingId && Model.vereniging(opstelling.verenigingId);
-  document.getElementById("kruimel").textContent =
-    `${gebouw.naam} / ${zaal.naam}` + (vereniging ? ` — ${vereniging.naam}` : "");
+  toonKruimel(`${gebouw.naam} / ${zaal.naam}`, vereniging ? vereniging.naam : "Naamloze opstelling");
 
-  document.getElementById("wisselScherm").textContent = "Terug naar overzicht";
+  // terug naar het overzicht gaat via "‹ Overzicht" links in de balk
+  document.getElementById("wisselScherm").hidden = true;
   document.getElementById("hint").innerHTML = HINT_TEKENEN;
   SchermTekenen.open(opstelling);
 }
@@ -116,15 +140,16 @@ function naarAfdrukken(selectie) {
   if (selectie.scope === "opstelling") {
     const zaal = Model.zaal(selectie.opstelling.zaalId);
     const gebouw = Model.gebouw(zaal.gebouwId);
-    document.getElementById("kruimel").textContent = `${gebouw.naam} / ${zaal.naam} — afdrukken`;
+    toonKruimel(`${gebouw.naam} / ${zaal.naam}`, "Afdrukken");
     document.getElementById("wisselScherm").textContent = "Terug naar tekenen";
+    document.getElementById("wisselScherm").hidden = false;
   } else if (selectie.scope === "zaal") {
     const gebouw = Model.gebouw(selectie.zaal.gebouwId);
-    document.getElementById("kruimel").textContent = `${gebouw.naam} / ${selectie.zaal.naam} — afdrukken`;
-    document.getElementById("wisselScherm").textContent = "Terug naar overzicht";
+    toonKruimel(`${gebouw.naam} / ${selectie.zaal.naam}`, "Afdrukken");
+    document.getElementById("wisselScherm").hidden = true;
   } else {
-    document.getElementById("kruimel").textContent = "Hele map afdrukken";
-    document.getElementById("wisselScherm").textContent = "Terug naar overzicht";
+    toonKruimel("", "Hele map afdrukken");
+    document.getElementById("wisselScherm").hidden = true;
   }
 
   SchermAfdrukken.open(selectie);
@@ -134,8 +159,8 @@ function naarZalenInrichten() {
   if (HuidigScherm && HuidigScherm.sluiten) HuidigScherm.sluiten();
   HuidigScherm = SchermZaal;
   toonLayout("zaal");
-  document.getElementById("kruimel").textContent = "Zalen inrichten";
-  document.getElementById("wisselScherm").textContent = "Terug naar overzicht";
+  toonKruimel("", "Zalen inrichten");
+  document.getElementById("wisselScherm").hidden = true;
   document.getElementById("hint").innerHTML = HINT_ZAAL;
   document.getElementById("ongedaan").disabled = !SchermZaal.ongedaanStapel.length;
   SchermZaal.open();
@@ -145,8 +170,8 @@ function naarBeheer() {
   if (HuidigScherm && HuidigScherm.sluiten) HuidigScherm.sluiten();
   HuidigScherm = SchermBeheer;
   toonLayout("beheer");
-  document.getElementById("kruimel").textContent = "Beheer";
-  document.getElementById("wisselScherm").textContent = "Terug naar overzicht";
+  toonKruimel("", "Beheer");
+  document.getElementById("wisselScherm").hidden = true;
   SchermBeheer.open();
 }
 
@@ -206,6 +231,7 @@ async function openen() {
 
 function start() {
   Opslag.meld = toonStatus;
+  document.getElementById("kopzegel").alt = `Zegel van de ${Model.gemeente}`;
 
   document.getElementById("sleutelbewaren").onclick = () => {
     const veld = document.getElementById("sleutelveld");

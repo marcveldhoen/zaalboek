@@ -39,7 +39,7 @@
   --oak-light:#DBC9AF;
   --wood:#8A6741;
   --slate:#7C8B8A;
-  --raster:#D2D1C8;           /* rasterlijnen in de tekening (cm-raster) */
+  --raster:#E2E0D7;           /* rasterlijnen in de tekening (cm-raster) */
   --zaalnaam:#D2D0C6;         /* de zaalnaam als achtergrondmerk in de tekening */
   --blad-lijn:#8D958F;        /* dunne lijnen op het blad */
 
@@ -65,6 +65,7 @@
   --kaart:#FFFFFF;
   --kaart-rand:#E2E0D7;
   --kaart-schaduw:0 1px 2px rgba(35,43,43,.04);
+  --zwevend-schaduw:0 8px 24px rgba(35,43,43,.12);   /* uitklapper, hulpkaartje */
   --miniatuur:#EFEDE6;        /* achter de plattegrondminiaturen */
   --menu:#232B2B;             /* zijbalk en bovenbalk */
   --menu-tekst:#ECEAE2;
@@ -98,32 +99,30 @@ body{
 }
 button{font:inherit;color:inherit}
 
-/* ---------- kop ---------- */
+/* ---------- de donkere bovenbalk ---------- */
 header{
   position:relative;
-  display:flex;align-items:baseline;gap:18px;
-  padding:14px 20px 12px;
-  background:var(--panel);
-  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:16px;
+  height:56px;padding:0 20px;
+  background:var(--menu);color:var(--menu-tekst);
   flex:0 0 auto;
 }
-.wordmark{
-  font-family:var(--font);
-  font-size:20px;letter-spacing:.01em;
-  cursor:pointer;
-  display:inline-flex;align-items:baseline;gap:7px;
+/* het zwart-op-witte zegel, omgedraaid tot een witte lijntekening */
+.kopzegel{width:38px;height:auto;flex:0 0 38px;filter:invert(1);mix-blend-mode:screen}
+.balkknop{
+  display:inline-flex;align-items:center;gap:6px;
+  background:transparent;border:0;padding:6px 4px;cursor:pointer;
+  color:var(--menu-tekst);font-weight:500;
 }
-.kerksilhouet{
-  width:19px;height:19px;
-  fill:var(--accent);
-  align-self:center;
-  flex:0 0 auto;
-}
-.kerksilhouet .kruis{
-  fill:none;stroke:var(--accent);stroke-width:1.6;stroke-linecap:round;
-}
-.crumb{color:var(--ink-soft);font-size:13px}
-.crumb b{font-weight:500;color:var(--ink)}
+.balkknop:hover{color:var(--wit)}
+.balkknop:disabled{opacity:.4;cursor:default}
+.balkknop[hidden]{display:none}
+.balkknop .ico{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#wordmark{padding-right:16px;border-right:1px solid var(--menu-invoer-rand)}
+.crumb{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.kruimelpad{font-size:12px;color:var(--menu-tekst-zacht)}
+.kruimeltitel{font-size:var(--titel-balk);font-weight:600;color:var(--wit);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 header .spacer{flex:1}
 .ghost{
   border:1px solid var(--line);background:transparent;
@@ -131,25 +130,35 @@ header .spacer{flex:1}
 }
 .ghost:hover{border-color:var(--ink-soft)}
 .ghost:disabled{opacity:.4;cursor:default}
-.help-btn{width:32px;padding:6px 0;text-align:center;font-weight:500}
+header .ghost{border-color:var(--menu-invoer-rand);color:var(--menu-tekst);border-radius:var(--hoek-knop);padding:7px 14px}
+header .ghost:hover{border-color:var(--menu-tekst-zacht)}
+.help-btn{width:34px;height:34px;padding:0;text-align:center;font-weight:500}
+header .help-btn{border-radius:50%;padding:0}
+/* "Afdrukken" in de balk: de warme accentkleur, donkere tekst */
+.warm{
+  background:var(--accent-warm);color:var(--ink);border:0;cursor:pointer;
+  border-radius:var(--hoek-knop);padding:9px 18px;font-weight:600;
+}
+.warm:hover{filter:brightness(1.04)}
+.warm[hidden]{display:none}
 
 /* ---------- opslagstatus: altijd pictogram + tekst, nooit alleen kleur ---------- */
 .status{
   display:flex;align-items:center;gap:7px;
-  font-size:12.5px;color:var(--ink-faint);font-variant-numeric:tabular-nums;
+  font-size:var(--tekst-klein);color:var(--menu-tekst-zacht);font-variant-numeric:tabular-nums;
 }
 .status .ico{
   flex:0 0 15px;width:15px;height:15px;
   fill:none;stroke:currentColor;stroke-width:1.6;
   stroke-linecap:round;stroke-linejoin:round;
 }
-.status[data-state="bewaard"] .ico{color:var(--accent)}
+.status[data-state="bewaard"] .ico{color:var(--menu-tekst)}
 .status[data-state="bezig"] .ico{animation:draai 1s linear infinite}
 .status[data-state="fout"]{
-  color:var(--ink);background:var(--warn-wash);
-  border:1px solid var(--warn);border-radius:var(--hoek);padding:4px 10px;
+  color:var(--waarschuwing-tekst);background:var(--waarschuwing-vlak);
+  border:1px solid var(--waarschuwing-rand);border-radius:var(--hoek-knop);padding:4px 10px;
 }
-.status[data-state="fout"] .ico{color:var(--warn)}
+.status[data-state="fout"] .ico{color:var(--waarschuwing-icoon)}
 @keyframes draai{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){
   .status[data-state="bezig"] .ico{animation:none}
@@ -158,8 +167,9 @@ header .spacer{flex:1}
 /* ---------- hulpkaartje ---------- */
 .help{
   position:absolute;right:20px;top:calc(100% + 8px);z-index:10;
-  width:320px;padding:16px 18px 18px;
-  background:var(--panel);border:1px solid var(--ink-soft);border-radius:var(--hoek);
+  width:320px;padding:16px 18px 18px;color:var(--ink);
+  background:var(--kaart);border:1px solid var(--kaart-rand);border-radius:var(--hoek-kaart);
+  box-shadow:var(--zwevend-schaduw);
 }
 .help[hidden]{display:none}
 .help h2{margin-bottom:10px}
@@ -177,14 +187,15 @@ aside{
 }
 aside.left{border-right:1px solid var(--line)}
 aside.right{
-  flex-basis:236px;border-left:1px solid var(--line);
+  flex-basis:300px;background:var(--paneel);border-left:1px solid var(--paneel-rand);
   display:flex;flex-direction:column;overflow:hidden;padding:0;
 }
 /* aside.right zet zelf display:flex, dus overschrijft dat anders het
    hidden-attribuut (zoals .help[hidden] en .overlay[hidden] hieronder). */
 aside.right[hidden]{display:none}
-#eigenschappen{flex:1;overflow-y:auto;padding:16px 14px 20px}
-.stage{flex:1;position:relative;min-width:0;background:var(--desk)}
+#eigenschappen{flex:1;overflow-y:auto;padding:22px 22px 16px}
+.stage{flex:1;position:relative;min-width:0;background:var(--werkvlak)}
+.stage[hidden]{display:none}
 
 h2{
   font-size:11px;font-weight:600;letter-spacing:.04em;
@@ -210,30 +221,62 @@ h2{
 .tool .swatch.obj i{background:var(--slate);top:4px;bottom:4px}
 .tool .dim{color:var(--ink-faint);font-size:12px;margin-left:auto}
 
-/* ---------- palet met tegels (schermen/tekenen.js) ---------- */
-.pgroup{margin-bottom:10px}
-.ghead{
-  display:flex;align-items:center;justify-content:space-between;width:100%;
-  background:none;border:0;padding:6px 2px;cursor:pointer;
-  font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--ink-soft);
+/* ---------- gereedschapsstrook van het tekenscherm ---------- */
+.strook{
+  display:flex;align-items:center;gap:10px;
+  height:56px;padding:0 20px;flex:0 0 auto;
+  background:var(--strook);border-bottom:1px solid var(--paneel-rand);
 }
-.ghead:hover{color:var(--ink)}
-.ghead svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
-.ghead[aria-expanded="false"] svg{transform:rotate(-90deg)}
-.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
-.tgrid[hidden]{display:none}
+.strook[hidden]{display:none}
+.strook .spacer{flex:1}
+.uitklapknoppen{display:flex;gap:8px}
+.uitklapknop{
+  display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 12px;
+  background:var(--kaart);border:1px solid var(--knoprand);border-radius:var(--hoek-knop);
+  cursor:pointer;font-weight:500;
+}
+.uitklapknop:hover{border-color:var(--ink-soft)}
+.uitklapknop[aria-expanded="true"]{background:var(--ink);border-color:var(--ink);color:var(--wit)}
+.uitklapknop svg{fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.uitklapknop .mini{width:20px;height:16px}
+.uitklapknop .pijl{width:12px;height:12px;stroke-width:1.6}
+.uitklapknop[aria-expanded="true"] .pijl{transform:rotate(180deg)}
+.strookscheiding{width:1px;height:28px;background:var(--paneel-rand);margin:0 6px}
+.selectieacties{display:flex;align-items:center;gap:4px;min-width:0}
+.strooknaam{color:var(--ink-soft);margin-right:6px;white-space:nowrap}
+.strookleeg{color:var(--ink-soft);font-size:var(--tekst-klein)}
+.strookactie{
+  background:transparent;border:1px solid transparent;border-radius:var(--hoek-knop);
+  padding:7px 10px;cursor:pointer;font-weight:500;white-space:nowrap;
+}
+.strookactie:hover{background:var(--hover)}
+.strookactie.gevaar{color:var(--waarschuwing-icoon)}
+
+/* ---------- de uitklapper: tegels om te plaatsen ---------- */
+.uitklap{
+  position:absolute;left:16px;top:16px;z-index:5;
+  width:296px;max-height:calc(100% - 32px);overflow-y:auto;padding:14px 14px 16px;
+  background:var(--kaart);border:1px solid var(--kaart-rand);border-radius:var(--hoek-kaart);
+  box-shadow:var(--zwevend-schaduw);
+}
+.uitklap[hidden]{display:none}
+.uitklapkop{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.uitklapkop b{font-size:16px;font-weight:600}
+.uitklapkop span{font-size:12px;color:var(--ink-soft)}
+.tegels{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .tile{
-  display:flex;flex-direction:column;align-items:center;
-  padding:6px 4px 8px;
-  background:transparent;border:1px solid transparent;border-radius:var(--hoek);
-  cursor:pointer;text-align:center;
+  display:flex;flex-direction:column;align-items:flex-start;
+  padding:10px 12px 10px;
+  background:var(--kaart);border:1px solid var(--kaart-rand);border-radius:var(--hoek-knop);
+  cursor:pointer;text-align:left;
 }
-.tile:hover{background:var(--hover);border-color:var(--line)}
+.tile.breed{grid-column:1 / -1}
+.tile:hover{border-color:var(--ink-soft)}
 .tile:active{background:var(--ingedrukt)}
-.tart{flex:1;display:flex;align-items:center;width:100%}
-.tart svg{width:100%;height:auto;display:block}
-.tn{font-size:13px;margin-top:4px}
-.tm{font-size:12px;color:var(--ink-faint);line-height:1.3}
+.tart{display:block;width:64px;height:36px}
+.tart svg{width:64px;height:36px;display:block}
+.tn{font-size:var(--tekst);font-weight:500;margin-top:8px}
+.tm{font-size:12px;color:var(--ink-soft);line-height:1.35}
 
 /* ---------- de tekening ----------
    Het lettertype van alle tekst in de plattegrond (zaalnaam, schaalstok,
@@ -242,33 +285,56 @@ h2{
 svg text{font-family:var(--font)}
 svg#plan{width:100%;height:100%;display:block;touch-action:none;cursor:default}
 svg#plan.panning{cursor:grabbing}
+/* de zoomknoppen, rechts in de gereedschapsstrook */
 .zoombar{
-  position:absolute;left:50%;bottom:14px;transform:translateX(-50%);
   display:flex;align-items:center;
-  background:var(--panel);border:1px solid var(--line);border-radius:var(--hoek);
+  background:var(--kaart);border:1px solid var(--knoprand);border-radius:var(--hoek-knop);
 }
 .zoombar button{
-  height:32px;border:0;background:transparent;cursor:pointer;color:var(--ink-soft);
+  height:36px;border:0;background:transparent;cursor:pointer;color:var(--ink);
 }
-.zoombar button:hover{color:var(--ink)}
-.zoombar .sq{width:32px;font-size:16px;line-height:1}
-.zoombar .wide{padding:0 12px;border-left:1px solid var(--line)}
-.zpct{width:52px;text-align:center;font-variant-numeric:tabular-nums;color:var(--ink-soft);font-size:13px}
+.zoombar button:hover{background:var(--hover)}
+.zoombar .sq{width:36px;font-size:16px;line-height:1}
+.zoombar .wide{padding:0 14px;border-left:1px solid var(--knoprand);font-weight:500}
+.zpct{width:56px;text-align:center;font-variant-numeric:tabular-nums;font-weight:500}
+/* de sneltoetsen, in het paneel rechts */
 .hint{
-  position:absolute;right:14px;bottom:16px;
-  color:var(--ink-faint);font-size:12px;text-align:right;line-height:1.6;
+  flex:0 0 auto;padding:0 22px 16px;
+  color:var(--ink-soft);font-size:12px;line-height:1.6;
 }
+.hint:empty{display:none}
 
 /* ---------- eigenschappen ---------- */
 .empty{color:var(--ink-soft);line-height:1.65;font-size:13px}
 .selname{
-  font-family:var(--font);font-size:19px;
+  font-size:var(--titel-paneel);font-weight:600;letter-spacing:-.015em;
   margin:0 0 2px;
 }
-.selsub{color:var(--ink-faint);font-size:12px;margin:0 0 16px}
+.selsub{color:var(--ink-soft);font-size:var(--tekst-klein);margin:0 0 16px}
+/* sectiekopjes in het paneel rechts */
+#paneelRechts h2{
+  font-size:var(--kopje);font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--ink-soft);margin:22px 0 10px;
+}
+#eigenschappen > h2:first-of-type{margin-top:6px}
+/* tellers met het label erboven, twee naast elkaar (stoelen per zijde, maat) */
+.tellers{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px}
+.tellers.enkel{grid-template-columns:1fr}
+.teller label{display:block;font-size:var(--tekst-klein);color:var(--ink-soft);margin-bottom:4px}
+.tellers .stepper{width:100%;justify-content:space-between;background:var(--wit)}
+.tellers .stepper button{width:34px;height:34px;color:var(--ink);font-size:16px}
+.tellers .stepper span{flex:1}
+#paneelRechts select{width:100%;padding:8px 10px;border-color:var(--invoerrand);border-radius:var(--hoek-knop)}
+.plaatsen{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.plaatsknop{
+  width:30px;height:27px;cursor:pointer;
+  border:1px solid var(--invoerrand);border-radius:var(--hoek);background:var(--wit);
+}
+.plaatsknop.bocht{background:var(--oak-light)}
+.plaatsknop.weg{opacity:.35;text-decoration:line-through}
 .field{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
 .field label{color:var(--ink-soft)}
-.stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:var(--hoek)}
+.stepper{display:flex;align-items:center;border:1px solid var(--invoerrand);border-radius:var(--hoek-knop)}
 .stepper button{
   width:26px;height:26px;border:0;background:transparent;cursor:pointer;color:var(--ink-soft);
 }
@@ -296,14 +362,24 @@ select{
 /* ---------- telling ----------
    Vastgezet onderin het paneel (zie aside.right hierboven), zodat hij
    zichtbaar blijft ook als de eigenschappenlijst erboven lang is. */
-.tally{flex:0 0 auto;max-height:46%;overflow-y:auto;border-top:1px solid var(--line);padding:14px 14px 16px}
+.tally{flex:0 0 auto;max-height:40%;overflow-y:auto;border-top:1px solid var(--paneel-rand);padding:16px 22px 20px}
+.tally:empty{display:none}
 .tline{display:flex;justify-content:space-between;padding:3px 0;color:var(--ink-soft)}
-.tline b{font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
-.tline.over b{color:var(--warn)}
-.note{
-  margin-top:12px;color:var(--warn);font-size:12.5px;line-height:1.6;
-  border-left:2px solid var(--warn);padding-left:10px;
+.tline b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.tline.over b{color:var(--waarschuwing-rand)}
+.tline svg, .waarschuwing svg{
+  width:13px;height:13px;margin:0 5px -2px 0;
+  fill:none;stroke:var(--waarschuwing-icoon);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
 }
+/* een tekort: rand, vlak, icoon én tekst — waarschuwen, niet blokkeren */
+.waarschuwing{
+  display:flex;gap:8px;align-items:flex-start;margin-top:14px;padding:12px 14px;
+  background:var(--waarschuwing-vlak);border:1px solid var(--waarschuwing-rand);
+  border-radius:var(--hoek-knop);color:var(--waarschuwing-tekst);
+  font-size:var(--tekst-klein);line-height:1.55;
+}
+.waarschuwing svg{flex:0 0 16px;width:16px;height:16px;margin:2px 0 0}
+.waarschuwing p{margin:0}
 kbd{
   font:inherit;font-size:11.5px;border:1px solid var(--line);
   border-bottom-width:2px;border-radius:var(--hoek-groot);padding:0 4px;background:var(--wit);

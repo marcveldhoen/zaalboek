@@ -11,7 +11,8 @@
    browser aan; hoe het blad en de paginaovergangen eruitzien staat in
    css/blad.css. */
 
-/* Het waarschuwingsicoon naast een tekort: vorm én tekst, nooit alleen kleur. */
+/* Het waarschuwingsicoon naast een tekort: vorm én tekst, nooit alleen kleur.
+   Ook gebruikt door het tekenscherm (schermen/tekenen.js). */
 const WAARSCHUWING_ICOON = '<svg viewBox="0 0 16 16" aria-hidden="true">' +
   '<path d="M8 2.5l6 10.5H2z"/><path d="M8 7v3"/><path d="M8 11.8v.2"/></svg>';
 

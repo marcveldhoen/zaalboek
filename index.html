@@ -11,21 +11,19 @@
 <body>
 
 <header>
-  <span class="wordmark" id="wordmark">
-    <svg class="kerksilhouet" viewBox="0 0 30 28" aria-hidden="true">
-      <rect x="1" y="14" width="13" height="13"/>
-      <rect x="18" y="5" width="9" height="22"/>
-      <path class="kruis" d="M22.5,5 V0.5 M20.5,2 H24.5"/>
-    </svg>
-    Zaalboek
-  </span>
+  <!-- De donkere bovenbalk. Het zegel is hetzelfde zwart-op-witte bestand als
+       op het blad, hier met css omgedraaid tot een witte lijntekening. -->
+  <img class="kopzegel" id="kopzegel" src="img/kerkzegel.png" alt="Zegel">
+  <button class="balkknop" id="wordmark">&lsaquo; Overzicht</button>
   <span class="crumb" id="kruimel"></span>
   <span class="spacer"></span>
   <span class="status" id="status" role="status" aria-live="polite"></span>
-  <button class="ghost" id="ongedaan" disabled>Ongedaan maken</button>
+  <button class="balkknop" id="ongedaan" disabled>
+    <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6h6.5a3.5 3.5 0 0 1 0 7H7"/><path d="M6.5 3.5L4 6l2.5 2.5"/></svg>
+    Ongedaan maken</button>
   <button class="ghost help-btn" id="hulpKnop" aria-expanded="false" aria-controls="hulpkaartje"
           aria-label="Hulp en sneltoetsen">?</button>
-  <button class="ghost" id="afdrukKnop" hidden>Afdrukken</button>
+  <button class="warm" id="afdrukKnop" hidden>Afdrukken</button>
   <button class="ghost" id="beheerKnop" hidden>Beheer</button>
   <button class="ghost" id="wisselScherm">Zalen inrichten</button>
 
@@ -42,6 +40,22 @@
     </dl>
   </div>
 </header>
+
+<!-- De gereedschapsstrook van het tekenscherm: wat je kunt plaatsen (drie
+     uitklappers), wat je met het gekozen meubilair kunt doen, en zoomen.
+     app.js toont hem alleen op het tekenscherm. -->
+<div class="strook" id="strook" hidden>
+  <div class="uitklapknoppen" id="uitklapknoppen"></div>
+  <span class="strookscheiding" aria-hidden="true"></span>
+  <div class="selectieacties" id="selectieacties"></div>
+  <span class="spacer"></span>
+  <div class="zoombar">
+    <button class="sq" id="zoomuit" title="Uitzoomen" aria-label="Uitzoomen">&minus;</button>
+    <span class="zpct" id="zpct">100%</span>
+    <button class="sq" id="zoomin" title="Inzoomen" aria-label="Inzoomen">+</button>
+    <button class="wide" id="zoompassend">Passend</button>
+  </div>
+</div>
 
 <main>
   <!-- Scherm 1: het overzicht van gebouwen, zalen en opstellingen. app.js
@@ -76,21 +90,14 @@
       </g>
     </svg>
 
-    <div class="zoombar">
-      <button class="sq" id="zoomuit" title="Uitzoomen" aria-label="Uitzoomen">&minus;</button>
-      <span class="zpct" id="zpct">100%</span>
-      <button class="sq" id="zoomin" title="Inzoomen" aria-label="Inzoomen">+</button>
-      <button class="wide" id="zoompassend">Passend</button>
-    </div>
-
-    <div class="hint" id="hint">
-      Slepen om te verplaatsen &middot; <kbd>R</kbd> draaien &middot; pijltjes verschuiven<br>
-      Lege ruimte slepen om de plattegrond te verschuiven
-    </div>
+    <!-- De open uitklapper (Tafels, Stoelen of Objecten), linksboven over
+         het werkvlak. Gevuld door schermen/tekenen.js. -->
+    <div class="uitklap" id="uitklap" hidden></div>
   </div>
 
   <aside class="right" id="paneelRechts">
     <div id="eigenschappen"></div>
+    <div class="hint" id="hint"></div>
     <div class="tally" id="telling"></div>
   </aside>
 </main>

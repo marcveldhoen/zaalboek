@@ -23,7 +23,7 @@ const SchermZaal = {
   open() {
     this.svg = document.getElementById("plan");
 
-    document.getElementById("kruimel").innerHTML = "Zalen inrichten";
+    toonKruimel("", "Zalen inrichten");
     document.getElementById("telling").innerHTML = "";
     // het meubilair van het tekenscherm staat in een eigen groep die dit
     // scherm verder niet gebruikt; zonder dit blijft het als een spook
