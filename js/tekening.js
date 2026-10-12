@@ -36,11 +36,11 @@ const Tekening = {
     const M = 140;                                  // hoe ver het raster buiten de zaal doorloopt
     for (let x = k.x0 - M; x <= k.x1 + M; x += 50) {
       this.el("line", { x1: x, y1: k.y0 - M, x2: x, y2: k.y1 + M,
-        stroke: "#D2D1C8", "stroke-width": (x % 100 ? .8 : 1.6) }, doel);
+        stroke: "var(--raster)", "stroke-width": (x % 100 ? .8 : 1.6) }, doel);
     }
     for (let y = k.y0 - M; y <= k.y1 + M; y += 50) {
       this.el("line", { x1: k.x0 - M, y1: y, x2: k.x1 + M, y2: y,
-        stroke: "#D2D1C8", "stroke-width": (y % 100 ? .8 : 1.6) }, doel);
+        stroke: "var(--raster)", "stroke-width": (y % 100 ? .8 : 1.6) }, doel);
     }
   },
 
@@ -61,9 +61,9 @@ const Tekening = {
      dwars doorheen op het meubilair eronder kunt klikken. */
   naam(doel, k, naam) {
     doel.innerHTML = "";
-    const t = this.el("text", { x: k.x0 + 40, y: k.y0 + 90, fill: "#C6C3B8",
+    const t = this.el("text", { x: k.x0 + 40, y: k.y0 + 90, fill: "var(--zaalnaam)",
       "fill-opacity": 0.55, "pointer-events": "none",
-      "font-family": "Newsreader, Georgia, serif", "font-size": 72 }, doel);
+      "font-size": 72 }, doel);
     t.textContent = naam;
   },
 
@@ -107,7 +107,7 @@ const Tekening = {
         stroke: "var(--ink-soft)", "stroke-width": 3 }, doel);
     }
     const t = this.el("text", { x: x + 510, y: y + 10, fill: "var(--ink-faint)",
-      "font-family": "Archivo, sans-serif", "font-size": 30 }, doel);
+      "font-size": 30 }, doel);
     t.textContent = "5 meter";
   },
 

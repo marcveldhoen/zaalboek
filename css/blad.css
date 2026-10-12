@@ -39,7 +39,7 @@
    resultaat geeft. */
 .blad{
   width:210mm;height:297mm;
-  background:#fff;box-shadow:0 2px 10px rgba(35,43,43,.25);
+  background:var(--wit);box-shadow:var(--blad-schaduw);
   padding:15mm;
   /* .blad is zelf een flex-item van .bladvoorbeeld (bij meer dan één blad):
      zonder dit zou het bij meerdere bladen onder elkaar in het
@@ -59,11 +59,11 @@
    indeling om de titel te centreren; .blad hierboven is voor een gewoon
    blad gewone documentstroom, een tussenblad heeft daar niets aan. */
 .bladtussen{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-.bladtussen h1{font-family:Newsreader,Georgia,serif;font-weight:400;font-size:40px;margin:0 0 10px}
+.bladtussen h1{font-family:var(--font);font-weight:400;font-size:40px;margin:0 0 10px}
 .bladtussen p{color:var(--ink-soft);font-size:15px;margin:0}
 
 .bladkop{margin-bottom:14mm}
-.bladkop h1{font-family:Newsreader,Georgia,serif;font-weight:400;font-size:26px;margin:0 0 2px}
+.bladkop h1{font-family:var(--font);font-weight:400;font-size:26px;margin:0 0 2px}
 .bladkop p{color:var(--ink-soft);margin:0;font-size:13px}
 
 .bladmeta{
@@ -101,10 +101,10 @@
      naar landscape — bewust niet hier ook al een portrait/landscape-keuze
      erbij, om te voorkomen dat twee @page-regels elkaar tegenspreken. */
   @page{size:A4 portrait;margin:15mm}
-  html,body{height:auto;overflow:visible;background:#fff}
+  html,body{height:auto;overflow:visible;background:var(--wit)}
   header, .afdrukbalk{display:none !important}
   main{display:block}
-  .afdrukscherm{display:block;background:#fff}
+  .afdrukscherm{display:block;background:var(--wit)}
   .bladvoorbeeld{overflow:visible;padding:0;display:block}
   /* Papierhoogte min de marge uit @page (2 × 15mm) zou 267mm geven; hier
      duidelijk minder, met opzet. Behalve de eigen marge uit @page zet een

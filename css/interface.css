@@ -1,29 +1,95 @@
 /* interface.css — de schermen eromheen.
    De kleuren hieronder worden ook door de tekening gebruikt (var(--oak) enzovoort),
-   dus dit bestand is nodig om de plattegrond goed te zien. */
+   dus dit bestand is nodig om de plattegrond goed te zien.
+
+   Alle kleuren, hoeken, maten en het lettertype staan hieronder op één plek.
+   Elders in de css, in blad.css en in de tekencode staan alleen nog deze
+   variabelen, geen losse kleurwaarden. Uitzondering: de kleuren binnen de
+   plattegrondsymbolen zelf (vormen.js, het arceringspatroon in index.html) —
+   die horen bij de tekening en veranderen niet mee met de interface. */
+
+/* Geist, uit de map fonts/ in deze repository (open licentie, zie
+   fonts/OFL.txt): zo werkt het lettertype ook zonder internet en bij het
+   afdrukken. Relatieve adressen, zodat het ook in de submap van GitHub
+   Pages en vanaf schijf laadt. */
+@font-face{font-family:"Geist";font-weight:400;font-style:normal;font-display:swap;
+  src:url("../fonts/Geist-Regular.woff2") format("woff2")}
+@font-face{font-family:"Geist";font-weight:500;font-style:normal;font-display:swap;
+  src:url("../fonts/Geist-Medium.woff2") format("woff2")}
+@font-face{font-family:"Geist";font-weight:600;font-style:normal;font-display:swap;
+  src:url("../fonts/Geist-SemiBold.woff2") format("woff2")}
 
 :root{
+  /* ---- lettertype ---- */
+  --font:"Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --tekst:14px;
+  --tekst-klein:12.5px;
+  --titel-overzicht:40px;     /* 600, letterafstand -0.025em */
+  --titel-kaart:17px;         /* 600, -0.01em */
+  --titel-paneel:20px;        /* 600, -0.015em */
+  --titel-balk:17px;          /* 600 */
+  --kopje:12px;               /* 600, hoofdletters, letterafstand 0.06em */
+
+  /* ---- de plattegrond (ongewijzigd in het herontwerp) ---- */
   --ink:#232B2B;
   --ink-soft:#5A6462;
   --ink-faint:#949C99;
-  --desk:#DCDCD3;
-  --panel:#F0EFE9;
   --floor:#F7F6F2;
-  --line:#C9C8BF;
   --oak:#B08A5E;
   --oak-light:#DBC9AF;
   --wood:#8A6741;
   --slate:#7C8B8A;
+  --raster:#D2D1C8;           /* rasterlijnen in de tekening (cm-raster) */
+  --zaalnaam:#C6C3B8;         /* de zaalnaam als achtergrondmerk in de tekening */
+  --blad-lijn:#8D958F;        /* dunne lijnen op het blad */
+
+  /* ---- de interface, zoals die nu is ---- */
+  --desk:#DCDCD3;
+  --panel:#F0EFE9;
+  --line:#C9C8BF;
+  --hover:var(--hover);
+  --ingedrukt:var(--ingedrukt);
+  --wit:#FFFFFF;
+  --sluier:rgba(35,43,43,.35);          /* achter een venster dat de rest afsluit */
+  --blad-schaduw:0 2px 10px rgba(35,43,43,.25);
   --accent:#2F6F6A;
   --warn:#9A5B2C;
   --warn-wash:#F4EADF;
+  --hoek:2px;
+  --hoek-groot:3px;
   --tool-h:38px;
+
+  /* ---- de interface na het herontwerp (nog niet overal in gebruik) ---- */
+  --achtergrond:#F4F3EE;      /* hoofdvlak van overzicht en beheer */
+  --werkvlak:#EEECE5;         /* achter de plattegrond op het tekenscherm */
+  --kaart:#FFFFFF;
+  --kaart-rand:#E2E0D7;
+  --kaart-schaduw:0 1px 2px rgba(35,43,43,.04);
+  --miniatuur:#EFEDE6;        /* achter de plattegrondminiaturen */
+  --menu:#232B2B;             /* zijbalk en bovenbalk */
+  --menu-tekst:#ECEAE2;
+  --menu-tekst-zacht:#B7BDBA;
+  --menu-actief:#3E4949;
+  --menu-invoer:#2E3737;
+  --menu-invoer-rand:#4A5555;
+  --accent-warm:#DBC9AF;      /* "Afdrukken" in de donkere balk */
+  --strook:#F4F3EE;           /* gereedschapsstrook */
+  --paneel:#FAF9F6;           /* eigenschappenpaneel */
+  --paneel-rand:#D6D4CA;
+  --knoprand:#BDBBB1;
+  --invoerrand:#CFCDC3;
+  --waarschuwing-rand:#9A5B2C;
+  --waarschuwing-vlak:#FBF3EA;
+  --waarschuwing-tekst:#5E3612;
+  --waarschuwing-icoon:#7A4519;
+  --hoek-knop:6px;            /* knoppen en invoervelden */
+  --hoek-kaart:10px;
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{
-  font-family:Archivo, "Helvetica Neue", Arial, sans-serif;
-  font-size:14px;
+  font-family:var(--font);
+  font-size:var(--tekst);
   color:var(--ink);
   background:var(--desk);
   display:flex;flex-direction:column;
@@ -42,7 +108,7 @@ header{
   flex:0 0 auto;
 }
 .wordmark{
-  font-family:Newsreader, Georgia, serif;
+  font-family:var(--font);
   font-size:20px;letter-spacing:.01em;
   cursor:pointer;
   display:inline-flex;align-items:baseline;gap:7px;
@@ -61,7 +127,7 @@ header{
 header .spacer{flex:1}
 .ghost{
   border:1px solid var(--line);background:transparent;
-  border-radius:2px;padding:6px 12px;cursor:pointer;
+  border-radius:var(--hoek);padding:6px 12px;cursor:pointer;
 }
 .ghost:hover{border-color:var(--ink-soft)}
 .ghost:disabled{opacity:.4;cursor:default}
@@ -81,7 +147,7 @@ header .spacer{flex:1}
 .status[data-state="bezig"] .ico{animation:draai 1s linear infinite}
 .status[data-state="fout"]{
   color:var(--ink);background:var(--warn-wash);
-  border:1px solid var(--warn);border-radius:2px;padding:4px 10px;
+  border:1px solid var(--warn);border-radius:var(--hoek);padding:4px 10px;
 }
 .status[data-state="fout"] .ico{color:var(--warn)}
 @keyframes draai{to{transform:rotate(360deg)}}
@@ -93,7 +159,7 @@ header .spacer{flex:1}
 .help{
   position:absolute;right:20px;top:calc(100% + 8px);z-index:10;
   width:320px;padding:16px 18px 18px;
-  background:var(--panel);border:1px solid var(--ink-soft);border-radius:2px;
+  background:var(--panel);border:1px solid var(--ink-soft);border-radius:var(--hoek);
 }
 .help[hidden]{display:none}
 .help h2{margin-bottom:10px}
@@ -129,10 +195,10 @@ h2{
 .tool{
   display:flex;align-items:center;gap:10px;width:100%;
   height:var(--tool-h);padding:0 8px;margin-bottom:3px;
-  background:transparent;border:1px solid transparent;border-radius:2px;
+  background:transparent;border:1px solid transparent;border-radius:var(--hoek);
   cursor:pointer;text-align:left;
 }
-.tool:hover{background:#E5E4DC;border-color:var(--line)}
+.tool:hover{background:var(--hover);border-color:var(--line)}
 .tool .swatch{flex:0 0 30px;height:18px;position:relative}
 .tool .swatch i{
   position:absolute;inset:0;display:block;
@@ -159,23 +225,27 @@ h2{
 .tile{
   display:flex;flex-direction:column;align-items:center;
   padding:6px 4px 8px;
-  background:transparent;border:1px solid transparent;border-radius:2px;
+  background:transparent;border:1px solid transparent;border-radius:var(--hoek);
   cursor:pointer;text-align:center;
 }
-.tile:hover{background:#E5E4DC;border-color:var(--line)}
-.tile:active{background:#DEDDD3}
+.tile:hover{background:var(--hover);border-color:var(--line)}
+.tile:active{background:var(--ingedrukt)}
 .tart{flex:1;display:flex;align-items:center;width:100%}
 .tart svg{width:100%;height:auto;display:block}
 .tn{font-size:13px;margin-top:4px}
 .tm{font-size:12px;color:var(--ink-faint);line-height:1.3}
 
-/* ---------- de tekening ---------- */
+/* ---------- de tekening ----------
+   Het lettertype van alle tekst in de plattegrond (zaalnaam, schaalstok,
+   namen van objecten) staat hier, niet in de tekencode: zo geldt het voor
+   het tekenscherm, de tegels, zaal inrichten én het blad tegelijk. */
+svg text{font-family:var(--font)}
 svg#plan{width:100%;height:100%;display:block;touch-action:none;cursor:default}
 svg#plan.panning{cursor:grabbing}
 .zoombar{
   position:absolute;left:50%;bottom:14px;transform:translateX(-50%);
   display:flex;align-items:center;
-  background:var(--panel);border:1px solid var(--line);border-radius:2px;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--hoek);
 }
 .zoombar button{
   height:32px;border:0;background:transparent;cursor:pointer;color:var(--ink-soft);
@@ -192,21 +262,21 @@ svg#plan.panning{cursor:grabbing}
 /* ---------- eigenschappen ---------- */
 .empty{color:var(--ink-soft);line-height:1.65;font-size:13px}
 .selname{
-  font-family:Newsreader,Georgia,serif;font-size:19px;
+  font-family:var(--font);font-size:19px;
   margin:0 0 2px;
 }
 .selsub{color:var(--ink-faint);font-size:12px;margin:0 0 16px}
 .field{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
 .field label{color:var(--ink-soft)}
-.stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:2px}
+.stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:var(--hoek)}
 .stepper button{
   width:26px;height:26px;border:0;background:transparent;cursor:pointer;color:var(--ink-soft);
 }
 .stepper button:hover{color:var(--ink)}
 .stepper span{width:30px;text-align:center;font-variant-numeric:tabular-nums}
 select{
-  font:inherit;color:inherit;border:1px solid var(--line);border-radius:2px;
-  background:#fff;padding:4px 6px;
+  font:inherit;color:inherit;border:1px solid var(--line);border-radius:var(--hoek);
+  background:var(--wit);padding:4px 6px;
 }
 .row{display:flex;gap:6px;margin-top:14px}
 .row .ghost{flex:1;text-align:center}
@@ -218,10 +288,10 @@ select{
 .veld-vol label{display:block;color:var(--ink-soft);margin-bottom:4px}
 .veld-vol input, .veld-vol select{width:100%}
 .veld-vol input, .field input[type=number]{
-  font:inherit;border:1px solid var(--line);border-radius:2px;padding:5px 7px;background:#fff;
+  font:inherit;border:1px solid var(--line);border-radius:var(--hoek);padding:5px 7px;background:var(--wit);
 }
 .field input[type=number]{width:76px;text-align:right}
-.tool.gekozen{background:#E5E4DC;border-color:var(--ink-soft)}
+.tool.gekozen{background:var(--hover);border-color:var(--ink-soft)}
 
 /* ---------- telling ----------
    Vastgezet onderin het paneel (zie aside.right hierboven), zodat hij
@@ -236,7 +306,7 @@ select{
 }
 kbd{
   font:inherit;font-size:11.5px;border:1px solid var(--line);
-  border-bottom-width:2px;border-radius:3px;padding:0 4px;background:#fff;
+  border-bottom-width:2px;border-radius:var(--hoek-groot);padding:0 4px;background:var(--wit);
 }
 
 @media (max-width:900px){
@@ -249,22 +319,22 @@ kbd{
    waarbij doorwerken geen zin heeft. */
 .overlay{
   position:fixed;inset:0;z-index:10;
-  background:rgba(35,43,43,.35);
+  background:var(--sluier);
   display:flex;align-items:center;justify-content:center;
 }
 .overlay[hidden]{display:none}
 .kaart{
-  background:var(--panel);border:1px solid var(--line);border-radius:3px;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--hoek-groot);
   padding:28px 30px;width:430px;max-width:calc(100vw - 40px);
 }
 .kaart h1{
-  font-family:Newsreader,Georgia,serif;font-size:22px;font-weight:400;
+  font-family:var(--font);font-size:22px;font-weight:400;
   margin:0 0 10px;
 }
 .kaart p{line-height:1.65;color:var(--ink-soft);margin:0 0 16px}
 .kaart input{
   font:inherit;width:100%;padding:8px 10px;margin-bottom:14px;
-  border:1px solid var(--line);border-radius:2px;background:#fff;
+  border:1px solid var(--line);border-radius:var(--hoek);background:var(--wit);
 }
 .kaart .klein{font-size:12.5px;color:var(--ink-faint);margin:16px 0 0}
 
@@ -274,22 +344,22 @@ kbd{
   display:flex;align-items:baseline;justify-content:space-between;gap:20px;
   max-width:720px;margin-bottom:28px;
 }
-.startkop h1{font-family:Newsreader,Georgia,serif;font-weight:400;font-size:26px;margin:0}
+.startkop h1{font-family:var(--font);font-weight:400;font-size:26px;margin:0}
 .startkopacties{display:flex;align-items:center;gap:10px}
 .startkop input[type=search]{
-  font:inherit;border:1px solid var(--line);border-radius:2px;background:#fff;
+  font:inherit;border:1px solid var(--line);border-radius:var(--hoek);background:var(--wit);
   padding:7px 10px;width:240px;
 }
 .startlijst{max-width:720px;display:flex;flex-direction:column;gap:30px}
 .startgebouw h2{font-size:12px}
 .startzaal{margin-top:14px}
 .startzaalkop{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
-.startzaalnaam{font-family:Newsreader,Georgia,serif;font-size:17px}
+.startzaalnaam{font-family:var(--font);font-size:17px}
 .startzaalknoppen{display:flex;gap:6px}
 .startregel{
   display:flex;align-items:center;gap:4px;width:100%;
   margin-bottom:3px;background:var(--panel);
-  border:1px solid var(--line);border-radius:2px;
+  border:1px solid var(--line);border-radius:var(--hoek);
 }
 .startregel:hover{border-color:var(--ink-soft)}
 .startregelnaam{
@@ -304,17 +374,17 @@ kbd{
 .startaantal{color:var(--ink-faint);font-size:12.5px;width:80px;text-align:right}
 .startvlag{
   color:var(--warn);font-size:12px;border:1px solid var(--warn);
-  border-radius:2px;padding:1px 6px;
+  border-radius:var(--hoek);padding:1px 6px;
 }
 .startnieuw{display:flex;gap:6px;align-items:center;margin-top:8px}
 .startnieuwnaam{
-  font:inherit;border:1px solid var(--line);border-radius:2px;
-  padding:5px 7px;background:#fff;flex:1;
+  font:inherit;border:1px solid var(--line);border-radius:var(--hoek);
+  padding:5px 7px;background:var(--wit);flex:1;
 }
 .startbewerk{
   display:flex;flex-direction:column;max-width:320px;margin-top:8px;
   padding:14px 16px 4px;background:var(--panel);
-  border:1px solid var(--line);border-radius:2px;
+  border:1px solid var(--line);border-radius:var(--hoek);
 }
 .startbewerk .veld-vol{margin-bottom:10px}
 .startbewerk .startnieuwnaam{width:100%;margin:-4px 0 10px}

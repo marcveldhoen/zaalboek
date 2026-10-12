@@ -267,7 +267,7 @@ const SchermTekenen = {
             <button data-doe="weglaten:${p.nummer}" title="${p.meubel.naam}"
               style="width:30px;height:27px;cursor:pointer;border-radius:2px;
                      border:1px solid var(--line);
-                     background:${p.soort === "bocht" ? "var(--oak-light)" : "#fff"};
+                     background:${p.soort === "bocht" ? "var(--oak-light)" : "var(--wit)"};
                      ${p.weggelaten ? "opacity:.35;text-decoration:line-through" : ""}">
               ${p.nummer + 1}</button>`).join("")}
         </div>

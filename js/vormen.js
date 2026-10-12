@@ -192,7 +192,7 @@ const Vormen = {
   /* Het opschrift van een vast object, midden op het object zelf. */
   opschrift(g, tekst) {
     const t = this.el("text", { x: 0, y: 6, "text-anchor": "middle",
-      "font-family": "Archivo, sans-serif", "font-size": 26,
+      "font-size": 26,
       fill: "var(--ink-soft)", "letter-spacing": 1 }, g);
     t.textContent = tekst;
   },
@@ -203,7 +203,7 @@ const Vormen = {
      ook als het object gedraaid is. */
   naamNaastVorm(g, tekst, afstand, hoek, grootte) {
     const t = this.el("text", { x: 0, y: 0, "text-anchor": "middle",
-      "font-family": "Archivo, sans-serif", "font-size": grootte,
+      "font-size": grootte,
       fill: "var(--ink-soft)",
       transform: `rotate(${-hoek}) translate(0 ${afstand})` }, g);
     t.textContent = tekst;

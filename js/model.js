@@ -177,6 +177,10 @@ const Model = {
     vorige:     "De vereniging die ervoor zat"
   },
 
+  /* De naam van de gemeente, voor het menu, de kopbalk en de voet van het
+     blad. Vaste tekst op één plek, geen gegeven in het document. */
+  gemeente: "Gereformeerde Gemeente Ridderkerk-Slikkerveer",
+
   /* ---------- opzoeken ---------- */
 
   gebouw(id)      { return this.document.gebouwen.find(g => g.id === id); },

@@ -55,3 +55,6 @@ Thumbs.db
 *.swp
 *.log
 node_modules/
+
+# Herontwerp-opdracht en aangeleverde bestanden: bevatten echte zaalnamen, blijven lokaal
+ontwerp/
