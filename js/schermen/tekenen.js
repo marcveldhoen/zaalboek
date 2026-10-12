@@ -44,11 +44,13 @@ const SchermTekenen = {
      niet: dan wordt alleen het gesleepte element verplaatst. Zie sleepBeweeg. */
   teken() {
     /* teken() loopt ook bij openen en bij aanklikken. Alleen als de elementen
-       echt anders zijn dan de vorige keer is de opstelling gewijzigd. */
+       echt anders zijn dan de vorige keer is de opstelling gewijzigd; wie hem
+       wijzigt, heeft hem ook bekeken, dus "Te controleren" vervalt dan. */
     const nu = JSON.stringify(this.opstelling.elementen);
     if (nu !== this.vorigeElementen) {
       this.vorigeElementen = nu;
       Model.opstellingGewijzigd(this.opstelling);
+      this.opstelling.teControleren = false;
     }
 
     Tekening.elementen(this.opstelling, this.gElementen, this.geselecteerd);
@@ -354,7 +356,15 @@ const SchermTekenen = {
 
     // per soort "gebruikt van wat er in de zaal staat"; een tekort met icoon
     // én kleur, en daaronder een waarschuwing in woorden — nooit een blokkade
-    let html = `<h2>In deze opstelling</h2>` + regels.map(r =>
+    // de zaal is gewijzigd sinds deze opstelling getekend is (zie Model.zaalGewijzigd)
+    let html = this.opstelling.teControleren
+      ? `<div class="waarschuwing controleren">${WAARSCHUWING_ICOON}<div>
+           <p>De zaal is gewijzigd. Kijk of deze opstelling nog past.</p>
+           <button class="ghost" id="gecontroleerd">Gecontroleerd</button>
+         </div></div>`
+      : "";
+
+    html += `<h2>In deze opstelling</h2>` + regels.map(r =>
       `<div class="tline ${r.tekort ? "over" : ""}">
          <span>${r.tekort ? WAARSCHUWING_ICOON : ""}${r.naam}</span><b>${r.aantal} van ${r.voorraad}</b>
        </div>`).join("") +
@@ -367,6 +377,12 @@ const SchermTekenen = {
     }
 
     document.getElementById("telling").innerHTML = html;
+
+    const gecontroleerd = document.getElementById("gecontroleerd");
+    if (gecontroleerd) gecontroleerd.onclick = () => {
+      this.opstelling.teControleren = false;
+      this.teken();
+    };
   },
 
   /* ---------------- zoomen en verschuiven ---------------- */

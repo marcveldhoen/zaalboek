@@ -363,6 +363,9 @@ select{
 }
 .waarschuwing svg{flex:0 0 16px;width:16px;height:16px;margin:2px 0 0}
 .waarschuwing p{margin:0}
+/* de zaal is gewijzigd: bovenaan de telling, met de knop om het af te vinken */
+.waarschuwing.controleren{margin:0 0 16px}
+.waarschuwing.controleren .ghost{margin-top:8px;padding:5px 12px;font-size:var(--tekst-klein)}
 kbd{
   font:inherit;font-size:11.5px;border:1px solid var(--invoerrand);
   border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--wit);

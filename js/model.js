@@ -359,5 +359,16 @@ const Model = {
      aan het blad bijwerken. Alleen openen of aanklikken telt niet. */
   opstellingGewijzigd(opstelling) {
     opstelling.gewijzigdOp = this.vandaag();
+  },
+
+  /* De vorm of de vaste objecten van een zaal zijn veranderd: alle
+     opstellingen in die zaal krijgen het label "Te controleren", want
+     misschien past er nu iets niet meer (functioneel ontwerp, beslispunt 6).
+     Het label verdwijnt bij de eerstvolgende wijziging in het tekenscherm, of
+     met de knop "Gecontroleerd" daar. */
+  zaalGewijzigd(zaalId) {
+    this.document.opstellingen
+      .filter(o => o.zaalId === zaalId)
+      .forEach(o => { o.teControleren = true; });
   }
 };

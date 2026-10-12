@@ -260,6 +260,7 @@ const SchermZaal = {
 
     if (this.zaal) {
       // bestaande zaal bijwerken; de id blijft dezelfde, ook als naam of gebouw wijzigt
+      if (JSON.stringify(vorm) !== JSON.stringify(this.zaal.vorm)) Model.zaalGewijzigd(this.zaal.id);
       Object.assign(this.zaal, { naam, gebouwId, vorm });
     } else {
       this.zaal = Model.nieuweZaal(gebouwId, naam, vorm);
@@ -344,6 +345,7 @@ const SchermZaal = {
     veld.addEventListener("input", () => {
       this.geselecteerdObject.opschrift = veld.value;
       this.tekenVast();
+      Model.zaalGewijzigd(this.zaal.id);
       if (this.opWijziging) this.opWijziging();
     });
   },
@@ -365,6 +367,7 @@ const SchermZaal = {
   /* Na een wijziging aan een vast object: bewaren en het paneel + de
      tekening verversen — net als teken() in schermen/tekenen.js. */
   vastGewijzigd() {
+    Model.zaalGewijzigd(this.zaal.id);
     if (this.opWijziging) this.opWijziging();
     this.formulier();
   },
@@ -385,6 +388,7 @@ const SchermZaal = {
     this.zaal.vasteObjecten = JSON.parse(this.ongedaanStapel.pop());
     this.geselecteerdObject = null;    // de oude verwijzing bestaat niet meer
     document.getElementById("ongedaan").disabled = !this.ongedaanStapel.length;
+    Model.zaalGewijzigd(this.zaal.id);
     if (this.opWijziging) this.opWijziging();
     this.formulier();
   },
