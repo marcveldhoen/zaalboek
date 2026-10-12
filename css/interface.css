@@ -583,6 +583,10 @@ header[hidden]{display:none}
 .roosterteken.eigen,.roosterblok{background:var(--geboekt)}
 .roosterteken.via,.roosterblok.via{background:repeating-linear-gradient(45deg,var(--hover) 0 4px,var(--kaart) 4px 8px)}
 .roosterteken.botsing{background:var(--waarschuwing-vlak);border:1.5px solid var(--waarschuwing-rand)}
+/* de vakjes in de legenda krijgen een duidelijke rand: de lichte vlakkleur
+   alleen valt weg tegen de achtergrond */
+.roosterteken.eigen{border:1.5px solid var(--geboekt-tekst)}
+.roosterteken.via{border:1.5px solid var(--ink-faint)}
 .roosterkader{overflow-x:auto;background:var(--kaart);border:1px solid var(--kaart-rand);border-radius:var(--hoek-kaart);box-shadow:var(--kaart-schaduw)}
 .rooster{width:100%;min-width:860px;border-collapse:collapse;table-layout:fixed}
 .rooster th,.rooster td{border-bottom:1px solid var(--kaart-rand);text-align:left;vertical-align:top}
