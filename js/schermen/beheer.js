@@ -296,7 +296,7 @@ const SchermBeheer = {
         <div class="field"><label>${m.naam}</label>
           <input type="number" min="0" data-voorraad="${m.id}" value="${voorraad[m.id] || 0}">
         </div>`).join("");
-      return rijen ? `<h2 style="margin-top:20px">${titel}</h2>${rijen}` : "";
+      return rijen ? `<h2>${titel}</h2>${rijen}` : "";
     };
 
     return groep("Stoelen", "stoel") + groep("Tafels", "tafel") + groep("Verrijdbare objecten", "object");

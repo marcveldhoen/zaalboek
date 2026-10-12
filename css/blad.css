@@ -4,12 +4,12 @@
    de werktafelkleur) als het echte papier via @media print. De tekening zelf
    komt uit tekening.js en gebruikt dezelfde kleuren als interface.css. */
 
-.afdrukscherm{flex:1;display:flex;flex-direction:column;min-height:0;background:var(--desk)}
+.afdrukscherm{flex:1;display:flex;flex-direction:column;min-height:0;background:var(--werkvlak)}
 /* net als aside.right in interface.css: display:flex overschrijft anders het
    hidden-attribuut dat app.js zet zodra een ander scherm opent. */
 .afdrukscherm[hidden]{display:none}
-.afdrukbalk{flex:0 0 auto;display:flex;align-items:center;gap:20px;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
-.afdrukliggend{display:flex;align-items:center;gap:7px;color:var(--ink-soft);font-size:13px}
+.afdrukbalk{flex:0 0 auto;display:flex;align-items:center;gap:20px;height:56px;padding:0 20px;border-bottom:1px solid var(--paneel-rand);background:var(--strook)}
+.afdrukliggend{display:flex;align-items:center;gap:7px;font-weight:500}
 .bladvoorbeeld{flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:24px;padding:40px 20px}
 .bladleeg{align-self:flex-start;max-width:420px}
 

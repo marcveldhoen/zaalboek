@@ -75,7 +75,7 @@ const SchermAfdrukken = {
           <input type="checkbox" id="afdrukLiggend" ${this.liggend ? "checked" : ""}>
           Liggend afdrukken
         </label>
-        <button class="ghost" id="afdrukUitvoeren" ${bladen.length ? "" : "disabled"}>${knopLabel}</button>
+        <button class="knop accent" id="afdrukUitvoeren" ${bladen.length ? "" : "disabled"}>${knopLabel}</button>
       </div>
       <div class="bladvoorbeeld">${inhoud}</div>`;
 

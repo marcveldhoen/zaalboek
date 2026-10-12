@@ -55,7 +55,7 @@ const SchermZaal = {
     }).join("");
 
     balk.innerHTML = `
-      <div class="group"><button class="ghost" id="nieuweZaalKnop" style="width:100%">+ Nieuwe zaal</button></div>
+      <div class="group"><button class="ghost vol" id="nieuweZaalKnop">+ Nieuwe zaal</button></div>
       ${perGebouw}`;
   },
 
@@ -109,7 +109,7 @@ const SchermZaal = {
         <input type="text" id="zNaam" value="${z ? z.naam : ""}">
       </div>
 
-      <h2 style="margin-top:20px">Vorm</h2>
+      <h2>Vorm</h2>
       <div class="field"><label>Type</label>
         <select id="zVormType">
           <option value="rechthoek" ${vormType === "rechthoek" ? "selected" : ""}>Rechthoek</option>
@@ -286,7 +286,7 @@ const SchermZaal = {
     ).join("");
 
     return `
-      <h2 style="margin-top:20px">Vaste objecten</h2>
+      <h2>Vaste objecten</h2>
       <div class="row">${knoppen}</div>
       ${this.objectFormulier()}
     `;
@@ -296,7 +296,7 @@ const SchermZaal = {
     const o = this.geselecteerdObject;
     if (!o || !this.zaal.vasteObjecten.includes(o)) {
       this.geselecteerdObject = null;
-      return `<p class="selsub" style="margin-top:12px">Klik een deur, raam of
+      return `<p class="selsub tussen">Klik een deur, raam of
         kast aan om hem te verslepen of aan te passen.</p>`;
     }
 
@@ -304,7 +304,7 @@ const SchermZaal = {
     const naam = (basis && basis.naam) || o.opschrift || o.soort;
 
     return `
-      <p class="selname" style="margin-top:16px">${naam}</p>
+      <p class="selname tussen">${naam}</p>
       ${this.teller("Breedte", o.breedte, "breedte", 20, 400)}
       ${o.diepte != null ? this.teller("Diepte", o.diepte, "diepte", 5, 100) : ""}
       ${o.soort === "deur" ? `

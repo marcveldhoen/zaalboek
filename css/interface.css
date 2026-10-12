@@ -43,23 +43,14 @@
   --zaalnaam:#D2D0C6;         /* de zaalnaam als achtergrondmerk in de tekening */
   --blad-lijn:#8D958F;        /* dunne lijnen op het blad */
 
-  /* ---- de interface, zoals die nu is ---- */
-  --desk:#DCDCD3;
-  --panel:#F0EFE9;
-  --line:#C9C8BF;
-  --hover:var(--hover);
-  --ingedrukt:var(--ingedrukt);
+  /* ---- de interface ---- */
+  --accent:#2F6F6A;           /* primaire knop, tekst wit */
   --wit:#FFFFFF;
+  --hover:#E5E4DC;            /* onder de muis, op een licht vlak */
+  --ingedrukt:#DEDDD3;
   --sluier:rgba(35,43,43,.35);          /* achter een venster dat de rest afsluit */
   --blad-schaduw:0 2px 10px rgba(35,43,43,.25);
-  --accent:#2F6F6A;
-  --warn:#9A5B2C;
-  --warn-wash:#F4EADF;
-  --hoek:2px;
-  --hoek-groot:3px;
-  --tool-h:38px;
-
-  /* ---- de interface na het herontwerp (nog niet overal in gebruik) ---- */
+  --tool-h:38px;              /* hoogte van een regel in de zalenlijst */
   --achtergrond:#F4F3EE;      /* hoofdvlak van overzicht en beheer */
   --werkvlak:#EEECE5;         /* achter de plattegrond op het tekenscherm */
   --kaart:#FFFFFF;
@@ -92,7 +83,7 @@ body{
   font-family:var(--font);
   font-size:var(--tekst);
   color:var(--ink);
-  background:var(--desk);
+  background:var(--achtergrond);
   display:flex;flex-direction:column;
   overflow:hidden;
   -webkit-font-smoothing:antialiased;
@@ -125,12 +116,13 @@ header{
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 header .spacer{flex:1}
 .ghost{
-  border:1px solid var(--line);background:transparent;
-  border-radius:var(--hoek);padding:6px 12px;cursor:pointer;
+  border:1px solid var(--knoprand);background:var(--kaart);
+  border-radius:var(--hoek-knop);padding:7px 14px;cursor:pointer;font-weight:500;
 }
 .ghost:hover{border-color:var(--ink-soft)}
+.ghost.vol{width:100%}
 .ghost:disabled{opacity:.4;cursor:default}
-header .ghost{border-color:var(--menu-invoer-rand);color:var(--menu-tekst);border-radius:var(--hoek-knop);padding:7px 14px}
+header .ghost{background:transparent;border-color:var(--menu-invoer-rand);color:var(--menu-tekst);padding:7px 14px}
 header .ghost:hover{border-color:var(--menu-tekst-zacht)}
 .help-btn{width:34px;height:34px;padding:0;text-align:center;font-weight:500}
 header .help-btn{border-radius:50%;padding:0}
@@ -180,12 +172,12 @@ header .help-btn{border-radius:50%;padding:0}
 /* ---------- indeling ---------- */
 main{flex:1;display:flex;min-height:0}
 aside{
-  background:var(--panel);
-  flex:0 0 200px;
+  background:var(--paneel);
+  flex:0 0 220px;
   overflow-y:auto;
-  padding:16px 14px 40px;
+  padding:20px 16px 40px;
 }
-aside.left{border-right:1px solid var(--line)}
+aside.left{border-right:1px solid var(--paneel-rand)}
 aside.right{
   flex-basis:300px;background:var(--paneel);border-left:1px solid var(--paneel-rand);
   display:flex;flex-direction:column;overflow:hidden;padding:0;
@@ -197,29 +189,21 @@ aside.right[hidden]{display:none}
 .stage{flex:1;position:relative;min-width:0;background:var(--werkvlak)}
 .stage[hidden]{display:none}
 
+/* sectiekopjes: klein, vet, hoofdletters */
 h2{
-  font-size:11px;font-weight:600;letter-spacing:.04em;
-  color:var(--ink-soft);margin:0 0 8px;
+  font-size:var(--kopje);font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--ink-soft);margin:0 0 10px;
 }
 .group{margin-bottom:22px}
 
 .tool{
   display:flex;align-items:center;gap:10px;width:100%;
-  height:var(--tool-h);padding:0 8px;margin-bottom:3px;
-  background:transparent;border:1px solid transparent;border-radius:var(--hoek);
+  height:var(--tool-h);padding:0 10px;margin-bottom:2px;
+  background:transparent;border:1px solid transparent;border-radius:var(--hoek-knop);
   cursor:pointer;text-align:left;
 }
-.tool:hover{background:var(--hover);border-color:var(--line)}
-.tool .swatch{flex:0 0 30px;height:18px;position:relative}
-.tool .swatch i{
-  position:absolute;inset:0;display:block;
-  background:var(--oak);border:1px solid var(--ink);
-}
-.tool .swatch.sq i{left:6px;right:6px}
-.tool .swatch.md i{left:3px;right:3px}
-.tool .swatch.chair i{left:9px;right:9px;background:var(--oak-light)}
-.tool .swatch.obj i{background:var(--slate);top:4px;bottom:4px}
-.tool .dim{color:var(--ink-faint);font-size:12px;margin-left:auto}
+.tool:hover{background:var(--hover)}
+.tool .dim{color:var(--ink-soft);font-size:12px;margin-left:auto;font-variant-numeric:tabular-nums}
 
 /* ---------- gereedschapsstrook van het tekenscherm ---------- */
 .strook{
@@ -311,11 +295,10 @@ svg#plan.panning{cursor:grabbing}
   margin:0 0 2px;
 }
 .selsub{color:var(--ink-soft);font-size:var(--tekst-klein);margin:0 0 16px}
+.selsub.tussen{margin-top:12px}
+.selname.tussen{margin-top:18px}
 /* sectiekopjes in het paneel rechts */
-#paneelRechts h2{
-  font-size:var(--kopje);font-weight:600;text-transform:uppercase;letter-spacing:.06em;
-  color:var(--ink-soft);margin:22px 0 10px;
-}
+#paneelRechts h2{margin:22px 0 10px}
 #eigenschappen > h2:first-of-type{margin-top:6px}
 /* tellers met het label erboven, twee naast elkaar (stoelen per zijde, maat) */
 .tellers{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px}
@@ -328,7 +311,7 @@ svg#plan.panning{cursor:grabbing}
 .plaatsen{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
 .plaatsknop{
   width:30px;height:27px;cursor:pointer;
-  border:1px solid var(--invoerrand);border-radius:var(--hoek);background:var(--wit);
+  border:1px solid var(--invoerrand);border-radius:var(--hoek-knop);background:var(--wit);
 }
 .plaatsknop.bocht{background:var(--oak-light)}
 .plaatsknop.weg{opacity:.35;text-decoration:line-through}
@@ -341,10 +324,10 @@ svg#plan.panning{cursor:grabbing}
 .stepper button:hover{color:var(--ink)}
 .stepper span{width:30px;text-align:center;font-variant-numeric:tabular-nums}
 select{
-  font:inherit;color:inherit;border:1px solid var(--line);border-radius:var(--hoek);
-  background:var(--wit);padding:4px 6px;
+  font:inherit;color:inherit;border:1px solid var(--invoerrand);border-radius:var(--hoek-knop);
+  background:var(--wit);padding:6px 8px;
 }
-.row{display:flex;gap:6px;margin-top:14px}
+.row{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
 .row .ghost{flex:1;text-align:center}
 
 /* ---------- formuliervelden (scherm 6) ----------
@@ -354,10 +337,10 @@ select{
 .veld-vol label{display:block;color:var(--ink-soft);margin-bottom:4px}
 .veld-vol input, .veld-vol select{width:100%}
 .veld-vol input, .field input[type=number]{
-  font:inherit;border:1px solid var(--line);border-radius:var(--hoek);padding:5px 7px;background:var(--wit);
+  font:inherit;border:1px solid var(--invoerrand);border-radius:var(--hoek-knop);padding:7px 9px;background:var(--wit);
 }
 .field input[type=number]{width:76px;text-align:right}
-.tool.gekozen{background:var(--hover);border-color:var(--ink-soft)}
+.tool.gekozen{background:var(--kaart);border-color:var(--knoprand);font-weight:600}
 
 /* ---------- telling ----------
    Vastgezet onderin het paneel (zie aside.right hierboven), zodat hij
@@ -381,13 +364,13 @@ select{
 .waarschuwing svg{flex:0 0 16px;width:16px;height:16px;margin:2px 0 0}
 .waarschuwing p{margin:0}
 kbd{
-  font:inherit;font-size:11.5px;border:1px solid var(--line);
-  border-bottom-width:2px;border-radius:var(--hoek-groot);padding:0 4px;background:var(--wit);
+  font:inherit;font-size:11.5px;border:1px solid var(--invoerrand);
+  border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--wit);
 }
 
 @media (max-width:900px){
-  aside.left{flex-basis:150px}
-  aside.right{flex-basis:190px}
+  aside.left{flex-basis:170px}
+  aside.right{flex-basis:250px}
   .hint{display:none}
 }
 
@@ -400,61 +383,56 @@ kbd{
 }
 .overlay[hidden]{display:none}
 .kaart{
-  background:var(--panel);border:1px solid var(--line);border-radius:var(--hoek-groot);
+  background:var(--kaart);border:1px solid var(--kaart-rand);border-radius:var(--hoek-kaart);
+  box-shadow:var(--zwevend-schaduw);
   padding:28px 30px;width:430px;max-width:calc(100vw - 40px);
 }
 .kaart h1{
-  font-family:var(--font);font-size:22px;font-weight:400;
+  font-size:22px;font-weight:600;letter-spacing:-.015em;
   margin:0 0 10px;
 }
 .kaart p{line-height:1.65;color:var(--ink-soft);margin:0 0 16px}
 .kaart input{
-  font:inherit;width:100%;padding:8px 10px;margin-bottom:14px;
-  border:1px solid var(--line);border-radius:var(--hoek);background:var(--wit);
+  font:inherit;width:100%;padding:9px 11px;margin-bottom:14px;
+  border:1px solid var(--invoerrand);border-radius:var(--hoek-knop);background:var(--wit);
 }
-.kaart .klein{font-size:12.5px;color:var(--ink-faint);margin:16px 0 0}
+.kaart .klein{font-size:var(--tekst-klein);color:var(--ink-soft);margin:16px 0 0}
 
 /* ---------- startscherm (scherm 1) ---------- */
-.startscherm{flex:1;overflow-y:auto;padding:36px 48px 60px;background:var(--desk)}
+.startscherm{flex:1;overflow-y:auto;padding:44px 48px 60px;background:var(--achtergrond)}
 .startkop{
   display:flex;align-items:baseline;justify-content:space-between;gap:20px;
   max-width:720px;margin-bottom:28px;
 }
-.startkop h1{font-family:var(--font);font-weight:400;font-size:26px;margin:0}
-.startkopacties{display:flex;align-items:center;gap:10px}
-.startkop input[type=search]{
-  font:inherit;border:1px solid var(--line);border-radius:var(--hoek);background:var(--wit);
-  padding:7px 10px;width:240px;
-}
+.startkop h1{font-size:var(--titel-overzicht);font-weight:600;letter-spacing:-.025em;line-height:1.1;margin:0}
 .startlijst{max-width:720px;display:flex;flex-direction:column;gap:30px}
 .startzaal{margin-top:14px}
 .startzaalkop{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
-.startzaalnaam{font-family:var(--font);font-size:17px}
-.startzaalknoppen{display:flex;gap:6px}
+.startzaalnaam{font-size:var(--titel-kaart);font-weight:600;letter-spacing:-.01em}
 .startregel{
   display:flex;align-items:center;gap:4px;width:100%;
-  margin-bottom:3px;background:var(--panel);
-  border:1px solid var(--line);border-radius:var(--hoek);
+  margin-bottom:6px;background:var(--kaart);
+  border:1px solid var(--kaart-rand);border-radius:var(--hoek-knop);box-shadow:var(--kaart-schaduw);
 }
-.startregel:hover{border-color:var(--ink-soft)}
+.startregel:hover{border-color:var(--knoprand)}
 .startregelnaam{
   display:flex;align-items:center;gap:16px;flex:1;min-width:0;
-  padding:8px 10px;background:transparent;border:0;cursor:pointer;text-align:left;
+  padding:10px 12px;background:transparent;border:0;text-align:left;
 }
 .startregel .ghost.klein{
-  flex:0 0 auto;padding:5px 9px;font-size:12px;margin-right:6px;
+  flex:0 0 auto;padding:5px 10px;font-size:12px;margin-right:6px;
 }
 .startvereniging{flex:1;font-weight:500}
-.startmoment{color:var(--ink-soft);font-size:12.5px}
+.startmoment{color:var(--ink-soft);font-size:var(--tekst-klein)}
 .startnieuw{display:flex;gap:6px;align-items:center;margin-top:8px}
 .startnieuwnaam{
-  font:inherit;border:1px solid var(--line);border-radius:var(--hoek);
-  padding:5px 7px;background:var(--wit);flex:1;
+  font:inherit;border:1px solid var(--invoerrand);border-radius:var(--hoek-knop);
+  padding:7px 9px;background:var(--wit);flex:1;
 }
 .startbewerk{
   display:flex;flex-direction:column;max-width:320px;margin-top:8px;
-  padding:14px 16px 4px;background:var(--panel);
-  border:1px solid var(--line);border-radius:var(--hoek);
+  padding:16px 18px 4px;background:var(--kaart);
+  border:1px solid var(--kaart-rand);border-radius:var(--hoek-kaart);
 }
 .startbewerk .veld-vol{margin-bottom:10px}
 .startbewerk .startnieuwnaam{width:100%;margin:-4px 0 10px}
@@ -578,9 +556,10 @@ header[hidden]{display:none}
 .bewerkkaart .startbewerk{max-width:none;margin:0;padding:0;background:none;border:0}
 
 /* ---------- beheerscherm (schermen 5, 7, 8) ---------- */
-.beheertabs{display:flex;gap:4px;margin-bottom:26px;border-bottom:1px solid var(--line);max-width:720px}
-.beheertab{padding:8px 14px;border:0;background:transparent;color:var(--ink-soft);cursor:pointer;
-  border-bottom:2px solid transparent;margin-bottom:-1px;font:inherit}
+.beheertabs{display:flex;gap:4px;margin-bottom:28px;border-bottom:1px solid var(--paneel-rand);max-width:720px}
+.beheertab{padding:9px 14px;border:0;background:transparent;color:var(--ink-soft);cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-1px;font:inherit;font-weight:500}
 .beheertab:hover{color:var(--ink)}
 .beheertab.actief{color:var(--ink);border-bottom-color:var(--accent)}
 .beheervak{max-width:360px}
+.beheervak h2{margin-top:22px}
