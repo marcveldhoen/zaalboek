@@ -6,8 +6,9 @@
 
 const Telling = {
 
-  /* Aantallen per meubel-id. Stoelen komen uit vier bronnen bij elkaar:
-     los, in een rij, in een kring, en aan de zijden van een tafel. */
+  /* Aantallen per meubel-id. Stoelen komen uit vijf bronnen bij elkaar:
+     los, in een rij, in een kring, aan de zijden van een tafel, en aan de
+     buitenkant van een tafelkring. */
   aantallen(opstelling) {
     const per = {};
     const tel = (id, hoeveel) => { per[id] = (per[id] || 0) + hoeveel; };
@@ -22,6 +23,14 @@ const Telling = {
       else if (e.type === "rij")    tel("stoel", e.n);
       else if (e.type === "kring")  tel("stoel", e.n);
       else if (e.type === "object") tel(e.meubelId, 1);
+      else if (e.type === "tafelkring") {
+        // elke plaats die er staat: één tafel van zijn soort, met zijn stoelen
+        Tafelkring.plaatsen(e).forEach(plaats => {
+          if (plaats.weggelaten) return;
+          tel(plaats.meubel.id, 1);
+          tel("stoel", e.stoelen || 0);
+        });
+      }
     });
 
     return per;
