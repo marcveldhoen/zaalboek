@@ -4,8 +4,9 @@
     {
       "name": "zaalboek-statisch",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["--yes", "serve", "-l", "8743", "."],
-      "port": 8743
+      "runtimeArgs": ["--yes", "serve", "."],
+      "port": 8743,
+      "autoPort": true
     }
   ]
 }
