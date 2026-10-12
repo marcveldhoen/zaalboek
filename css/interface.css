@@ -427,7 +427,6 @@ kbd{
   padding:7px 10px;width:240px;
 }
 .startlijst{max-width:720px;display:flex;flex-direction:column;gap:30px}
-.startgebouw h2{font-size:12px}
 .startzaal{margin-top:14px}
 .startzaalkop{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
 .startzaalnaam{font-family:var(--font);font-size:17px}
@@ -447,11 +446,6 @@ kbd{
 }
 .startvereniging{flex:1;font-weight:500}
 .startmoment{color:var(--ink-soft);font-size:12.5px}
-.startaantal{color:var(--ink-faint);font-size:12.5px;width:80px;text-align:right}
-.startvlag{
-  color:var(--warn);font-size:12px;border:1px solid var(--warn);
-  border-radius:var(--hoek);padding:1px 6px;
-}
 .startnieuw{display:flex;gap:6px;align-items:center;margin-top:8px}
 .startnieuwnaam{
   font:inherit;border:1px solid var(--line);border-radius:var(--hoek);
@@ -465,6 +459,123 @@ kbd{
 .startbewerk .veld-vol{margin-bottom:10px}
 .startbewerk .startnieuwnaam{width:100%;margin:-4px 0 10px}
 .startbewerk .row{margin-top:4px;margin-bottom:14px}
+
+/* ---------- het overzicht (scherm 1): donkere zijbalk en kaarten ----------
+   #startscherm krijgt de klasse .startscherm (net als #beheerscherm), maar
+   heeft een eigen indeling: zijbalk links, kaarten rechts. */
+header[hidden]{display:none}
+#startscherm{display:flex;padding:0;overflow:hidden;background:var(--achtergrond)}
+#startscherm[hidden]{display:none}
+
+.menu{
+  flex:0 0 288px;display:flex;flex-direction:column;overflow-y:auto;
+  padding:26px 22px 20px;background:var(--menu);color:var(--menu-tekst);
+}
+.menukop{display:flex;align-items:center;gap:12px;margin-bottom:30px}
+/* het zwart-op-witte zegel, omgedraaid tot een witte lijntekening */
+.menuzegel{width:56px;height:auto;flex:0 0 56px;filter:invert(1);mix-blend-mode:screen}
+.menukop b{display:block;font-size:20px;font-weight:600;letter-spacing:-.01em;color:var(--wit)}
+.menukop span{display:block;font-size:11px;line-height:1.35;color:var(--menu-tekst-zacht)}
+.menulabel{display:block;font-size:var(--tekst-klein);color:var(--menu-tekst-zacht);margin-bottom:6px}
+.menuzoek{
+  width:100%;padding:10px 12px;font:inherit;color:var(--wit);
+  background:var(--menu-invoer);border:1px solid var(--menu-invoer-rand);border-radius:var(--hoek-knop);
+}
+.menuzoek::placeholder{color:var(--menu-tekst-zacht)}
+.menugebouw{
+  font-size:var(--kopje);font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--menu-tekst-zacht);margin:28px 6px 8px;
+}
+.menuzaal{
+  display:flex;align-items:center;gap:12px;width:100%;padding:8px 10px;margin-bottom:2px;
+  background:transparent;border:0;border-radius:var(--hoek-knop);
+  color:var(--menu-tekst);cursor:pointer;text-align:left;
+}
+.menuzaal:hover{background:var(--menu-invoer)}
+.menuzaal.actief{background:var(--menu-actief);color:var(--wit);font-weight:600}
+.vormicoon{flex:0 0 20px;width:20px;height:26px;fill:none;stroke:currentColor;stroke-width:1.5}
+.menuzaal .naam{flex:1;min-width:0}
+.menuzaal .aantal{color:var(--menu-tekst-zacht);font-variant-numeric:tabular-nums}
+.menuzaal.actief .aantal{color:var(--menu-tekst)}
+.menuleeg{color:var(--menu-tekst-zacht);font-size:var(--tekst-klein);line-height:1.5;margin-top:20px}
+.schermlezer{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.menuvoet{margin-top:auto;padding-top:28px;display:flex;flex-direction:column;gap:2px}
+.menuknop{
+  background:transparent;border:1px solid transparent;border-radius:var(--hoek-knop);
+  color:var(--menu-tekst);padding:10px 16px;text-align:left;cursor:pointer;font-weight:500;
+}
+.menuknop:hover{background:var(--menu-invoer)}
+.menuknop.omlijnd{border-color:var(--menu-invoer-rand);margin-bottom:8px}
+.menuknop:disabled{opacity:.4;cursor:default}
+.menu .status{margin:12px 16px 0}
+
+.overzicht{flex:1;min-width:0;overflow-y:auto;padding:44px 48px 60px}
+.overzichtkop{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:32px}
+.overzichtgebouw{display:flex;align-items:center;gap:10px;margin:0 0 6px;color:var(--ink-soft)}
+.overzicht h1{font-size:var(--titel-overzicht);font-weight:600;letter-spacing:-.025em;line-height:1.1;margin:0 0 8px}
+.overzichtmaat{margin:0;font-size:15px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.overzichtknoppen{display:flex;gap:12px;flex:0 0 auto}
+.knop{
+  padding:11px 18px;font-weight:500;cursor:pointer;
+  background:var(--kaart);border:1px solid var(--knoprand);border-radius:var(--hoek-knop);
+}
+.knop:hover{border-color:var(--ink-soft)}
+.knop.accent{background:var(--accent);border-color:var(--accent);color:var(--wit);font-weight:600}
+.knop.accent:hover{filter:brightness(1.08)}
+.knop:disabled{opacity:.45;cursor:default}
+/* een samengevoegde zaal blijft herkenbaar als combinatie (functioneel ontwerp) */
+.combinatielabel{
+  font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+  padding:2px 8px;border:1px solid var(--knoprand);border-radius:999px;
+}
+.zoekzaal{font-size:var(--titel-kaart);font-weight:600;letter-spacing:-.01em;color:var(--ink);margin:30px 0 14px}
+
+.kaarten{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+@media (max-width:1250px){.kaarten{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.opstellingkaart{
+  display:flex;flex-direction:column;overflow:hidden;
+  background:var(--kaart);border:1px solid var(--kaart-rand);
+  border-radius:var(--hoek-kaart);box-shadow:var(--kaart-schaduw);
+}
+.kaartmini{display:block;width:100%;height:300px;padding:22px;border:0;background:var(--miniatuur);cursor:pointer}
+.kaartmini svg{display:block;width:100%;height:100%}
+.kaartinfo{padding:18px 20px 12px}
+.kaarttitel{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.kaartnaam{
+  padding:0;background:none;border:0;cursor:pointer;text-align:left;
+  font-size:var(--titel-kaart);font-weight:600;letter-spacing:-.01em;
+}
+.kaartnaam:hover{text-decoration:underline}
+.kaartmoment{margin:4px 0 12px;color:var(--ink-soft)}
+.kaartaantallen{margin:0 0 4px;font-size:13px}
+.kaartdatum{margin:0;font-size:12px;color:var(--ink-soft)}
+.kaartacties{display:flex;gap:2px;margin:12px -8px 0;padding-top:8px;border-top:1px solid var(--kaart-rand)}
+.kaartacties button{
+  padding:6px 8px;background:none;border:0;border-radius:var(--hoek-knop);
+  cursor:pointer;font-weight:500;color:var(--ink-soft);
+}
+.kaartacties button:hover{background:var(--hover);color:var(--ink)}
+.kaartacties .gevaar{color:var(--waarschuwing-icoon)}
+/* "Te controleren": omlijnd, met driehoek én tekst */
+.controleerlabel{
+  display:inline-flex;align-items:center;gap:5px;white-space:nowrap;flex:0 0 auto;
+  padding:2px 9px;font-size:12px;color:var(--waarschuwing-tekst);
+  border:1px solid var(--waarschuwing-rand);border-radius:999px;
+}
+.controleerlabel svg{width:12px;height:12px;fill:none;stroke:var(--waarschuwing-icoon);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.nieuwkaart{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  min-height:300px;padding:24px;font:inherit;color:var(--ink-soft);cursor:pointer;
+  background:transparent;border:1.5px dashed var(--knoprand);border-radius:var(--hoek-kaart);
+}
+.nieuwkaart:hover{border-color:var(--accent)}
+.nieuwkaart .plus{font-size:36px;line-height:1;color:var(--accent)}
+.nieuwkaart b{font-size:16px;font-weight:600;color:var(--accent)}
+.nieuwkaart.open{cursor:default;align-items:stretch;justify-content:flex-start}
+.nieuwtitel{margin:0 0 12px;font-weight:600;color:var(--ink)}
+.nieuwkaart .startnieuw{flex-direction:column;align-items:stretch;margin:0}
+.bewerkkaart{padding:18px 20px}
+.bewerkkaart .startbewerk{max-width:none;margin:0;padding:0;background:none;border:0}
 
 /* ---------- beheerscherm (schermen 5, 7, 8) ---------- */
 .beheertabs{display:flex;gap:4px;margin-bottom:26px;border-bottom:1px solid var(--line);max-width:720px}

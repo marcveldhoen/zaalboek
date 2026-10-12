@@ -1,17 +1,23 @@
-/* schermen/start.js — scherm 1: het startscherm.
+/* schermen/start.js — scherm 1: het overzicht.
 
-   Gebouwen, daarbinnen de zalen, en per zaal de opstellingen. Dezelfde
-   volgorde als de map (op `volgorde`), zodat scherm en papier straks
-   hetzelfde beeld geven. Een opstelling aanklikken gaat naar het tekenscherm;
-   "+ Nieuwe opstelling" maakt er een aan, met meteen een vereniging erbij.
+   Links een donkere zijbalk met het zoekveld en de zalen per gebouw, in
+   dezelfde volgorde als de map (op `volgorde`). Rechts de gekozen zaal met
+   haar opstellingen als kaarten: elke kaart toont de opstelling als kleine
+   tekening, gemaakt met dezelfde tekencode als het tekenscherm en het blad
+   (geen tweede tekening). De plattegrond is het product, dus het overzicht
+   toont tekeningen.
 
-   Dit scherm gebruikt niet de svg-plattegrond, maar een eigen lijst in
-   #startscherm — zie app.js (toonLayout) voor het in- en uitschakelen van de
-   andere schermdelen. */
+   Een kaart aanklikken gaat naar het tekenscherm; "+ Nieuwe opstelling" maakt
+   er een aan, met meteen een vereniging erbij. Zoeken op vereniging toont de
+   gevonden opstellingen uit alle zalen, per zaal onder elkaar.
+
+   Dit scherm gebruikt niet de svg-plattegrond van het tekenscherm, maar een
+   eigen indeling in #startscherm — zie app.js (toonLayout). */
 
 const SchermStart = {
 
   zoekterm: "",
+  gekozenZaalId: null,  // de zaal die rechts getoond wordt; blijft staan tussen bezoeken
   nieuwIn: null,    // de zaal-id waarvoor het "nieuwe opstelling"-formulier openstaat
   bewerkIn: null,   // de opstelling-id waarvoor het wijzig-formulier openstaat
 
@@ -20,15 +26,26 @@ const SchermStart = {
     this.nieuwIn = null;
     this.bewerkIn = null;
 
+    const zalen = this.zalenOpVolgorde();
+    if (!Model.zaal(this.gekozenZaalId)) this.gekozenZaalId = zalen.length ? zalen[0].id : null;
+
     document.getElementById("startscherm").innerHTML = `
-      <div class="startkop">
-        <h1>Overzicht</h1>
-        <div class="startkopacties">
-          <input type="search" id="startZoek" placeholder="Zoek op vereniging…">
-          <button class="ghost" id="startAfdrukken" ${Model.document.opstellingen.length ? "" : "disabled"}>Hele map afdrukken</button>
+      <aside class="menu">
+        <div class="menukop">
+          <img class="menuzegel" src="img/kerkzegel.png" alt="Zegel van de ${Model.gemeente}">
+          <div><b>Zaalboek</b><span>${Model.gemeente}</span></div>
         </div>
-      </div>
-      <div class="startlijst" id="startlijst"></div>`;
+        <label class="menulabel" for="startZoek">Zoek op vereniging</label>
+        <input type="search" id="startZoek" class="menuzoek" placeholder="Naam van een vereniging">
+        <nav class="menuzalen" id="menuzalen" aria-label="Zalen"></nav>
+        <div class="menuvoet">
+          <button class="menuknop omlijnd" id="startAfdrukken" ${Model.document.opstellingen.length ? "" : "disabled"}>Hele map afdrukken</button>
+          <button class="menuknop" id="menuZalen">Zalen inrichten</button>
+          <button class="menuknop" id="menuBeheer">Beheer</button>
+          <span class="status" data-status role="status"></span>
+        </div>
+      </aside>
+      <div class="overzicht" id="startlijst"></div>`;
 
     this.tekenLijst();
     this.bedieningAanzetten();
@@ -38,80 +55,209 @@ const SchermStart = {
      opstelling of vereniging. */
   opWijziging: null,
 
-  /* ---------------- de lijst ---------------- */
+  /* Alle zalen: per gebouw, daarbinnen per zaal — de volgorde van de map. */
+  zalenOpVolgorde() {
+    return Model.document.gebouwen.slice().sort((a, b) => a.volgorde - b.volgorde)
+      .flatMap(gebouw => Model.document.zalen
+        .filter(z => z.gebouwId === gebouw.id)
+        .sort((a, b) => a.volgorde - b.volgorde));
+  },
 
-  tekenLijst() {
-    const zoekterm = this.zoekterm.trim().toLowerCase();
+  opstellingenVan(zaal) {
+    return Model.document.opstellingen.filter(o => o.zaalId === zaal.id);
+  },
+
+  /* Een samengevoegde zaal (een vouwwand open) heet "X + Y". Er is daarvoor
+     geen apart gegeven in het document; de naam is de afspraak. */
+  isCombinatie(zaal) {
+    return zaal.naam.includes(" + ");
+  },
+
+  /* ---------------- de zijbalk ---------------- */
+
+  tekenMenu() {
     const html = Model.document.gebouwen.slice()
       .sort((a, b) => a.volgorde - b.volgorde)
-      .map(gebouw => this.gebouwBlok(gebouw, zoekterm))
-      .filter(Boolean).join("");
+      .map(gebouw => {
+        const zalen = Model.document.zalen
+          .filter(z => z.gebouwId === gebouw.id)
+          .sort((a, b) => a.volgorde - b.volgorde)
+          .map(zaal => {
+            const actief = !this.zoekterm.trim() && zaal.id === this.gekozenZaalId;
+            return `<button class="menuzaal${actief ? " actief" : ""}" data-kieszaal="${zaal.id}"
+                ${actief ? 'aria-current="true"' : ""}>
+              ${this.vormIcoon(zaal)}
+              <span class="naam">${zaal.naam}${this.isCombinatie(zaal)
+                ? '<span class="schermlezer"> (combinatie)</span>' : ""}</span>
+              <span class="aantal">${this.opstellingenVan(zaal).length}</span>
+            </button>`;
+          }).join("");
+        return zalen ? `<h2 class="menugebouw">${gebouw.naam}</h2>${zalen}` : "";
+      }).join("");
 
-    document.getElementById("startlijst").innerHTML = html || (zoekterm
-      ? `<p class="empty">Geen opstellingen gevonden voor deze zoekterm.</p>`
-      : `<p class="empty">Nog geen zalen. Ga naar "Zalen inrichten" om te beginnen.</p>`);
+    document.getElementById("menuzalen").innerHTML = html ||
+      `<p class="menuleeg">Nog geen zalen. Kies "Zalen inrichten" om te beginnen.</p>`;
   },
 
-  gebouwBlok(gebouw, zoekterm) {
-    const zalen = Model.document.zalen
-      .filter(z => z.gebouwId === gebouw.id)
-      .sort((a, b) => a.volgorde - b.volgorde)
-      .map(zaal => this.zaalBlok(zaal, zoekterm))
-      .filter(Boolean).join("");
-    if (!zalen) return "";   // de zoekterm levert niets op in dit gebouw
-
-    return `<div class="startgebouw"><h2>${gebouw.naam}</h2>${zalen}</div>`;
+  /* Een klein pictogram van de omtrek van de zaal (20 × 26), uitgerekend uit
+     de opgeslagen maten met zaalvorm.js — geen aparte tekeningen. */
+  vormIcoon(zaal) {
+    const omtrek = Zaalvorm.omtrek(zaal.vorm);
+    const k = Zaalvorm.kader(omtrek);
+    const marge = Math.max(k.x1 - k.x0, k.y1 - k.y0) * 0.06;
+    const viewBox = `${k.x0 - marge} ${k.y0 - marge} ${k.x1 - k.x0 + 2 * marge} ${k.y1 - k.y0 + 2 * marge}`;
+    return `<svg class="vormicoon" viewBox="${viewBox}" aria-hidden="true">
+      <polygon points="${omtrek.map(p => p.join(",")).join(" ")}" vector-effect="non-scaling-stroke"/></svg>`;
   },
 
-  zaalBlok(zaal, zoekterm) {
-    // ongefilterd, voor de afdrukknop: die drukt altijd alles van deze zaal
-    // af, ook als het zoekveld de lijst eronder net versmalt
-    const alleOpstellingen = Model.document.opstellingen.filter(o => o.zaalId === zaal.id);
-    let opstellingen = alleOpstellingen;
+  /* ---------------- het hoofdvlak ---------------- */
 
-    if (zoekterm) {
-      opstellingen = opstellingen.filter(o => {
+  tekenLijst() {
+    this.tekenMenu();
+    const vak = document.getElementById("startlijst");
+    const zoekterm = this.zoekterm.trim().toLowerCase();
+    const zaal = Model.zaal(this.gekozenZaalId);
+
+    if (zoekterm) vak.innerHTML = this.zoekresultaten(zoekterm);
+    else if (zaal) vak.innerHTML = this.zaalOverzicht(zaal);
+    else vak.innerHTML = `<p class="empty">Nog geen zalen. Kies "Zalen inrichten" om te beginnen.</p>`;
+
+    this.tekenMiniaturen();
+  },
+
+  zaalOverzicht(zaal) {
+    const gebouw = Model.gebouw(zaal.gebouwId);
+    const opstellingen = this.opstellingenVan(zaal);
+    const kaarten = opstellingen.map(o => this.kaart(o)).join("") + this.nieuwKaart(zaal);
+
+    return `<div class="overzichtkop">
+        <div>
+          <p class="overzichtgebouw">${gebouw.naam}
+            ${this.isCombinatie(zaal) ? '<span class="combinatielabel">Combinatie</span>' : ""}</p>
+          <h1>${zaal.naam}</h1>
+          <p class="overzichtmaat">${this.maatTekst(zaal)} · ${opstellingen.length}
+            ${opstellingen.length === 1 ? "opstelling" : "opstellingen"}</p>
+        </div>
+        <div class="overzichtknoppen">
+          <button class="knop" data-afdrukzaal="${zaal.id}" ${opstellingen.length ? "" : "disabled"}>Deze zaal afdrukken</button>
+          <button class="knop accent" data-nieuwopstelling="${zaal.id}">+ Nieuwe opstelling</button>
+        </div>
+      </div>
+      <div class="kaarten">${kaarten}</div>`;
+  },
+
+  /* Gevonden opstellingen uit alle zalen, per zaal onder elkaar. */
+  zoekresultaten(zoekterm) {
+    const blokken = this.zalenOpVolgorde().map(zaal => {
+      const gevonden = this.opstellingenVan(zaal).filter(o => {
         const vereniging = o.verenigingId && Model.vereniging(o.verenigingId);
         return vereniging && vereniging.naam.toLowerCase().includes(zoekterm);
       });
-      if (!opstellingen.length) return "";   // niets te vinden voor deze zaal
+      if (!gevonden.length) return "";
+      return `<h2 class="zoekzaal">${Model.gebouw(zaal.gebouwId).naam} · ${zaal.naam}</h2>
+        <div class="kaarten">${gevonden.map(o => this.kaart(o)).join("")}</div>`;
+    }).join("");
+
+    return `<div class="overzichtkop"><div>
+        <p class="overzichtgebouw">Zoeken op vereniging</p>
+        <h1>Zoekresultaten</h1>
+      </div></div>` +
+      (blokken || `<p class="empty">Geen opstellingen gevonden voor deze zoekterm.</p>`);
+  },
+
+  /* "8,3 × 11,9 m · ca. 98 m²" — de buitenmaat en de oppervlakte van de
+     omtrek (bij een L-vorm dus zonder de hap). */
+  maatTekst(zaal) {
+    const omtrek = Zaalvorm.omtrek(zaal.vorm);
+    const k = Zaalvorm.kader(omtrek);
+    const meter = cm => (Math.round(cm / 10) / 10).toString().replace(".", ",");
+    let dubbel = 0;   // de schoenveterformule: oppervlakte van een veelhoek
+    omtrek.forEach((p, i) => {
+      const q = omtrek[(i + 1) % omtrek.length];
+      dubbel += p[0] * q[1] - q[0] * p[1];
+    });
+    const m2 = Math.round(Math.abs(dubbel) / 2 / 10000);
+    return `${meter(k.x1 - k.x0)} × ${meter(k.y1 - k.y0)} m · ca. ${m2} m²`;
+  },
+
+  /* ---------------- een kaart per opstelling ---------------- */
+
+  kaart(o) {
+    if (this.bewerkIn === o.id) {
+      return `<div class="opstellingkaart bewerkkaart">${this.opstellingBewerkFormulier(o)}</div>`;
     }
 
-    const regels = opstellingen.map(o => this.opstellingRegel(o)).join("");
-    const nieuwFormulier = this.nieuwIn === zaal.id ? this.nieuweOpstellingFormulier() : "";
-
-    return `<div class="startzaal">
-      <div class="startzaalkop">
-        <span class="startzaalnaam">${zaal.naam}</span>
-        <span class="startzaalknoppen">
-          ${alleOpstellingen.length ? `<button class="ghost" data-afdrukzaal="${zaal.id}">Afdrukken</button>` : ""}
-          <button class="ghost" data-nieuwopstelling="${zaal.id}">+ Nieuwe opstelling</button>
-        </span>
-      </div>
-      ${regels || '<p class="empty">Nog geen opstellingen</p>'}
-      ${nieuwFormulier}
-    </div>`;
-  },
-
-  opstellingRegel(o) {
-    if (this.bewerkIn === o.id) return this.opstellingBewerkFormulier(o);
-
     const vereniging = o.verenigingId && Model.vereniging(o.verenigingId);
-    return `<div class="startregel">
-      <button class="startregelnaam" data-opstelling="${o.id}">
-        <span class="startvereniging">${vereniging ? vereniging.naam : "Naamloze opstelling"}</span>
-        <span class="startmoment">${this.momentTekst(o.gebruiksmoment)}</span>
-        <span class="startaantal">${o.aantalPersonen || 0} personen</span>
-        ${o.teControleren ? '<span class="startvlag">te controleren</span>' : ""}
+    const naam = vereniging ? vereniging.naam : "Naamloze opstelling";
+    const zaal = Model.zaal(o.zaalId);
+    const k = Tekening.kader(zaal);
+    const M = 60;
+    const viewBox = `${k.x0 - M} ${k.y0 - M} ${k.x1 - k.x0 + 2 * M} ${k.y1 - k.y0 + 2 * M}`;
+
+    return `<div class="opstellingkaart">
+      <button class="kaartmini" data-opstelling="${o.id}" aria-label="${naam} openen">
+        <svg data-miniatuur="${o.id}" viewBox="${viewBox}" aria-hidden="true">
+          <g class="mRuimte"></g><g class="mVast"></g><g class="mElementen"></g>
+        </svg>
       </button>
-      <button class="ghost klein" data-bewerk="${o.id}">Wijzigen</button>
-      <button class="ghost klein" data-verwijder="${o.id}">Verwijderen</button>
+      <div class="kaartinfo">
+        <div class="kaarttitel">
+          <button class="kaartnaam" data-opstelling="${o.id}">${naam}</button>
+          ${o.teControleren ? `<span class="controleerlabel">${WAARSCHUWING_ICOON}Te controleren</span>` : ""}
+        </div>
+        <p class="kaartmoment">${SchermAfdrukken.momentRegel(o.gebruiksmoment)}</p>
+        <p class="kaartaantallen">${this.aantallenTekst(o)}</p>
+        ${o.gewijzigdOp ? `<p class="kaartdatum">Gewijzigd ${SchermAfdrukken.datumTekst(o.gewijzigdOp)}</p>` : ""}
+        <div class="kaartacties">
+          <button data-bewerk="${o.id}">Wijzigen</button>
+          <button class="gevaar" data-verwijder="${o.id}">Verwijderen</button>
+        </div>
+      </div>
     </div>`;
   },
 
-  momentTekst(m) {
-    if (!m) return "Geen vast moment";
-    return `${this.hoofdletter(m.dag)}${m.dagdeel ? " " + m.dagdeel : ""}, ${m.begin}–${m.eind}`;
+  /* "30 personen · 5 tafels lang · 30 stoelen" — uit dezelfde telling als het
+     tekenscherm en het blad. */
+  aantallenTekst(o) {
+    const per = Telling.aantallen(o);
+    const delen = [`${Telling.aantalPersonen(o)} personen`];
+    Object.keys(per).sort((a, b) => (a === "stoel" ? -1 : b === "stoel" ? 1 : 0)).forEach(id => {
+      const meubel = Model.meubel(id);
+      if (!meubel || !per[id]) return;
+      const woord = per[id] === 1 ? meubel.naam : (meubel.meervoud || meubel.naam);
+      delen.push(`${per[id]} ${woord.toLowerCase()}`);
+    });
+    return delen.join(" · ");
+  },
+
+  nieuwKaart(zaal) {
+    if (this.nieuwIn === zaal.id) {
+      return `<div class="nieuwkaart open">
+        <p class="nieuwtitel">Nieuwe opstelling in zaal ${zaal.naam}</p>
+        ${this.nieuweOpstellingFormulier()}
+      </div>`;
+    }
+    return `<button class="nieuwkaart" data-nieuwopstelling="${zaal.id}">
+      <span class="plus" aria-hidden="true">+</span>
+      <b>Nieuwe opstelling</b>
+      <span>in zaal ${zaal.naam}</span>
+    </button>`;
+  },
+
+  /* De kleine tekeningen: de vloer, de vaste objecten en het meubilair, met
+     dezelfde tekencode als het blad. Zonder raster, schaalstok en zaalnaam —
+     daarvoor zijn ze te klein. */
+  tekenMiniaturen() {
+    const los = () => document.createElementNS("http://www.w3.org/2000/svg", "g");
+    document.querySelectorAll("#startlijst svg[data-miniatuur]").forEach(svg => {
+      const o = Model.opstelling(svg.dataset.miniatuur);
+      Tekening.zaal(Model.zaal(o.zaalId), {
+        raster: los(), schaalstok: los(), naam: los(),
+        ruimte: svg.querySelector(".mRuimte"),
+        vast: svg.querySelector(".mVast")
+      });
+      Tekening.elementen(o, svg.querySelector(".mElementen"), null);
+    });
   },
 
   hoofdletter(tekst) {
@@ -260,6 +406,17 @@ const SchermStart = {
 
   bedieningAanzetten() {
     this._onKlik = ev => {
+      const kies = ev.target.closest("[data-kieszaal]");
+      if (kies) {
+        this.gekozenZaalId = kies.dataset.kieszaal;
+        this.zoekterm = "";
+        document.getElementById("startZoek").value = "";
+        this.nieuwIn = null;
+        this.bewerkIn = null;
+        this.tekenLijst();
+        return;
+      }
+
       const nieuwKnop = ev.target.closest("[data-nieuwopstelling]");
       if (nieuwKnop) { this.nieuwIn = nieuwKnop.dataset.nieuwopstelling; this.tekenLijst(); return; }
 
@@ -284,11 +441,12 @@ const SchermStart = {
       const afdrukZaal = ev.target.closest("[data-afdrukzaal]");
       if (afdrukZaal) { naarAfdrukken({ scope: "zaal", zaal: Model.zaal(afdrukZaal.dataset.afdrukzaal) }); return; }
 
-      const afdrukAlles = ev.target.closest("#startAfdrukken");
-      if (afdrukAlles) { naarAfdrukken({ scope: "alles" }); return; }
+      if (ev.target.closest("#startAfdrukken")) { naarAfdrukken({ scope: "alles" }); return; }
+      if (ev.target.closest("#menuZalen")) { naarZalenInrichten(); return; }
+      if (ev.target.closest("#menuBeheer")) { naarBeheer(); return; }
 
-      const regel = ev.target.closest("[data-opstelling]");
-      if (regel) naarTekenen(Model.opstelling(regel.dataset.opstelling));
+      const kaart = ev.target.closest("[data-opstelling]");
+      if (kaart) naarTekenen(Model.opstelling(kaart.dataset.opstelling));
     };
     document.getElementById("startscherm").addEventListener("click", this._onKlik);
 

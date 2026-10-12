@@ -24,19 +24,30 @@ function pictogram(naam) {
   return `<svg class="ico" viewBox="0 0 16 16" aria-hidden="true">${STATUS_ICON[naam]}</svg>`;
 }
 
-function toonStatus(status) {
-  const regel = document.getElementById("status");
+/* De statusregel staat in de donkere balk (#status) én onderin de zijbalk
+   van het overzicht (elk element met data-status). Beide tonen hetzelfde;
+   de laatste stand wordt onthouden, zodat een opnieuw opgebouwde zijbalk
+   meteen weer klopt (zie naarStart). */
+let laatsteStatus = { state: "", html: "" };
 
-  if (status.staat === "laden")   { regel.dataset.state = "bezig"; regel.innerHTML = pictogram("bezig") + "<span>Gegevens ophalen...</span>"; return; }
-  if (status.staat === "wachten") { regel.dataset.state = "bezig"; regel.innerHTML = pictogram("bezig") + "<span>Nog niet bewaard</span>"; return; }
-  if (status.staat === "bezig")   { regel.dataset.state = "bezig"; regel.innerHTML = pictogram("bezig") + "<span>Bewaren...</span>"; return; }
+function zetStatus(state, html) {
+  laatsteStatus = { state, html };
+  document.querySelectorAll("#status, [data-status]").forEach(regel => {
+    regel.dataset.state = state;
+    regel.innerHTML = html;
+  });
+}
+
+function toonStatus(status) {
+  if (status.staat === "laden")   { zetStatus("bezig", pictogram("bezig") + "<span>Gegevens ophalen...</span>"); return; }
+  if (status.staat === "wachten") { zetStatus("bezig", pictogram("bezig") + "<span>Nog niet bewaard</span>"); return; }
+  if (status.staat === "bezig")   { zetStatus("bezig", pictogram("bezig") + "<span>Bewaren...</span>"); return; }
 
   if (status.staat === "bewaard") {
     const t = status.tijd;
     const tweecijfers = n => String(n).padStart(2, "0");
-    regel.dataset.state = "bewaard";
-    regel.innerHTML = pictogram("bewaard") +
-      `<span>Bewaard om ${tweecijfers(t.getHours())}:${tweecijfers(t.getMinutes())}</span>`;
+    zetStatus("bewaard", pictogram("bewaard") +
+      `<span>Bewaard om ${tweecijfers(t.getHours())}:${tweecijfers(t.getMinutes())}</span>`);
     return;
   }
 
@@ -51,8 +62,7 @@ function toonStatus(status) {
       vraagSleutel(status.fout.tekst);
       return;
     }
-    regel.dataset.state = "fout";
-    regel.innerHTML = pictogram("fout") + `<span>Niet bewaard - ${status.fout.tekst}</span>`;
+    zetStatus("fout", pictogram("fout") + `<span>Niet bewaard - ${status.fout.tekst}</span>`);
   }
 }
 
@@ -98,7 +108,8 @@ function toonLayout(scherm) {
   document.getElementById("ongedaan").hidden = zonderPlattegrond;
   document.getElementById("hulpKnop").hidden = zonderPlattegrond;
   document.getElementById("afdrukKnop").hidden = scherm !== "tekenen";
-  document.getElementById("beheerKnop").hidden = !isStart;
+  // het overzicht heeft geen bovenbalk, maar een eigen donkere zijbalk
+  document.querySelector("header").hidden = isStart;
   // "‹ Overzicht" links in de balk; niet nodig op het overzicht zelf
   document.getElementById("wordmark").hidden = isStart;
   if (zonderPlattegrond) toonHulp(false);
@@ -109,15 +120,15 @@ function naarStart() {
   HuidigScherm = SchermStart;
   toonLayout("start");
   toonKruimel("", "Overzicht");
-  document.getElementById("wisselScherm").textContent = "Zalen inrichten";
-  document.getElementById("wisselScherm").hidden = false;
   SchermStart.open();
+  zetStatus(laatsteStatus.state, laatsteStatus.html);   // de status in de nieuwe zijbalk
 }
 
 function naarTekenen(opstelling) {
   if (HuidigScherm && HuidigScherm.sluiten) HuidigScherm.sluiten();
   HuidigScherm = SchermTekenen;
   toonLayout("tekenen");
+  SchermStart.gekozenZaalId = opstelling.zaalId;   // terug naar het overzicht: deze zaal
 
   const zaal = Model.zaal(opstelling.zaalId);
   const gebouw = Model.gebouw(zaal.gebouwId);
@@ -249,8 +260,7 @@ function start() {
     if (HuidigScherm && HuidigScherm.ongedaanMaken) HuidigScherm.ongedaanMaken();
   };
   document.getElementById("wisselScherm").onclick = () => {
-    if (HuidigScherm === SchermStart) naarZalenInrichten();
-    else if (HuidigScherm === SchermAfdrukken) {
+    if (HuidigScherm === SchermAfdrukken) {
       if (SchermAfdrukken.scope === "opstelling") naarTekenen(SchermAfdrukken.opstelling);
       else naarStart();
     }
@@ -259,7 +269,6 @@ function start() {
   document.getElementById("afdrukKnop").onclick = () => {
     if (HuidigScherm === SchermTekenen) naarAfdrukken({ scope: "opstelling", opstelling: SchermTekenen.opstelling });
   };
-  document.getElementById("beheerKnop").onclick = () => naarBeheer();
   document.getElementById("wordmark").onclick = () => naarStart();
 
   const hulpKnop = document.getElementById("hulpKnop");
