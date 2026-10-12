@@ -11,6 +11,10 @@
    browser aan; hoe het blad en de paginaovergangen eruitzien staat in
    css/blad.css. */
 
+/* Het waarschuwingsicoon naast een tekort: vorm én tekst, nooit alleen kleur. */
+const WAARSCHUWING_ICOON = '<svg viewBox="0 0 16 16" aria-hidden="true">' +
+  '<path d="M8 2.5l6 10.5H2z"/><path d="M8 7v3"/><path d="M8 11.8v.2"/></svg>';
+
 const SchermAfdrukken = {
 
   scope: null,          // "opstelling" | "zaal" | "alles"
@@ -130,38 +134,75 @@ const SchermAfdrukken = {
     const M = 100;
     const viewBox = `${k.x0 - M} ${k.y0 - M} ${k.x1 - k.x0 + 2 * M} ${k.y1 - k.y0 + 2 * M}`;
 
-    return `<div class="blad">
-      <div class="bladkop">
-        <h1>${zaal.naam}</h1>
-        <p>${gebouw.naam}</p>
-      </div>
-      <div class="bladmeta">
-        <div><span>Vereniging</span><b>${vereniging ? vereniging.naam : "Geen vereniging"}</b></div>
-        <div><span>Moment</span><b>${SchermStart.momentTekst(opstelling.gebruiksmoment)}</b></div>
-        <div><span>Aantal personen</span><b>${Telling.aantalPersonen(opstelling)}</b></div>
-        <div><span>Verantwoordelijke</span><b>${Model.verantwoordelijkheden[opstelling.verantwoordelijke] || "—"}</b></div>
-      </div>
+    /* Staand staat de kop over de hele breedte boven de tekening; liggend
+       bovenin de kolom naast de tekening, anders neemt hij op het lage vel
+       zoveel hoogte in dat de tekening er niet groter door wordt. */
+    const kop = `<div class="bladkop">
+        <div>
+          <p class="bladplaats">${gebouw.naam} · ${zaal.naam}</p>
+          <h1>${vereniging ? vereniging.naam : "Geen vereniging"}</h1>
+          <p class="bladmoment">${this.momentRegel(opstelling.gebruiksmoment)}</p>
+        </div>
+        <img class="bladzegel" src="img/kerkzegel.png"
+             alt="Zegel van de ${Model.gemeente}">
+      </div>`;
 
-      <svg class="bladplan" viewBox="${viewBox}">
-        <g class="bladRuimte"></g>
-        <g class="bladVast"></g>
-        <g class="bladElementen"></g>
-        <g class="bladNaam"></g>
-        <g class="bladSchaal"></g>
-      </svg>
+    return `<div class="blad">
+      ${this.liggend ? "" : kop}
+
+      <div class="bladmidden">
+        <!-- linksboven uitgelijnd: een brede zaal komt direct onder de kop -->
+        <svg class="bladplan" viewBox="${viewBox}" preserveAspectRatio="xMinYMin meet">
+          <g class="bladRuimte"></g>
+          <g class="bladVast"></g>
+          <g class="bladElementen"></g>
+          <g class="bladNaam"></g>
+          <g class="bladSchaal"></g>
+        </svg>
+
+        <div class="bladkolom">
+          ${this.liggend ? kop : ""}
+          <div class="bladvak">
+            <h2>Aantal personen</h2>
+            <div class="bladpersonen">${Telling.aantalPersonen(opstelling)}</div>
+          </div>
+          <div class="bladvak">
+            <h2>Klaarzetten</h2>
+            ${regels.map(r => `<div class="bline${r.tekort ? " over" : ""}">
+              <span>${r.tekort ? WAARSCHUWING_ICOON : ""}${r.naam}</span><b>${r.aantal}</b></div>`).join("")}
+            ${tekorten.length ? `<p class="bladwaarschuwing">${WAARSCHUWING_ICOON}
+              <span>Meer dan er in deze zaal staan: ${tekorten.map(r =>
+                `${r.tekort} ${r.naam.toLowerCase()}`).join(", ")}.</span></p>` : ""}
+          </div>
+          <div class="bladvak">
+            <h2>Verantwoordelijk</h2>
+            <p>${Model.verantwoordelijkheden[opstelling.verantwoordelijke] || "—"}</p>
+          </div>
+          ${opstelling.opmerkingen ? `<div class="bladvak">
+            <h2>Opmerkingen</h2><p>${opstelling.opmerkingen}</p></div>` : ""}
+        </div>
+      </div>
 
       <div class="bladvoet">
-        <div class="bladbenodigd">
-          <h2>Benodigd</h2>
-          ${regels.map(r => `<div class="bline${r.tekort ? " over" : ""}">
-            <span>${r.naam}</span><b>${r.aantal}</b></div>`).join("")}
-          ${tekorten.length ? `<p class="bladwaarschuwing">${tekorten.map(r =>
-            `${r.tekort} ${r.naam.toLowerCase()} meer dan er in deze zaal staan.`).join("<br>")}</p>` : ""}
-        </div>
-        ${opstelling.opmerkingen ? `<div class="bladopmerkingen">
-          <h2>Opmerkingen</h2><p>${opstelling.opmerkingen}</p></div>` : ""}
+        <span>Zaalboek · ${Model.gemeente}</span>
+        <span>${opstelling.gewijzigdOp ? "Laatst gewijzigd " + this.datumTekst(opstelling.gewijzigdOp) : ""}</span>
       </div>
     </div>`;
+  },
+
+  /* "Dinsdag · avond · 20:00–22:00", zoals in de kop van het blad. */
+  momentRegel(m) {
+    if (!m) return "Geen vast moment";
+    return [SchermStart.hoofdletter(m.dag), m.dagdeel, `${m.begin}–${m.eind}`]
+      .filter(Boolean).join(" · ");
+  },
+
+  /* "2026-09-03" wordt "3 september 2026". */
+  datumTekst(iso) {
+    const maanden = ["januari", "februari", "maart", "april", "mei", "juni", "juli",
+                     "augustus", "september", "oktober", "november", "december"];
+    const [jaar, maand, dag] = iso.split("-").map(Number);
+    return `${dag} ${maanden[maand - 1]} ${jaar}`;
   },
 
   /* Het raster wordt op het blad niet getekend: een losstaand groepje dat
@@ -185,7 +226,7 @@ const SchermAfdrukken = {
     this._onChange = ev => {
       if (ev.target.id !== "afdrukLiggend") return;
       this.liggend = ev.target.checked;
-      this.papierRichtingToepassen();
+      this.teken();   // opnieuw opbouwen: liggend staat de kop op een andere plek
     };
     document.getElementById("afdrukscherm").addEventListener("change", this._onChange);
   },

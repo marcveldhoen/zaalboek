@@ -59,40 +59,69 @@
    indeling om de titel te centreren; .blad hierboven is voor een gewoon
    blad gewone documentstroom, een tussenblad heeft daar niets aan. */
 .bladtussen{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-.bladtussen h1{font-family:var(--font);font-weight:400;font-size:40px;margin:0 0 10px}
+.bladtussen h1{font-weight:600;font-size:40px;letter-spacing:-.025em;margin:0 0 10px}
 .bladtussen p{color:var(--ink-soft);font-size:15px;margin:0}
 
-.bladkop{margin-bottom:14mm}
-.bladkop h1{font-family:var(--font);font-weight:400;font-size:26px;margin:0 0 2px}
-.bladkop p{color:var(--ink-soft);margin:0;font-size:13px}
-
-.bladmeta{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
-  margin-bottom:10mm;padding-bottom:10mm;border-bottom:1px solid var(--line);
+/* ---------- het blad: kop, midden (tekening + kolom), voet ----------
+   Staand en liggend hebben dezelfde indeling; alleen de maten van het midden
+   verschillen (zie .liggend hieronder). Alles met vaste maten in mm, geen
+   rijen of kolommen die zelf meegroeien: dat bleek de enige opbouw die in
+   elke browser (ook Safari) betrouwbaar op één pagina afdrukt. */
+.bladkop{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:8mm;
+  padding-bottom:5mm;border-bottom:2px solid var(--ink);margin-bottom:6mm;
 }
-.bladmeta span{display:block;color:var(--ink-soft);font-size:11px;margin-bottom:2px}
-.bladmeta b{font-weight:500}
+.bladplaats{margin:0 0 2px;font-size:12px;color:var(--ink-soft)}
+.bladkop h1{font-weight:600;font-size:34px;letter-spacing:-.02em;line-height:1.15;margin:0 0 4px}
+.bladmoment{margin:0;font-size:16px;font-weight:500}
+/* het zegel: zonder filter, zodat de tekst in de ring leesbaar blijft
+   (onder ongeveer 100 px niet meer te lezen) */
+.bladzegel{flex:0 0 27mm;width:27mm;height:auto;display:block}
 
-/* een vaste hoogte (zie de toelichting bij .blad hierboven) — ruim genoeg
-   gekozen om kop, gegevens en benodigdheden (inclusief een paar regels
-   tekort-waarschuwing) altijd nog te laten passen binnen de 245mm die .blad
-   op papier hieronder krijgt, zonder dat de precieze hoeveelheid tekst daar
-   iets aan verandert. */
-.bladplan{width:100%;height:120mm}
+.bladmidden{
+  display:grid;grid-template-columns:1fr 48mm;column-gap:8mm;
+  height:180mm;
+}
+.bladplan{width:100%;height:180mm;display:block}
+
+.bladkolom{font-size:13px;line-height:1.45}
+.bladkolom h2{
+  font-size:var(--kopje);font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--ink-soft);margin:0 0 4px;
+}
+.bladvak{margin-bottom:6mm}
+.bladpersonen{font-size:30px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.bline{display:flex;justify-content:space-between;gap:8px;padding:1px 0}
+.bline b{font-weight:600;font-variant-numeric:tabular-nums}
+.bladkolom p{margin:0;white-space:pre-wrap}
+/* een tekort: icoon en tekst, nooit alleen kleur — het blad moet in
+   zwart-wit volledig leesbaar blijven */
+.bladwaarschuwing{
+  display:flex;gap:6px;align-items:flex-start;margin-top:6px;
+  font-size:12px;line-height:1.4;color:var(--waarschuwing-tekst);
+}
+.bline svg{width:12px;height:12px;margin:0 4px -1px 0}
+.bladwaarschuwing svg, .bline svg{
+  fill:none;stroke:var(--waarschuwing-icoon);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
+}
+.bladwaarschuwing svg{
+  flex:0 0 14px;width:14px;height:14px;margin-top:1px;
+}
 
 .bladvoet{
-  display:flex;gap:24px;margin-top:10mm;padding-top:8mm;border-top:1px solid var(--line);
+  display:flex;justify-content:space-between;gap:8mm;
+  margin-top:6mm;padding-top:3mm;border-top:1px solid var(--blad-lijn);
+  font-size:11px;color:var(--ink-soft);
 }
-.bladbenodigd{flex:1}
-.bladopmerkingen{flex:1}
-.bladbenodigd h2, .bladopmerkingen h2{
-  font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--ink-soft);margin:0 0 8px;
-}
-.bline{display:flex;justify-content:space-between;padding:2px 0;font-size:13px;color:var(--ink-soft)}
-.bline b{font-weight:500;color:var(--ink)}
-.bline.over b{color:var(--warn)}
-.bladwaarschuwing{margin-top:8px;color:var(--warn);font-size:12px;line-height:1.5}
-.bladopmerkingen p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.6;white-space:pre-wrap}
+
+/* liggend: de kop staat bovenin de kolom naast de tekening (zie
+   schermen/afdrukken.js), zodat de tekening de volle hoogte van het vel krijgt */
+.afdrukscherm.liggend .bladmidden{grid-template-columns:1fr 74mm;height:143mm}
+.afdrukscherm.liggend .bladplan{height:143mm}
+.afdrukscherm.liggend .bladkop{gap:3mm;padding-bottom:3mm;margin-bottom:4mm}
+.afdrukscherm.liggend .bladkop h1{font-size:22px}
+.afdrukscherm.liggend .bladmoment{font-size:13px}
+.afdrukscherm.liggend .bladvak{margin-bottom:4mm}
 
 @media print{
   /* staand (A4 portrait) is hiermee het gewone geval, vastgelegd op precies
@@ -122,24 +151,3 @@
      lege pagina achteraan, zoals page-break-after op het laatste blad zou geven */
   .blad + .blad{page-break-before:always;break-before:page}
 }
-
-/* ---------- liggend: de gegevens naast de tekening in plaats van erboven en
-   eronder ----------
-   Zomaar het papier omdraaien hielp niet: de koptekst, de gegevens en de
-   benodigdheden blijven dan even hoog, maar een liggend vel is juist minder
-   hoog (210mm i.p.v. 297mm) — dan blijft er minder over voor de tekening,
-   niet meer. Pas door ze naast de tekening te zetten, in de extra breedte die
-   liggend wél oplevert, wordt de tekening groter in plaats van kleiner. Het
-   tussenblad (alleen een gecentreerde titel) hoeft dit niet: :not(.bladtussen). */
-.afdrukscherm.liggend .blad:not(.bladtussen){
-  display:grid;
-  grid-template-columns:72mm 1fr;
-  /* kop en gegevens op hun natuurlijke hoogte, de lege rij erna vangt het
-     restant op zodat de benodigdheden onderaan de zijbalk blijven staan */
-  grid-template-rows:auto auto 1fr auto;
-  column-gap:14mm;
-}
-.afdrukscherm.liggend .bladkop{grid-column:1;grid-row:1}
-.afdrukscherm.liggend .bladmeta{grid-column:1;grid-row:2;grid-template-columns:1fr;row-gap:10px;align-content:start}
-.afdrukscherm.liggend .bladplan{grid-column:2;grid-row:1 / -1;height:100%}
-.afdrukscherm.liggend .bladvoet{grid-column:1;grid-row:4;flex-direction:column}

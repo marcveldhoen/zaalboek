@@ -62,8 +62,7 @@ const Tekening = {
   naam(doel, k, naam) {
     doel.innerHTML = "";
     const t = this.el("text", { x: k.x0 + 40, y: k.y0 + 90, fill: "var(--zaalnaam)",
-      "fill-opacity": 0.55, "pointer-events": "none",
-      "font-size": 72 }, doel);
+      "pointer-events": "none", "font-weight": 600, "font-size": 64 }, doel);
     t.textContent = naam;
   },
 
