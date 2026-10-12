@@ -18,18 +18,19 @@ const WAARSCHUWING_ICOON = '<svg viewBox="0 0 16 16" aria-hidden="true">' +
 
 const SchermAfdrukken = {
 
-  scope: null,          // "opstelling" | "zaal" | "alles"
+  scope: null,          // "opstelling" | "zaal" | "alles" | "planning"
   opstelling: null,      // alleen gevuld bij scope "opstelling"
   zaal: null,             // alleen gevuld bij scope "zaal"
   liggend: false,         // staand of liggend A4 — een keuze in de app, niet in het afdrukvenster van de browser
 
   /* selectie: { scope: "opstelling", opstelling } of { scope: "zaal", zaal }
-     of { scope: "alles" }. */
+     of { scope: "alles" } of { scope: "planning" } (de weekplanning, altijd
+     liggend). */
   open(selectie) {
     this.scope = selectie.scope;
     this.opstelling = selectie.opstelling || null;
     this.zaal = selectie.zaal || null;
-    this.liggend = false;
+    this.liggend = this.scope === "planning";
     this.teken();
     this.bedieningAanzetten();
   },
@@ -57,6 +58,7 @@ const SchermAfdrukken = {
   /* ---------------- tekenen ---------------- */
 
   teken() {
+    if (this.scope === "planning") { this.tekenPlanning(); return; }
     const groepen = this.groepen();
     const metTussenblad = this.scope !== "opstelling";
     const bladen = [];   // { zaal, opstelling } in dezelfde volgorde als de .bladplan-svg's hieronder
@@ -108,6 +110,36 @@ const SchermAfdrukken = {
     stijl.textContent = this.liggend ? "@page{size:A4 landscape}" : "";
   },
 
+  /* De weekplanning op één liggend vel: dezelfde tabel als in het overzicht
+     (Planning.rooster), zonder de klikbare knoppen. Geen keuze staand of
+     liggend: zeven dagen naast elkaar passen alleen liggend. */
+  tekenPlanning() {
+    document.getElementById("afdrukscherm").innerHTML = `
+      <div class="afdrukbalk no-print">
+        <button class="knop accent" id="afdrukUitvoeren">De planning afdrukken</button>
+      </div>
+      <div class="bladvoorbeeld">
+        <div class="blad bladplanning">
+          <div class="bladkop">
+            <div>
+              <p class="bladplaats">${Model.gemeente}</p>
+              <h1>Weekplanning</h1>
+              <p class="bladmoment">Vaste momenten van alle opstellingen</p>
+            </div>
+            <img class="bladzegel" src="img/kerkzegel.png" alt="Zegel van de ${Model.gemeente}">
+          </div>
+          ${Planning.rooster({ afdruk: true })}
+          <p class="roosterlegenda">Omlijnd: geboekt. Gestippeld: bezet via een samengevoegde zaal.
+            ${WAARSCHUWING_ICOON} Botsing: twee boekingen tegelijk in dezelfde ruimte.</p>
+          <div class="bladvoet">
+            <span>Zaalboek · ${Model.gemeente}</span>
+            <span>Afgedrukt ${this.datumTekst(Model.vandaag())}</span>
+          </div>
+        </div>
+      </div>`;
+    this.papierRichtingToepassen();
+  },
+
   groepHtml(groep, metTussenblad, bladen) {
     const gebouw = Model.gebouw(groep.zaal.gebouwId);
     const tussenblad = metTussenblad ? `
@@ -142,7 +174,7 @@ const SchermAfdrukken = {
         <div>
           <p class="bladplaats">${gebouw.naam} · ${zaal.naam}</p>
           <h1>${vereniging ? vereniging.naam : "Geen vereniging"}</h1>
-          <p class="bladmoment">${this.momentRegel(opstelling.gebruiksmoment)}</p>
+          <p class="bladmoment">${this.momentenRegels(opstelling.gebruiksmomenten)}</p>
         </div>
         <img class="bladzegel" src="img/kerkzegel.png"
              alt="Zegel van de ${Model.gemeente}">
@@ -193,9 +225,14 @@ const SchermAfdrukken = {
 
   /* "Dinsdag · avond · 20:00–22:00", zoals in de kop van het blad. */
   momentRegel(m) {
-    if (!m) return "Geen vast moment";
-    return [SchermStart.hoofdletter(m.dag), m.dagdeel, `${m.begin}–${m.eind}`]
+    return [SchermStart.hoofdletter(m.dag), Model.dagdeel(m.begin), `${m.begin}–${m.eind}`]
       .filter(Boolean).join(" · ");
+  },
+
+  /* Alle momenten van een opstelling, elk op een eigen regel (<br>). */
+  momentenRegels(momenten) {
+    if (!momenten || !momenten.length) return "Geen vast moment";
+    return Model.momentenOpVolgorde(momenten).map(m => this.momentRegel(m)).join("<br>");
   },
 
   /* "2026-09-03" wordt "3 september 2026". */

@@ -74,6 +74,8 @@
   --waarschuwing-vlak:#FBF3EA;
   --waarschuwing-tekst:#5E3612;
   --waarschuwing-icoon:#7A4519;
+  --geboekt:#DCEAE8;          /* een geboekt blok in de weekplanning */
+  --geboekt-tekst:#1F4D4A;
   --hoek-knop:6px;            /* knoppen en invoervelden */
   --hoek-kaart:10px;
 }
@@ -440,6 +442,19 @@ kbd{
 .startbewerk .veld-vol{margin-bottom:10px}
 .startbewerk .startnieuwnaam{width:100%;margin:-4px 0 10px}
 .startbewerk .row{margin-top:4px;margin-bottom:14px}
+/* de vaste momenten: per moment de dag, met daaronder van – tot en ✕ (in
+   een smalle kaart passen ze niet op één regel) */
+.momenten{display:flex;flex-direction:column;gap:8px}
+.momenten:not(:empty){margin-bottom:8px}
+.momentrij{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto;align-items:center;gap:4px 6px}
+.momentrij + .momentrij{padding-top:8px;border-top:1px solid var(--kaart-rand)}
+.momentrij .mDag{grid-column:1 / -1;width:100%}
+.momentrij input[type=time]{width:100%;min-width:0;padding:7px 6px;font-variant-numeric:tabular-nums}
+/* het klokje van Chrome kost ruimte die er in een smalle kaart niet is; de
+   tijd typ je toch gewoon in */
+.momentrij input[type=time]::-webkit-calendar-picker-indicator{display:none}
+.momentrij .momentweg{padding:4px 8px}
+.momenterbij{width:100%;text-align:center}
 
 /* ---------- het overzicht (scherm 1): donkere zijbalk en kaarten ----------
    #startscherm krijgt de klasse .startscherm (net als #beheerscherm), maar
@@ -557,6 +572,47 @@ header[hidden]{display:none}
 .nieuwkaart .startnieuw{flex-direction:column;align-items:stretch;margin:0}
 .bewerkkaart{padding:18px 20px}
 .bewerkkaart .startbewerk{max-width:none;margin:0;padding:0;background:none;border:0}
+
+/* ---------- de weekplanning in het overzicht (planning.js) ----------
+   Een gewone tabel: rijen zijn de zalen, kolommen de dagen. Een blok is een
+   vast moment van een opstelling; gearceerd is "bezet via een samengevoegde
+   zaal", een botsing krijgt de waarschuwingsrand en het icoon — vorm én
+   kleur, nooit alleen kleur. */
+.roosteruitleg{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;margin:6px 0 0;color:var(--ink-soft);font-size:13px}
+.roosterteken{display:inline-block;width:14px;height:14px;margin-right:6px;vertical-align:-2px;border-radius:3px;border:1px solid var(--kaart-rand)}
+.roosterteken.eigen,.roosterblok{background:var(--geboekt)}
+.roosterteken.via,.roosterblok.via{background:repeating-linear-gradient(45deg,var(--hover) 0 4px,var(--kaart) 4px 8px)}
+.roosterteken.botsing{background:var(--waarschuwing-vlak);border:1.5px solid var(--waarschuwing-rand)}
+.roosterkader{overflow-x:auto;background:var(--kaart);border:1px solid var(--kaart-rand);border-radius:var(--hoek-kaart);box-shadow:var(--kaart-schaduw)}
+.rooster{width:100%;min-width:860px;border-collapse:collapse;table-layout:fixed}
+.rooster th,.rooster td{border-bottom:1px solid var(--kaart-rand);text-align:left;vertical-align:top}
+.rooster thead th{padding:12px 8px;font-weight:600;color:var(--ink-soft)}
+.rooster th.roosterzaal{width:150px;padding:10px 12px;font-weight:500}
+.roostergebouw th{padding:14px 12px 6px;font-size:var(--kopje);font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);background:var(--paneel)}
+.roostervak{height:58px;padding:4px;border-left:1px solid var(--kaart-rand)}
+.roostervak.weekend,.rooster thead th.weekend{background:var(--paneel)}
+.roostervak[data-leegvak]{cursor:copy}
+.roostervak[data-leegvak]:hover{background:var(--hover)}
+.roosterblok{
+  display:block;width:100%;margin:0 0 4px;padding:5px 7px;text-align:left;cursor:pointer;
+  border:1px solid transparent;border-radius:var(--hoek-knop);color:var(--geboekt-tekst);
+  font-size:var(--tekst-klein);line-height:1.3;
+}
+.roosterblok:last-child{margin-bottom:0}
+.roosterblok:hover{border-color:var(--geboekt-tekst)}
+.roosterblok.via{color:var(--ink-soft);border-color:var(--kaart-rand)}
+.roosterblok.botsing{background:var(--waarschuwing-vlak);border:1.5px solid var(--waarschuwing-rand);color:var(--waarschuwing-tekst)}
+.roostertijd{display:flex;align-items:center;gap:4px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.roostertijd svg{width:12px;height:12px;flex:0 0 12px;fill:none;stroke:var(--waarschuwing-icoon);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.roosternaam,.roostervia{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.roostervia{font-size:11.5px}
+.roostertip{margin:10px 0 0;font-size:13px;color:var(--ink-soft)}
+.zondermoment{list-style:none;margin:0;padding:0;max-width:640px}
+.zondermoment li{display:flex;align-items:baseline;gap:12px;padding:10px 0;border-bottom:1px solid var(--kaart-rand)}
+.zondermoment .kaartnaam{font-size:var(--tekst)}
+.zondermoment span{flex:1;color:var(--ink-soft)}
+.tekstknop{padding:0;background:none;border:0;cursor:pointer;color:var(--accent);font-weight:500}
+.tekstknop:hover{text-decoration:underline}
 
 /* ---------- beheerscherm (schermen 5, 7, 8) ---------- */
 .beheertabs{display:flex;gap:4px;margin-bottom:28px;border-bottom:1px solid var(--paneel-rand);max-width:720px}

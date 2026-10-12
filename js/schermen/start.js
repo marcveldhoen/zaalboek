@@ -7,6 +7,11 @@
    (geen tweede tekening). De plattegrond is het product, dus het overzicht
    toont tekeningen.
 
+   Bovenaan de zijbalk staat de weekplanning (zie planning.js): per zaal en
+   per dag welke opstellingen er een vast moment hebben. Een blok aanklikken
+   opent die opstelling, een leeg vak start een nieuwe opstelling in die zaal
+   met die dag al ingevuld.
+
    Een kaart aanklikken gaat naar het tekenscherm; "+ Nieuwe opstelling" maakt
    er een aan, met meteen een vereniging erbij. Zoeken op vereniging toont de
    gevonden opstellingen uit alle zalen, per zaal onder elkaar.
@@ -18,12 +23,15 @@ const SchermStart = {
 
   zoekterm: "",
   gekozenZaalId: null,  // de zaal die rechts getoond wordt; blijft staan tussen bezoeken
+  weergave: "planning", // "planning" (de weekplanning) of "zaal" (de kaarten van de gekozen zaal)
   nieuwIn: null,    // de zaal-id waarvoor het "nieuwe opstelling"-formulier openstaat
+  nieuwDag: null,   // de dag die in dat formulier al klaarstaat (na een klik op een leeg vak in de planning)
   bewerkIn: null,   // de opstelling-id waarvoor het wijzig-formulier openstaat
 
   open() {
     this.zoekterm = "";
     this.nieuwIn = null;
+    this.nieuwDag = null;
     this.bewerkIn = null;
 
     const zalen = this.zalenOpVolgorde();
@@ -83,7 +91,7 @@ const SchermStart = {
           .filter(z => z.gebouwId === gebouw.id)
           .sort((a, b) => a.volgorde - b.volgorde)
           .map(zaal => {
-            const actief = !this.zoekterm.trim() && zaal.id === this.gekozenZaalId;
+            const actief = !this.zoekterm.trim() && this.weergave === "zaal" && zaal.id === this.gekozenZaalId;
             return `<button class="menuzaal${actief ? " actief" : ""}" data-kieszaal="${zaal.id}"
                 ${actief ? 'aria-current="true"' : ""}>
               ${this.vormIcoon(zaal)}
@@ -95,7 +103,15 @@ const SchermStart = {
         return zalen ? `<h2 class="menugebouw">${gebouw.naam}</h2>${zalen}` : "";
       }).join("");
 
-    document.getElementById("menuzalen").innerHTML = html ||
+    const planningActief = !this.zoekterm.trim() && this.weergave === "planning";
+    const planning = `<button class="menuzaal menuplanning${planningActief ? " actief" : ""}" data-kiesplanning="1"
+        ${planningActief ? 'aria-current="true"' : ""}>
+        <svg class="vormicoon" viewBox="0 0 20 26" aria-hidden="true">
+          <rect x="1.5" y="4.5" width="17" height="17" rx="1.5"/><path d="M1.5 10h17M7 10v11.5M12.5 10v11.5M6 2.5v4M14 2.5v4"/></svg>
+        <span class="naam">Weekplanning</span>
+      </button>`;
+
+    document.getElementById("menuzalen").innerHTML = html ? planning + html :
       `<p class="menuleeg">Nog geen zalen. Kies "Zalen inrichten" om te beginnen.</p>`;
   },
 
@@ -119,6 +135,7 @@ const SchermStart = {
     const zaal = Model.zaal(this.gekozenZaalId);
 
     if (zoekterm) vak.innerHTML = this.zoekresultaten(zoekterm);
+    else if (zaal && this.weergave === "planning") vak.innerHTML = this.planningOverzicht();
     else if (zaal) vak.innerHTML = this.zaalOverzicht(zaal);
     else vak.innerHTML = `<p class="empty">Nog geen zalen. Kies "Zalen inrichten" om te beginnen.</p>`;
 
@@ -144,6 +161,34 @@ const SchermStart = {
         </div>
       </div>
       <div class="kaarten">${kaarten}</div>`;
+  },
+
+  /* De weekplanning: het rooster uit planning.js, met daaronder de
+     opstellingen die (nog) geen vast moment hebben. */
+  planningOverzicht() {
+    const zonder = Planning.zonderMoment();
+    return `<div class="overzichtkop">
+        <div>
+          <p class="overzichtgebouw">Vaste momenten van alle opstellingen</p>
+          <h1>Weekplanning</h1>
+          <p class="roosteruitleg">
+            <span><span class="roosterteken eigen"></span>Geboekt</span>
+            <span><span class="roosterteken via"></span>Bezet via een samengevoegde zaal</span>
+            <span><span class="roosterteken botsing"></span>Botsing</span>
+          </p>
+        </div>
+        <div class="overzichtknoppen">
+          <button class="knop" data-afdrukplanning="1">Planning afdrukken</button>
+        </div>
+      </div>
+      <div class="roosterkader">${Planning.rooster()}</div>
+      <p class="roostertip">Klik op een leeg vak om daar een nieuwe opstelling te beginnen.</p>
+      ${zonder.length ? `<h2 class="zoekzaal">Zonder vast moment</h2>
+        <ul class="zondermoment">${zonder.map(o => `<li>
+          <button class="kaartnaam" data-opstelling="${o.id}">${Planning.naam(o)}</button>
+          <span>${Model.zaal(o.zaalId).naam}</span>
+          <button class="tekstknop" data-bewerkin="${o.id}">Moment toevoegen</button>
+        </li>`).join("")}</ul>` : ""}`;
   },
 
   /* Gevonden opstellingen uit alle zalen, per zaal onder elkaar. */
@@ -205,7 +250,7 @@ const SchermStart = {
           <button class="kaartnaam" data-opstelling="${o.id}">${naam}</button>
           ${o.teControleren ? `<span class="controleerlabel">${WAARSCHUWING_ICOON}Te controleren</span>` : ""}
         </div>
-        <p class="kaartmoment">${SchermAfdrukken.momentRegel(o.gebruiksmoment)}</p>
+        <p class="kaartmoment">${SchermAfdrukken.momentenRegels(o.gebruiksmomenten)}</p>
         <p class="kaartaantallen">${this.aantallenTekst(o)}</p>
         ${o.gewijzigdOp ? `<p class="kaartdatum">Gewijzigd ${SchermAfdrukken.datumTekst(o.gewijzigdOp)}</p>` : ""}
         <div class="kaartacties">
@@ -234,7 +279,7 @@ const SchermStart = {
     if (this.nieuwIn === zaal.id) {
       return `<div class="nieuwkaart open">
         <p class="nieuwtitel">Nieuwe opstelling in zaal ${zaal.naam}</p>
-        ${this.nieuweOpstellingFormulier()}
+        ${this.nieuweOpstellingFormulier(this.nieuwDag)}
       </div>`;
     }
     return `<button class="nieuwkaart" data-nieuwopstelling="${zaal.id}">
@@ -266,7 +311,7 @@ const SchermStart = {
 
   /* ---------------- een nieuwe opstelling aanmaken ---------------- */
 
-  nieuweOpstellingFormulier() {
+  nieuweOpstellingFormulier(voorDag) {
     const opties = Model.document.verenigingen.map(v =>
       `<option value="${v.id}">${v.naam}</option>`).join("");
 
@@ -277,6 +322,7 @@ const SchermStart = {
         <option value="__nieuw__">+ Nieuwe vereniging…</option>
       </select>
       <input type="text" class="startnieuwnaam" placeholder="Naam van de nieuwe vereniging" hidden>
+      ${this.momentenVelden(voorDag ? [{ dag: voorDag, begin: "", eind: "" }] : [])}
       <button class="ghost" data-aanmaken="1">Aanmaken</button>
       <button class="ghost" data-annuleer="1">Annuleren</button>
     </div>`;
@@ -285,6 +331,8 @@ const SchermStart = {
   opstellingAanmaken(zaalId, wrap) {
     const select = wrap.querySelector(".startnieuwselect");
     let verenigingId = select.value || null;
+    const momenten = this.momentenUitlezen(wrap);
+    if (!momenten) return;
 
     if (verenigingId === "__nieuw__") {
       const naam = wrap.querySelector(".startnieuwnaam").value.trim();
@@ -292,8 +340,9 @@ const SchermStart = {
       verenigingId = Model.nieuweVereniging(naam).id;
     }
 
-    const opstelling = Model.nieuweOpstelling(zaalId, verenigingId);
+    const opstelling = Model.nieuweOpstelling(zaalId, verenigingId, momenten);
     this.nieuwIn = null;
+    this.nieuwDag = null;
     if (this.opWijziging) this.opWijziging();
     naarTekenen(opstelling);
   },
@@ -302,28 +351,58 @@ const SchermStart = {
      Een opstelling heeft geen eigen naam — wat je in de lijst ziet is de
      naam van zijn vereniging. "De naam wijzigen" is dus: een andere
      vereniging koppelen (of loskoppelen). Hier staan ook de verantwoordelijke
-     en het vaste gebruiksmoment (dag, dagdeel, begin- en eindtijd). Aantal
+     en de vaste gebruiksmomenten (dag, begin- en eindtijd). Aantal
      personen en opmerkingen horen bij scherm 2, dat er nog niet is. */
 
-  DAGEN: ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag", "zondag"],
-  DAGDELEN: ["ochtend", "middag", "avond"],
-
   dagOpties(huidigeDag) {
-    return `<option value="" ${!huidigeDag ? "selected" : ""}>Geen vast moment</option>` +
-      this.DAGEN.map(d =>
-        `<option value="${d}" ${huidigeDag === d ? "selected" : ""}>${this.hoofdletter(d)}</option>`).join("");
+    return Model.dagen.map(d =>
+      `<option value="${d}" ${huidigeDag === d ? "selected" : ""}>${this.hoofdletter(d)}</option>`).join("");
   },
 
-  dagdeelOpties(huidigDagdeel) {
-    return `<option value="" ${!huidigDagdeel ? "selected" : ""}>Geen dagdeel</option>` +
-      this.DAGDELEN.map(d =>
-        `<option value="${d}" ${huidigDagdeel === d ? "selected" : ""}>${this.hoofdletter(d)}</option>`).join("");
+  /* De vaste momenten als rijtjes (dag · van · tot · ✕), met een knop om er
+     een bij te zetten. Geen rijtjes = geen vast moment. Het dagdeel wordt
+     niet gevraagd; dat volgt uit de begintijd (Model.dagdeel). Gebruikt door
+     het formulier voor een nieuwe opstelling en door het wijzigformulier. */
+  momentenVelden(momenten) {
+    return `<div class="veld-vol momentenveld">
+      <label>Vaste momenten</label>
+      <div class="momenten">${momenten.map(m => this.momentRij(m)).join("")}</div>
+      <button type="button" class="ghost momenterbij" data-momenterbij="1">+ Moment toevoegen</button>
+    </div>`;
+  },
+
+  momentRij(m) {
+    return `<div class="momentrij">
+      <select class="mDag" aria-label="Dag">${this.dagOpties(m.dag)}</select>
+      <input type="time" class="mBegin" aria-label="Van" value="${m.begin || ""}">
+      <span aria-hidden="true">–</span>
+      <input type="time" class="mEind" aria-label="Tot" value="${m.eind || ""}">
+      <button type="button" class="ghost momentweg" data-momentweg="1" aria-label="Moment verwijderen">✕</button>
+    </div>`;
+  },
+
+  /* De ingevulde momenten, of null als er iets niet klopt (er staat dan al
+     een melding). */
+  momentenUitlezen(wrap) {
+    const momenten = [...wrap.querySelectorAll(".momentrij")].map(rij => ({
+      dag: rij.querySelector(".mDag").value,
+      begin: rij.querySelector(".mBegin").value,
+      eind: rij.querySelector(".mEind").value
+    }));
+    if (momenten.some(m => !m.begin || !m.eind)) {
+      alert("Vul bij elk moment een begin- en eindtijd in, of verwijder het moment.");
+      return null;
+    }
+    if (momenten.some(m => m.eind <= m.begin)) {
+      alert("De eindtijd van een moment moet na de begintijd liggen.");
+      return null;
+    }
+    return Model.momentenOpVolgorde(momenten);
   },
 
   opstellingBewerkFormulier(o) {
     const opties = Model.document.verenigingen.map(v =>
       `<option value="${v.id}" ${o.verenigingId === v.id ? "selected" : ""}>${v.naam}</option>`).join("");
-    const m = o.gebruiksmoment || {};
 
     return `<div class="startbewerk startformulier">
       <div class="veld-vol">
@@ -342,16 +421,7 @@ const SchermStart = {
           `<option value="${k}" ${o.verantwoordelijke === k ? "selected" : ""}>${v}</option>`).join("")}</select>
       </div>
 
-      <div class="veld-vol">
-        <label>Dag</label>
-        <select class="bwDag">${this.dagOpties(m.dag)}</select>
-      </div>
-      <div class="veld-vol">
-        <label>Dagdeel</label>
-        <select class="bwDagdeel">${this.dagdeelOpties(m.dagdeel)}</select>
-      </div>
-      <div class="veld-vol"><label>Van</label><input type="time" class="bwBegin" value="${m.begin || ""}"></div>
-      <div class="veld-vol"><label>Tot</label><input type="time" class="bwEind" value="${m.eind || ""}"></div>
+      ${this.momentenVelden(o.gebruiksmomenten || [])}
 
       <div class="row">
         <button class="ghost" data-opslaan="${o.id}">Opslaan</button>
@@ -364,6 +434,8 @@ const SchermStart = {
     const opstelling = Model.opstelling(id);
     const select = wrap.querySelector(".startnieuwselect");
     let verenigingId = select.value || null;
+    const momenten = this.momentenUitlezen(wrap);
+    if (!momenten) return;
 
     if (verenigingId === "__nieuw__") {
       const naam = wrap.querySelector(".startnieuwnaam").value.trim();
@@ -372,22 +444,13 @@ const SchermStart = {
     }
 
     const verantwoordelijke = wrap.querySelector(".bwVerantwoordelijke").value;
-    const dag = wrap.querySelector(".bwDag").value;
-    const dagdeel = wrap.querySelector(".bwDagdeel").value;
-    const begin = wrap.querySelector(".bwBegin").value;
-    const eind = wrap.querySelector(".bwEind").value;
-
-    if (dag && (!begin || !eind)) {
-      alert("Vul een begin- en eindtijd in bij een vast gebruiksmoment.");
-      return;
-    }
 
     // alleen bij een echte wijziging telt de datum; Opslaan zonder iets te veranderen niet
-    const voor = JSON.stringify([opstelling.verenigingId, opstelling.verantwoordelijke, opstelling.gebruiksmoment]);
+    const voor = JSON.stringify([opstelling.verenigingId, opstelling.verantwoordelijke, opstelling.gebruiksmomenten]);
     opstelling.verenigingId = verenigingId;
     opstelling.verantwoordelijke = verantwoordelijke;
-    opstelling.gebruiksmoment = dag ? { dag, dagdeel: dagdeel || null, begin, eind } : null;
-    if (JSON.stringify([opstelling.verenigingId, opstelling.verantwoordelijke, opstelling.gebruiksmoment]) !== voor) {
+    opstelling.gebruiksmomenten = momenten;
+    if (JSON.stringify([opstelling.verenigingId, opstelling.verantwoordelijke, opstelling.gebruiksmomenten]) !== voor) {
       Model.opstellingGewijzigd(opstelling);
     }
 
@@ -411,8 +474,52 @@ const SchermStart = {
 
   bedieningAanzetten() {
     this._onKlik = ev => {
+      if (ev.target.closest("[data-kiesplanning]")) {
+        this.weergave = "planning";
+        this.zoekterm = "";
+        document.getElementById("startZoek").value = "";
+        this.nieuwIn = null;
+        this.bewerkIn = null;
+        this.tekenLijst();
+        return;
+      }
+
+      // een blok in de planning (of een naam in de lijst eronder) opent de opstelling
+      const blok = ev.target.closest(".rooster [data-opstelling]");
+      if (blok) { naarTekenen(Model.opstelling(blok.dataset.opstelling)); return; }
+
+      // een leeg vak in de planning: een nieuwe opstelling in die zaal, op die dag
+      const leeg = ev.target.closest("[data-leegvak]");
+      if (leeg) {
+        const [zaalId, dag] = leeg.dataset.leegvak.split("|");
+        this.gekozenZaalId = zaalId;
+        this.weergave = "zaal";
+        this.nieuwIn = zaalId;
+        this.nieuwDag = dag;
+        this.bewerkIn = null;
+        this.tekenLijst();
+        document.querySelector("#startlijst .nieuwkaart.open")?.scrollIntoView({ block: "center" });
+        return;
+      }
+
+      // "Moment toevoegen" onder de planning: het wijzigformulier op de kaart in de eigen zaal
+      const bewerkIn = ev.target.closest("[data-bewerkin]");
+      if (bewerkIn) {
+        const o = Model.opstelling(bewerkIn.dataset.bewerkin);
+        this.gekozenZaalId = o.zaalId;
+        this.weergave = "zaal";
+        this.nieuwIn = null;
+        this.bewerkIn = o.id;
+        this.tekenLijst();
+        document.querySelector("#startlijst .bewerkkaart")?.scrollIntoView({ block: "center" });
+        return;
+      }
+
+      if (ev.target.closest("[data-afdrukplanning]")) { naarAfdrukken({ scope: "planning" }); return; }
+
       const kies = ev.target.closest("[data-kieszaal]");
       if (kies) {
+        this.weergave = "zaal";
         this.gekozenZaalId = kies.dataset.kieszaal;
         this.zoekterm = "";
         document.getElementById("startZoek").value = "";
@@ -422,11 +529,22 @@ const SchermStart = {
         return;
       }
 
+      // momenten bijzetten of weghalen gebeurt rechtstreeks in het formulier,
+      // zonder het opnieuw op te bouwen: dan blijft wat al ingevuld is staan
+      if (ev.target.closest("[data-momenterbij]")) {
+        const lijst = ev.target.closest(".momentenveld").querySelector(".momenten");
+        const vorige = lijst.querySelector(".momentrij:last-child .mDag");
+        lijst.insertAdjacentHTML("beforeend", this.momentRij({ dag: vorige ? vorige.value : "maandag" }));
+        return;
+      }
+      const momentWeg = ev.target.closest("[data-momentweg]");
+      if (momentWeg) { momentWeg.closest(".momentrij").remove(); return; }
+
       const nieuwKnop = ev.target.closest("[data-nieuwopstelling]");
-      if (nieuwKnop) { this.nieuwIn = nieuwKnop.dataset.nieuwopstelling; this.tekenLijst(); return; }
+      if (nieuwKnop) { this.nieuwIn = nieuwKnop.dataset.nieuwopstelling; this.nieuwDag = null; this.tekenLijst(); return; }
 
       const annuleer = ev.target.closest("[data-annuleer]");
-      if (annuleer) { this.nieuwIn = null; this.tekenLijst(); return; }
+      if (annuleer) { this.nieuwIn = null; this.nieuwDag = null; this.tekenLijst(); return; }
 
       const aanmaken = ev.target.closest("[data-aanmaken]");
       if (aanmaken) { this.opstellingAanmaken(this.nieuwIn, aanmaken.closest(".startformulier")); return; }

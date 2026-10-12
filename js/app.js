@@ -145,7 +145,7 @@ function naarTekenen(opstelling) {
 }
 
 /* selectie: { scope: "opstelling", opstelling } of { scope: "zaal", zaal } of
-   { scope: "alles" } — zie schermen/afdrukken.js. */
+   { scope: "alles" } of { scope: "planning" } — zie schermen/afdrukken.js. */
 function naarAfdrukken(selectie) {
   if (HuidigScherm && HuidigScherm.sluiten) HuidigScherm.sluiten();
   HuidigScherm = SchermAfdrukken;
@@ -160,6 +160,9 @@ function naarAfdrukken(selectie) {
   } else if (selectie.scope === "zaal") {
     const gebouw = Model.gebouw(selectie.zaal.gebouwId);
     toonKruimel(`${gebouw.naam} / ${selectie.zaal.naam}`, "Afdrukken");
+    document.getElementById("wisselScherm").hidden = true;
+  } else if (selectie.scope === "planning") {
+    toonKruimel("", "Weekplanning afdrukken");
     document.getElementById("wisselScherm").hidden = true;
   } else {
     toonKruimel("", "Hele map afdrukken");

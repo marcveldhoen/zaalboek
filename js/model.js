@@ -84,7 +84,7 @@ const Model = {
         verenigingId: "zangvereniging",
         aantalPersonen: 24,
         aantalPersonenHandmatig: false,
-        gebruiksmoment: { dag: "dinsdag", dagdeel: "avond", begin: "20:00", eind: "22:00" },
+        gebruiksmomenten: [{ dag: "dinsdag", begin: "20:00", eind: "22:00" }],
         verantwoordelijke: "koster",
         opmerkingen: "",
         gewijzigdOp: "2026-09-03",
@@ -115,6 +115,7 @@ const Model = {
     this.document = doc;
     this.meubeltypenAanvullen();
     this.tafelkringenRepareren();
+    this.momentenOmzetten();
   },
 
   /* Tijdelijk bruggetje. Een document dat al bewaard is, kent de meubeltypen
@@ -151,6 +152,35 @@ const Model = {
         delete element.n;
       });
     });
+  },
+
+  /* Een opstelling had eerst één `gebruiksmoment` (dag, dagdeel, begin,
+     eind), nu een lijst `gebruiksmomenten`: een vereniging kan met dezelfde
+     opstelling op meer dagen komen. Het dagdeel wordt niet meer bewaard maar
+     afgeleid uit de begintijd (zie dagdeel hieronder). */
+  momentenOmzetten() {
+    this.document.opstellingen.forEach(opstelling => {
+      if (Array.isArray(opstelling.gebruiksmomenten)) return;
+      const m = opstelling.gebruiksmoment;
+      opstelling.gebruiksmomenten = m && m.dag ? [{ dag: m.dag, begin: m.begin, eind: m.eind }] : [];
+      delete opstelling.gebruiksmoment;
+    });
+  },
+
+  /* De dagen van de week, in de volgorde van de planning. */
+  dagen: ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag", "zondag"],
+
+  /* Het dagdeel bij een begintijd: voor 12:00 ochtend, voor 18:00 middag,
+     daarna avond. */
+  dagdeel(begin) {
+    if (!begin) return "";
+    return begin < "12:00" ? "ochtend" : begin < "18:00" ? "middag" : "avond";
+  },
+
+  /* Momenten op volgorde: eerst op dag, dan op begintijd. */
+  momentenOpVolgorde(momenten) {
+    return (momenten || []).slice().sort((a, b) =>
+      this.dagen.indexOf(a.dag) - this.dagen.indexOf(b.dag) || a.begin.localeCompare(b.begin));
   },
 
   /* Een pas aangemaakt bestand bevat alleen { "versie": 1 }. */
@@ -332,13 +362,14 @@ const Model = {
 
   /* Gebruikt door het startscherm (scherm 1) om een nieuwe, lege opstelling
      voor een zaal aan te maken. De koster kiest de vereniging al bij het
-     aanmaken; de rest (gebruiksmoment, opmerkingen) vult hij later in. */
-  nieuweOpstelling(zaalId, verenigingId) {
+     aanmaken, en desgewenst al de vaste momenten; de rest (opmerkingen) vult
+     hij later in. */
+  nieuweOpstelling(zaalId, verenigingId, momenten = []) {
     const id = this.uniekeId(`${zaalId}-opstelling`, this.document.opstellingen.map(o => o.id));
     const opstelling = {
       id, zaalId, verenigingId: verenigingId || null,
       aantalPersonen: 0, aantalPersonenHandmatig: false,
-      gebruiksmoment: null, verantwoordelijke: "koster", opmerkingen: "",
+      gebruiksmomenten: momenten, verantwoordelijke: "koster", opmerkingen: "",
       gewijzigdOp: this.vandaag(),
       teControleren: false, elementen: []
     };

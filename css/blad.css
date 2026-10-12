@@ -123,6 +123,36 @@
 .afdrukscherm.liggend .bladmoment{font-size:13px}
 .afdrukscherm.liggend .bladvak{margin-bottom:4mm}
 
+/* ---------- de weekplanning op papier (Planning.rooster met afdruk: true) ----------
+   Een gewone tabel met vaste kolombreedtes, geen flex of grid. Op papier
+   laten browsers achtergrondkleuren standaard weg, dus het verschil zit in
+   de lijnen: omlijnd is geboekt, gestippeld is "bezet via", en een botsing
+   heeft een dikke rand plus het waarschuwingsicoon. */
+.roosterafdruk{width:100%;border-collapse:collapse;table-layout:fixed;margin-top:2mm;font-size:10.5px;line-height:1.3}
+.roosterafdruk th,.roosterafdruk td{border:1px solid var(--blad-lijn);text-align:left;vertical-align:top;padding:1mm}
+.roosterafdruk thead th{font-weight:600}
+.roosterafdruk th.roosterzaal{width:32mm;font-weight:500}
+.roosterafdruk .roostergebouw th{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);padding-top:2mm}
+.roosterafdruk .roostervak{height:9mm}
+/* compacte kop: het zegel kleiner, zodat zes zalen met twee boekingen op een
+   dag nog ruim binnen de 160mm van een liggend vel passen */
+.bladplanning .bladzegel{flex:0 0 16mm;width:16mm}
+.afdrukscherm.liggend .bladplanning .bladkop{margin-bottom:2mm}
+.roosterafdruk .roosterblok{margin:0 0 .8mm;padding:.5mm 1.2mm;border:1px solid var(--ink);border-radius:3px}
+.roosterafdruk .roosterblok:last-child{margin-bottom:0}
+.roosterafdruk .roosterblok.via{border-style:dashed;border-color:var(--ink-soft);color:var(--ink-soft)}
+.roosterafdruk .roosterblok.botsing{border-width:2px;border-color:var(--waarschuwing-rand)}
+/* tijd en naam op één regel; "bezet via" eronder */
+.roosterafdruk .roostertijd{display:inline;font-weight:600;font-variant-numeric:tabular-nums;margin-right:3px}
+.roosterafdruk .roosternaam{display:inline}
+.roosterafdruk .roostertijd svg,.roosterlegenda svg{
+  width:10px;height:10px;margin:0 2px -1px 0;
+  fill:none;stroke:var(--waarschuwing-icoon);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
+}
+.roosterafdruk .roostervia{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.roosterafdruk .roostervia{font-size:9.5px}
+.roosterlegenda{margin:3mm 0 0;font-size:10.5px;color:var(--ink-soft)}
+
 @media print{
   /* staand (A4 portrait) is hiermee het gewone geval, vastgelegd op precies
      één plek. Bij liggend voegt schermen/afdrukken.js (papierRichtingToepassen())
