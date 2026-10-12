@@ -12,7 +12,8 @@ const HINT_ZAAL = "Lege ruimte slepen om de plattegrond te verschuiven.";
 /* ---------------- de statusregel in de kop ----------------
    Drie uiterlijke toestanden, elk met pictogram én tekst, zodat ze ook
    zonder kleur (of voor een kleurenblinde koster) uit elkaar vallen:
-   bewaard (vinkje), bezig (draaiend icoon — dekt laden/wachten/bezig) en
+   bewaard (vinkje — dekt ook opgehaald), bezig (draaiend icoon — dekt
+   laden/wachten/bezig) en
    fout (waarschuwing, met een eigen pictogram voor een verlopen sleutel). */
 const STATUS_ICON = {
   bewaard: '<path d="M3.5 8.5l3 3 6-7"/>',
@@ -43,11 +44,13 @@ function toonStatus(status) {
   if (status.staat === "wachten") { zetStatus("bezig", pictogram("bezig") + "<span>Nog niet bewaard</span>"); return; }
   if (status.staat === "bezig")   { zetStatus("bezig", pictogram("bezig") + "<span>Bewaren...</span>"); return; }
 
-  if (status.staat === "bewaard") {
+  // klaar: opgehaald (na het openen, nog niets gewijzigd) of bewaard, met de tijd
+  if (status.staat === "opgehaald" || status.staat === "bewaard") {
     const t = status.tijd;
     const tweecijfers = n => String(n).padStart(2, "0");
+    const wat = status.staat === "opgehaald" ? "Opgehaald" : "Bewaard";
     zetStatus("bewaard", pictogram("bewaard") +
-      `<span>Bewaard om ${tweecijfers(t.getHours())}:${tweecijfers(t.getMinutes())}</span>`);
+      `<span>${wat} om ${tweecijfers(t.getHours())}:${tweecijfers(t.getMinutes())}</span>`);
     return;
   }
 
@@ -237,6 +240,7 @@ async function openen() {
   SchermTekenen.opWijziging = () => Opslag.bewaarStraks(Model.alsTekst());
   SchermZaal.opWijziging    = () => Opslag.bewaarStraks(Model.alsTekst());
   SchermBeheer.opWijziging  = () => Opslag.bewaarStraks(Model.alsTekst());
+  toonStatus({ staat: "opgehaald", tijd: new Date() });
   naarStart();
 }
 
