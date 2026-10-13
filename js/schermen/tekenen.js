@@ -407,7 +407,7 @@ const SchermTekenen = {
   },
 
   passend() {
-    const k = Tekening.kader(this.zaal), M = 220;
+    const k = Tekening.kader(this.zaal, this.opstelling.elementen), M = 220;
     const zaalB = k.x1 - k.x0 + M * 2, zaalD = k.y1 - k.y0 + M * 2;
     const vak = this.svg.getBoundingClientRect();
     const vrij = this.uitklapRuimte(vak);

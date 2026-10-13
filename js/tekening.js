@@ -10,9 +10,14 @@ const Tekening = {
 
   el: Vormen.el.bind(Vormen),
 
-  /* Het kader van de zaal, gebruikt om de tekening passend in beeld te zetten. */
-  kader(zaal) {
-    return Zaalvorm.kader(Zaalvorm.omtrek(zaal.vorm));
+  /* Het kader van de zaal, gebruikt om de tekening passend in beeld te zetten.
+     Met elementen erbij komen ook de namen in de kantlijn binnen het kader. */
+  kader(zaal, elementen) {
+    const k = Zaalvorm.kader(Zaalvorm.omtrek(zaal.vorm));
+    const t = elementen && Teksten.indeling(zaal, elementen).kader;
+    if (!t) return k;
+    return { x0: Math.min(k.x0, t.x0), y0: Math.min(k.y0, t.y0),
+             x1: Math.max(k.x1, t.x1), y1: Math.max(k.y1, t.y1) };
   },
 
   /* ---------------- de zaal ----------------
@@ -92,13 +97,16 @@ const Tekening = {
       else if (o.soort === "scherm") Vormen.beamerscherm(g, o, gemarkeerd);
       else if (o.soort === "uitgifte") Vormen.uitgifteluik(g, o, gemarkeerd);
       else                           Vormen.vastBlok(g, o, gemarkeerd);
-      // het opschrift zet teksten.js op een vrije plek
+      // een opschrift staat op een vaste plek: bij een uitgifteluik onder de
+      // toonbank, anders midden op het object
+      if (o.opschrift) Vormen.opschrift(g, o.opschrift, o.soort === "uitgifte" ? 9 + (o.diepte || 0) + 30 : 6);
     });
   },
 
   schaalstok(doel, k) {
     doel.innerHTML = "";
-    const x = k.x0, y = k.y1 + 80;
+    // onder de namen in de kantlijn (zie teksten.js), die tot ruim 65 cm onder de muur komen
+    const x = k.x0, y = k.y1 + 120;
 
     this.el("line", { x1: x, y1: y, x2: x + 500, y2: y,
       stroke: "var(--ink-soft)", "stroke-width": 3 }, doel);
@@ -111,7 +119,7 @@ const Tekening = {
     t.textContent = "5 meter";
   },
 
-  /* De namen en opschriften, elk op een vrije plek (zie teksten.js).
+  /* De namen van objecten en tafelfuncties, in de kantlijn (zie teksten.js).
      elementen mag leeg zijn: scherm 6 tekent alleen de zaal. */
   teksten(zaal, elementen, doel) {
     Teksten.plaatsen(zaal, elementen, doel);

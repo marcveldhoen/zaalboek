@@ -242,7 +242,7 @@ const SchermStart = {
     return `<div class="opstellingkaart">
       <button class="kaartmini" data-opstelling="${o.id}" aria-label="${naam} openen">
         <svg data-miniatuur="${o.id}" viewBox="${viewBox}" aria-hidden="true">
-          <g class="mRuimte"></g><g class="mVast"></g><g class="mElementen"></g><g class="mTeksten"></g>
+          <g class="mRuimte"></g><g class="mVast"></g><g class="mElementen"></g>
         </svg>
       </button>
       <div class="kaartinfo">
@@ -302,7 +302,6 @@ const SchermStart = {
         vast: svg.querySelector(".mVast")
       });
       Tekening.elementen(o, svg.querySelector(".mElementen"), null);
-      Tekening.teksten(Model.zaal(o.zaalId), o.elementen, svg.querySelector(".mTeksten"));
     });
   },
 

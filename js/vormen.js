@@ -211,4 +211,13 @@ const Vormen = {
     this.el("line", { x1: 0, y1: 0, x2: 0, y2: kant * w,
       stroke: lijn, "stroke-width": gemarkeerd ? 9 : 7 }, g);
   },
+
+  /* Het opschrift van een vast object, midden op het object zelf, of op
+     hoogte y als het ergens anders moet staan. */
+  opschrift(g, tekst, y = 6) {
+    const t = this.el("text", { x: 0, y, "text-anchor": "middle",
+      "font-size": 26,
+      fill: "var(--ink-soft)", "letter-spacing": 1 }, g);
+    t.textContent = tekst;
+  }
 };

@@ -60,8 +60,8 @@ const Model = {
           { soort: "raam",     x: 790, y:   0, breedte: 180, diepte: 16, hoek:  0 },
           { soort: "raam",     x:   0, y: 760, breedte: 180, diepte: 16, hoek: 90 },
           { soort: "keuken",   x: 210, y: 968, breedte: 300, diepte: 64, hoek:  0, opschrift: "Keuken" },
-          { soort: "uitgifte", x: 470, y: 978, breedte: 130, diepte: 44, hoek:  0, opschrift: "Uitgifte" },
-          { soort: "kast",     x: 966, y: 400, breedte: 200, diepte: 56, hoek: 90, opschrift: "Kast" },
+          { soort: "uitgifte", x: 470, y: 978, breedte: 130, diepte: 44, hoek:  0, opschrift: "" },
+          { soort: "kast",     x: 966, y: 400, breedte: 200, diepte: 56, hoek: 90, opschrift: "" },
           { soort: "scherm",   x: 800, y: 607, breedte: 220, diepte: 14, hoek:  0, opschrift: "Beamerscherm" },
           { soort: "deur",     x:   0, y: 800, breedte:  95, hoek: 90, kant: -1 },
           { soort: "deur",     x:1000, y: 180, breedte:  95, hoek: 90, kant:  1 }
@@ -267,9 +267,10 @@ const Model = {
   vasteObjectSoorten: {
     deur: { naam: "Deur", breedte:  95 },
     raam: { naam: "Raam", breedte: 150, diepte: 16 },
-    kast: { naam: "Kast", breedte: 120, diepte: 50, opschrift: "Kast" },
+    // een leeg opschrift: een kast herken je aan de arcering, maar je kunt er zelf iets bij typen
+    kast: { naam: "Kast", breedte: 120, diepte: 50, opschrift: "" },
     // diepte is hier de toonbank aan de zaalkant; 0 betekent een luik zonder toonbank
-    uitgifte: { naam: "Uitgifteluik", breedte: 130, diepte: 30, opschrift: "Uitgifte" }
+    uitgifte: { naam: "Uitgifteluik", breedte: 130, diepte: 30, opschrift: "" }
   },
 
   nieuwVastObject(soort, x, y) {

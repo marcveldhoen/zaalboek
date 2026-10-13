@@ -163,9 +163,11 @@ const SchermAfdrukken = {
 
     // ruim kader om de zaal, want er is op het blad geen raster meer dat anders
     // als enige de rand van de tekening zou bepalen
-    const k = Tekening.kader(zaal);
-    const M = 100;
-    const viewBox = `${k.x0 - M} ${k.y0 - M} ${k.x1 - k.x0 + 2 * M} ${k.y1 - k.y0 + 2 * M}`;
+    // en de namen in de kantlijn moeten er ook op passen
+    const k = Tekening.kader(zaal, opstelling.elementen);
+    // onderaan wat extra voor de schaalstok
+    const M = 100, onder = Math.max(M, Tekening.kader(zaal).y1 + 150 - k.y1);
+    const viewBox = `${k.x0 - M} ${k.y0 - M} ${k.x1 - k.x0 + 2 * M} ${k.y1 - k.y0 + M + onder}`;
 
     /* Staand staat de kop over de hele breedte boven de tekening; liggend
        bovenin de kolom naast de tekening, anders neemt hij op het lage vel
