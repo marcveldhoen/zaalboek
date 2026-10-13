@@ -242,7 +242,7 @@ const SchermZaal = {
      formulier() zou dat veld vervangen en daarmee de cursor kwijtraken. */
   tekenVast() {
     Tekening.vasteObjecten(document.getElementById("vast"), this.zaal.vasteObjecten, this.geselecteerdObject);
-    Tekening.teksten(this.zaal, [], document.getElementById("teksten"));
+    Tekening.teksten(this.zaal, [], document.getElementById("teksten"), document.getElementById("naam"));
   },
 
   /* ---------------- bewaren en verwijderen ---------------- */
@@ -310,8 +310,8 @@ const SchermZaal = {
 
     return `
       <p class="selname tussen">${naam}</p>
-      ${this.teller("Breedte", o.breedte, "breedte", 20, this.maxBreedte(o))}
-      ${o.diepte != null ? this.teller(o.soort === "uitgifte" ? "Toonbank" : "Diepte", o.diepte, "diepte", this.minDiepte(o), this.maxDiepte(o)) : ""}
+      ${this.maatveld("Breedte", "breedte", o.breedte, 20, this.maxBreedte(o))}
+      ${o.diepte != null ? this.maatveld(o.soort === "uitgifte" ? "Toonbank" : "Diepte", "diepte", o.diepte, this.minDiepte(o), this.maxDiepte(o)) : ""}
       ${o.soort === "deur" ? `
         <div class="row"><button class="ghost" data-doe="kant">Scharnierkant spiegelen</button></div>
       ` : ""}
@@ -344,27 +344,65 @@ const SchermZaal = {
     return o.soort === "kast" ? 150 : 100;
   },
 
-  teller(label, waarde, actie, min, max) {
+  /* Een maat van een vast object, in hele centimeters om zelf in te typen. */
+  maatveld(label, maat, waarde, min, max) {
     return `<div class="field"><label>${label}</label>
-      <span class="stepper">
-        <button data-stap="${actie}:-1" ${waarde <= min ? "disabled" : ""}>−</button>
-        <span>${waarde}</span>
-        <button data-stap="${actie}:1" ${waarde >= max ? "disabled" : ""}>+</button>
-      </span></div>`;
+      <input type="number" step="1" min="${min}" max="${max}" data-maat="${maat}" value="${waarde}"> cm</div>`;
   },
 
-  /* Het opschriftveld van een kast: bijwerken zonder het paneel te herbouwen,
-     zodat je niet bij elke letter de cursor kwijtraakt. */
+  /* Na een wijziging via een veld: tekening bijwerken en bewaren, zonder het
+     paneel te herbouwen, zodat je niet bij elke toets de cursor kwijtraakt. */
+  veldGewijzigd() {
+    // de stand van vóór dit veld pas bij de eerste echte wijziging bewaren,
+    // zodat alleen een veld aanklikken geen lege stap bij "Ongedaan maken" geeft
+    if (this.standVoorVeld) {
+      this.ongedaanStapel.push(this.standVoorVeld);
+      if (this.ongedaanStapel.length > 60) this.ongedaanStapel.shift();
+      document.getElementById("ongedaan").disabled = false;
+      this.standVoorVeld = null;
+    }
+    this.tekenVast();
+    Model.zaalGewijzigd(this.zaal.id);
+    if (this.opWijziging) this.opWijziging();
+  },
+
+  standOnthouden() {
+    this.standVoorVeld = JSON.stringify(this.zaal.vasteObjecten);
+  },
+
+  /* Het opschrift- en de maatvelden van het gekozen vaste object. */
   objectVeldBediening() {
     const veld = document.getElementById("vObjOpschrift");
-    if (!veld) return;
+    if (veld) {
+      veld.addEventListener("focus", () => this.standOnthouden());
+      veld.addEventListener("input", () => {
+        this.geselecteerdObject.opschrift = veld.value;
+        this.veldGewijzigd();
+      });
+    }
 
-    veld.addEventListener("focus", () => this.momentopname());
-    veld.addEventListener("input", () => {
-      this.geselecteerdObject.opschrift = veld.value;
-      this.tekenVast();
-      Model.zaalGewijzigd(this.zaal.id);
-      if (this.opWijziging) this.opWijziging();
+    document.querySelectorAll("#eigenschappen [data-maat]").forEach(maatVeld => {
+      const maat = maatVeld.dataset.maat;
+      const min = +maatVeld.min, max = +maatVeld.max;
+      maatVeld.addEventListener("focus", () => this.standOnthouden());
+
+      // tijdens het typen alleen een maat binnen de grenzen overnemen;
+      // "8" op weg naar "800" mag de kast niet even 8 cm maken
+      maatVeld.addEventListener("input", () => {
+        const v = Math.round(parseFloat(maatVeld.value));
+        if (isNaN(v) || v < min || v > max) return;
+        this.geselecteerdObject[maat] = v;
+        this.veldGewijzigd();
+      });
+
+      // bij het verlaten van het veld (of Enter) een maat buiten de grenzen terugzetten
+      maatVeld.addEventListener("change", () => {
+        const v = Math.round(parseFloat(maatVeld.value));
+        const o = this.geselecteerdObject;
+        o[maat] = isNaN(v) ? o[maat] : Math.max(min, Math.min(max, v));
+        maatVeld.value = o[maat];
+        this.veldGewijzigd();
+      });
     });
   },
 
@@ -578,18 +616,10 @@ const SchermZaal = {
     const o = this.geselecteerdObject;
     if (!o) return;
 
-    const stap = ev.target.dataset.stap;
     const doe = ev.target.dataset.doe;
-    if (!stap && !doe) return;
+    if (!doe) return;
 
     this.momentopname();
-
-    if (stap) {
-      const delen = stap.split(":");
-      const richting = +delen[1];
-      if (delen[0] === "breedte") o.breedte = Math.max(20, Math.min(this.maxBreedte(o), o.breedte + richting * 5));
-      if (delen[0] === "diepte")  o.diepte  = Math.max(this.minDiepte(o), Math.min(this.maxDiepte(o), o.diepte + richting * 5));
-    }
 
     // vaste objecten staan tegen rechte muren, dus draaien gaat in stappen van 90°
     if (doe === "draai+") o.hoek = (o.hoek + 90) % 360;
