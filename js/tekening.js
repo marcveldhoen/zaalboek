@@ -92,9 +92,7 @@ const Tekening = {
       else if (o.soort === "scherm") Vormen.beamerscherm(g, o, gemarkeerd);
       else if (o.soort === "uitgifte") Vormen.uitgifteluik(g, o, gemarkeerd);
       else                           Vormen.vastBlok(g, o, gemarkeerd);
-
-      // bij een uitgifteluik onder de toonbank, anders midden op het object
-      if (o.opschrift) Vormen.opschrift(g, o.opschrift, o.soort === "uitgifte" ? 9 + o.diepte + 30 : 6);
+      // het opschrift zet teksten.js op een vrije plek
     });
   },
 
@@ -111,6 +109,12 @@ const Tekening = {
     const t = this.el("text", { x: x + 510, y: y + 10, fill: "var(--ink-faint)",
       "font-size": 30 }, doel);
     t.textContent = "5 meter";
+  },
+
+  /* De namen en opschriften, elk op een vrije plek (zie teksten.js).
+     elementen mag leeg zijn: scherm 6 tekent alleen de zaal. */
+  teksten(zaal, elementen, doel) {
+    Teksten.plaatsen(zaal, elementen, doel);
   },
 
   /* ---------------- het meubilair ----------------
@@ -137,7 +141,7 @@ const Tekening = {
     else if (element.type === "rij")    this.rij(g, element, gemarkeerd);
     else if (element.type === "kring")  this.kring(g, element, gemarkeerd);
     else if (element.type === "tafelkring") this.tafelkring(g, element, gemarkeerd);
-    else if (element.type === "object") Vormen.object(g, Model.meubel(element.meubelId), gemarkeerd, element.hoek);
+    else if (element.type === "object") Vormen.object(g, Model.meubel(element.meubelId), gemarkeerd);
 
     return g;
   },

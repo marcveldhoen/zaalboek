@@ -218,7 +218,7 @@ const SchermZaal = {
     const naamVeld = document.getElementById("zNaam");
     const naam = (naamVeld && naamVeld.value.trim()) || "Nieuwe zaal";
 
-    ["raster", "ruimte", "vast", "schaalstok", "naam"].forEach(id => {
+    ["raster", "ruimte", "vast", "teksten", "schaalstok", "naam"].forEach(id => {
       document.getElementById(id).innerHTML = "";
     });
     if (!vorm) return;   // nog niet genoeg ingevuld om te tekenen
@@ -231,6 +231,9 @@ const SchermZaal = {
       schaalstok: document.getElementById("schaalstok"),
       naam:       document.getElementById("naam")
     }, this.geselecteerdObject);
+    const teksten = document.getElementById("teksten");
+    Tekening.teksten({ naam, vorm, vasteObjecten }, [], teksten);
+    teksten.style.visibility = "";
     this.passend(vorm);
   },
 
@@ -239,6 +242,7 @@ const SchermZaal = {
      formulier() zou dat veld vervangen en daarmee de cursor kwijtraken. */
   tekenVast() {
     Tekening.vasteObjecten(document.getElementById("vast"), this.zaal.vasteObjecten, this.geselecteerdObject);
+    Tekening.teksten(this.zaal, [], document.getElementById("teksten"));
   },
 
   /* ---------------- bewaren en verwijderen ---------------- */
@@ -479,6 +483,7 @@ const SchermZaal = {
       o.x = Math.round((p.x - this.sleep.dx) / 5) * 5;   // vast op vijf centimeter
       o.y = Math.round((p.y - this.sleep.dy) / 5) * 5;
       this.sleep.bewogen = true;
+      document.getElementById("teksten").style.visibility = "hidden";
       this.sleep.groep.setAttribute("transform", `translate(${o.x} ${o.y}) rotate(${o.hoek})`);
     } else {
       const vak = this.svg.getBoundingClientRect();

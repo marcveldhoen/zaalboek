@@ -70,7 +70,7 @@ const Vormen = {
 
   /* De functie van een tafel: een kleed over het blad met een symbool erop.
      Bij een spreektafel staat er een katheder op de tafel in plaats van een kleed.
-     Het symbool en de naam draaien terug, zodat ze rechtop blijven staan. */
+     Het symbool draait terug, zodat het rechtop blijft staan. */
   tafelfunctie(g, element, meubel) {
     const functie = element.functie;
     if (!functie || functie === "geen") return;
@@ -108,15 +108,11 @@ const Vormen = {
       this.el("line", { x1: -25, y1: -6, x2: 25, y2: -6,
         stroke: "#E8DFCE", "stroke-width": 4, "stroke-linecap": "round" }, g);
     }
-
-    const tekst = functie === "spreek" ? "Spreektafel"
-                : functie === "koffie" ? "Koffie en thee"
-                : "Eten en buffet";
-    this.naamNaastVorm(g, tekst, Math.max(b, d) / 2 + 36, element.hoek, 26);
+    // de naam van de functie zet teksten.js op een vrije plek
   },
 
   /* Een verrijdbaar object van bovenaf. Welk symbool, staat bij het meubeltype. */
-  object(g, meubel, gemarkeerd, hoek) {
+  object(g, meubel, gemarkeerd) {
     const b = meubel.breedte, d = meubel.diepte;
     const stroke = gemarkeerd ? "var(--accent)" : "var(--ink)";
     const sw = gemarkeerd ? 7 : 4;
@@ -161,8 +157,7 @@ const Vormen = {
         fill: meubel.symbool === "bordDonker" ? "var(--ink)" : "#F7F6F2",
         stroke, "stroke-width": sw }, g);
     }
-
-    this.naamNaastVorm(g, meubel.naam, Math.max(b, d) / 2 + 38, hoek, 27);
+    // de naam zet teksten.js op een vrije plek
   },
 
   /* ---------------- vaste objecten van de zaal ---------------- */
@@ -216,25 +211,4 @@ const Vormen = {
     this.el("line", { x1: 0, y1: 0, x2: 0, y2: kant * w,
       stroke: lijn, "stroke-width": gemarkeerd ? 9 : 7 }, g);
   },
-
-  /* Het opschrift van een vast object, midden op het object zelf, of op
-     hoogte y als het ergens anders moet staan. */
-  opschrift(g, tekst, y = 6) {
-    const t = this.el("text", { x: 0, y, "text-anchor": "middle",
-      "font-size": 26,
-      fill: "var(--ink-soft)", "letter-spacing": 1 }, g);
-    t.textContent = tekst;
-  },
-
-  /* ---------------- gedeeld ---------------- */
-
-  /* Een naam onder een vorm. De tegendraaiing houdt hem horizontaal,
-     ook als het object gedraaid is. */
-  naamNaastVorm(g, tekst, afstand, hoek, grootte) {
-    const t = this.el("text", { x: 0, y: 0, "text-anchor": "middle",
-      "font-size": grootte,
-      fill: "var(--ink-soft)",
-      transform: `rotate(${-hoek}) translate(0 ${afstand})` }, g);
-    t.textContent = tekst;
-  }
 };

@@ -54,6 +54,9 @@ const SchermTekenen = {
     }
 
     Tekening.elementen(this.opstelling, this.gElementen, this.geselecteerd);
+    const teksten = document.getElementById("teksten");
+    Tekening.teksten(this.zaal, this.opstelling.elementen, teksten);
+    teksten.style.visibility = "";
     this.toonEigenschappen();
     this.toonTelling();
     if (this.opWijziging) this.opWijziging();
@@ -478,6 +481,8 @@ const SchermTekenen = {
       e.x = Math.round((p.x - this.sleep.dx) / 5) * 5;   // vast op vijf centimeter
       e.y = Math.round((p.y - this.sleep.dy) / 5) * 5;
       this.sleep.bewogen = true;
+      // de teksten kloppen niet meer tot het loslaten; dan worden ze opnieuw geplaatst
+      document.getElementById("teksten").style.visibility = "hidden";
 
       /* Alleen dit ene element verplaatsen. De hele tekening opnieuw maken bij
          elke muisbeweging zou bij veel meubilair gaan haperen, en er verandert

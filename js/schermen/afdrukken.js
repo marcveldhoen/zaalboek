@@ -189,6 +189,7 @@ const SchermAfdrukken = {
           <g class="bladRuimte"></g>
           <g class="bladVast"></g>
           <g class="bladElementen"></g>
+          <g class="bladTeksten"></g>
           <g class="bladNaam"></g>
           <g class="bladSchaal"></g>
         </svg>
@@ -255,6 +256,7 @@ const SchermAfdrukken = {
       naam: svg.querySelector(".bladNaam")
     });
     Tekening.elementen(blad.opstelling, svg.querySelector(".bladElementen"), null);
+    Tekening.teksten(blad.zaal, blad.opstelling.elementen, svg.querySelector(".bladTeksten"));
   },
 
   bedieningAanzetten() {
