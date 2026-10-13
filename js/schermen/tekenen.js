@@ -55,7 +55,7 @@ const SchermTekenen = {
 
     Tekening.elementen(this.opstelling, this.gElementen, this.geselecteerd);
     const teksten = document.getElementById("teksten");
-    Tekening.teksten(this.zaal, this.opstelling.elementen, teksten);
+    Tekening.teksten(this.zaal, this.opstelling.elementen, teksten, document.getElementById("naam"));
     teksten.style.visibility = "";
     this.toonEigenschappen();
     this.toonTelling();

@@ -258,7 +258,8 @@ const SchermAfdrukken = {
       naam: svg.querySelector(".bladNaam")
     });
     Tekening.elementen(blad.opstelling, svg.querySelector(".bladElementen"), null);
-    Tekening.teksten(blad.zaal, blad.opstelling.elementen, svg.querySelector(".bladTeksten"));
+    Tekening.teksten(blad.zaal, blad.opstelling.elementen, svg.querySelector(".bladTeksten"),
+      svg.querySelector(".bladNaam"));
   },
 
   bedieningAanzetten() {

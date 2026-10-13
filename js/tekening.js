@@ -33,7 +33,7 @@ const Tekening = {
     this.vloer(doelen.ruimte, omtrek, k);
     this.vasteObjecten(doelen.vast, zaal.vasteObjecten || [], geselecteerdVast);
     this.schaalstok(doelen.schaalstok, k);
-    this.naam(doelen.naam, k, zaal.naam);
+    this.naam(doelen.naam, zaal, []);
   },
 
   raster(doel, k) {
@@ -61,14 +61,18 @@ const Tekening = {
 
   /* De zaalnaam, als vaag watermerk. Een eigen laag, bovenop het meubilair
      (zie de volgorde van de groepen in index.html) — stond hij bij de vloer,
-     dan verdween hij zodra de zaal vol getekend werd. Vaag genoeg gehouden
-     om een achtergrondmerk te blijven; pointer-events uit, zodat je er
-     dwars doorheen op het meubilair eronder kunt klikken. */
-  naam(doel, k, naam) {
+     dan verdween hij zodra de zaal vol getekend werd. Hij zoekt een vrije
+     plek, zodat hij niet door het meubilair loopt (zie teksten.js); daarom
+     wordt hij na elke wijziging van het meubilair opnieuw geplaatst.
+     pointer-events uit, zodat je er dwars doorheen kunt klikken. */
+  naam(doel, zaal, elementen) {
     doel.innerHTML = "";
-    const t = this.el("text", { x: k.x0 + 40, y: k.y0 + 90, fill: "var(--zaalnaam)",
-      "pointer-events": "none", "font-weight": 600, "font-size": 64 }, doel);
-    t.textContent = naam;
+    if (!zaal.naam) return;
+    const plek = Teksten.zaalnaamPlek(zaal, elementen);
+    const t = this.el("text", { x: plek.x0, y: plek.y0 + Teksten.naamGrootte * 0.84,
+      fill: "var(--zaalnaam)", "pointer-events": "none", "font-weight": 600,
+      "font-size": Teksten.naamGrootte }, doel);
+    t.textContent = zaal.naam;
   },
 
   /* geselecteerd: het object dat gemarkeerd getekend wordt (zaal-inrichtscherm),
@@ -121,8 +125,9 @@ const Tekening = {
 
   /* De namen van objecten en tafelfuncties, in de kantlijn (zie teksten.js).
      elementen mag leeg zijn: scherm 6 tekent alleen de zaal. */
-  teksten(zaal, elementen, doel) {
+  teksten(zaal, elementen, doel, naamDoel) {
     Teksten.plaatsen(zaal, elementen, doel);
+    if (naamDoel) this.naam(naamDoel, zaal, elementen);
   },
 
   /* ---------------- het meubilair ----------------
