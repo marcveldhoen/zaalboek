@@ -4,7 +4,7 @@
    intypt geeft meteen een nieuwe tekening — dat is de directe toets of
    zaalvorm.js een L-vorm goed omzet, ruim voordat er iets bewaard wordt.
 
-   Stukje 2: vaste objecten (deuren, ramen, kasten) plaatsen, verslepen en
+   Stukje 2: vaste objecten (deuren, ramen, kasten, uitgifteluiken) plaatsen, verslepen en
    aanpassen. Dat kan pas zodra de zaal zelf bewaard is — daarvoor bestaat er
    nog geen `vasteObjecten`-lijst om iets aan toe te voegen.
 
@@ -297,8 +297,8 @@ const SchermZaal = {
     const o = this.geselecteerdObject;
     if (!o || !this.zaal.vasteObjecten.includes(o)) {
       this.geselecteerdObject = null;
-      return `<p class="selsub tussen">Klik een deur, raam of
-        kast aan om hem te verslepen of aan te passen.</p>`;
+      return `<p class="selsub tussen">Klik een deur, raam, kast of
+        uitgifteluik aan om het te verslepen of aan te passen.</p>`;
     }
 
     const basis = Model.vasteObjectSoorten[o.soort];
@@ -307,7 +307,7 @@ const SchermZaal = {
     return `
       <p class="selname tussen">${naam}</p>
       ${this.teller("Breedte", o.breedte, "breedte", 20, 400)}
-      ${o.diepte != null ? this.teller("Diepte", o.diepte, "diepte", 5, 100) : ""}
+      ${o.diepte != null ? this.teller(o.soort === "uitgifte" ? "Toonbank" : "Diepte", o.diepte, "diepte", this.minDiepte(o), 100) : ""}
       ${o.soort === "deur" ? `
         <div class="row"><button class="ghost" data-doe="kant">Scharnierkant spiegelen</button></div>
       ` : ""}
@@ -324,6 +324,11 @@ const SchermZaal = {
         <button class="ghost" data-doe="verwijder">Verwijderen</button>
       </div>
     `;
+  },
+
+  /* Een uitgifteluik mag zonder toonbank (diepte 0); al het andere is minstens 5 cm diep. */
+  minDiepte(o) {
+    return o.soort === "uitgifte" ? 0 : 5;
   },
 
   teller(label, waarde, actie, min, max) {
@@ -569,7 +574,7 @@ const SchermZaal = {
       const delen = stap.split(":");
       const richting = +delen[1];
       if (delen[0] === "breedte") o.breedte = Math.max(20, Math.min(400, o.breedte + richting * 5));
-      if (delen[0] === "diepte")  o.diepte  = Math.max(5,  Math.min(100, o.diepte  + richting * 5));
+      if (delen[0] === "diepte")  o.diepte  = Math.max(this.minDiepte(o), Math.min(100, o.diepte + richting * 5));
     }
 
     // vaste objecten staan tegen rechte muren, dus draaien gaat in stappen van 90°

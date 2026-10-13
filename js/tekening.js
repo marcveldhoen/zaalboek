@@ -71,12 +71,13 @@ const Tekening = {
   vasteObjecten(doel, objecten, geselecteerd) {
     doel.innerHTML = "";
 
-    // deuren als laatste: hun vloerstrook moet over de muur heen liggen.
+    // deuren en uitgifteluiken als laatste: hun vloerstrook moet over de muur heen liggen.
     // Het oorspronkelijke indexnummer blijft meegaan, want dat is waarmee het
     // zaal-inrichtscherm een aangeklikt object terugvindt in zaal.vasteObjecten.
     const metIndex = objecten.map((o, index) => ({ o, index }));
-    const volgorde = metIndex.filter(p => p.o.soort !== "deur")
-                       .concat(metIndex.filter(p => p.o.soort === "deur"));
+    const inMuur = o => o.soort === "deur" || o.soort === "uitgifte";
+    const volgorde = metIndex.filter(p => !inMuur(p.o))
+                       .concat(metIndex.filter(p => inMuur(p.o)));
 
     volgorde.forEach(({ o, index }) => {
       const g = this.el("g", {
@@ -89,9 +90,11 @@ const Tekening = {
       if (o.soort === "deur")        Vormen.deur(g, o, gemarkeerd);
       else if (o.soort === "raam")   Vormen.raam(g, o, gemarkeerd);
       else if (o.soort === "scherm") Vormen.beamerscherm(g, o, gemarkeerd);
+      else if (o.soort === "uitgifte") Vormen.uitgifteluik(g, o, gemarkeerd);
       else                           Vormen.vastBlok(g, o, gemarkeerd);
 
-      if (o.opschrift) Vormen.opschrift(g, o.opschrift);
+      // bij een uitgifteluik onder de toonbank, anders midden op het object
+      if (o.opschrift) Vormen.opschrift(g, o.opschrift, o.soort === "uitgifte" ? 9 + o.diepte + 30 : 6);
     });
   },
 

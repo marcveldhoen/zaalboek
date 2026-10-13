@@ -175,6 +175,23 @@ const Vormen = {
       stroke: lijn, "stroke-width": 3 }, g);
   },
 
+  /* Een uitgifteluik: een opening in de muur met een streepjeslijn (het luik),
+     en aan de zaalkant (+y) een gearceerde toonbank van o.diepte diep. Wordt
+     net als een deur na de muur getekend, zodat de opening erover ligt. */
+  uitgifteluik(g, o, gemarkeerd) {
+    const b = o.breedte;
+    const lijn = gemarkeerd ? "var(--accent)" : "var(--ink)";
+    this.el("rect", { x: -b / 2, y: -10, width: b, height: 20, fill: "var(--floor)" }, g);
+    [-b / 2, b / 2].forEach(x => this.el("line", { x1: x, y1: -9, x2: x, y2: 9,
+      stroke: lijn, "stroke-width": gemarkeerd ? 6 : 4 }, g));
+    this.el("line", { x1: -b / 2, y1: 0, x2: b / 2, y2: 0,
+      stroke: lijn, "stroke-width": 3, "stroke-dasharray": "10 7" }, g);
+    if (o.diepte > 0) {
+      this.el("rect", { x: -b / 2, y: 9, width: b, height: o.diepte,
+        fill: "url(#arcering)", stroke: lijn, "stroke-width": gemarkeerd ? 6 : 4 }, g);
+    }
+  },
+
   beamerscherm(g, o, gemarkeerd) {
     this.el("rect", { x: -o.breedte / 2, y: -o.diepte / 2, width: o.breedte, height: o.diepte,
       fill: "var(--ink)", stroke: gemarkeerd ? "var(--accent)" : "none",
@@ -200,9 +217,10 @@ const Vormen = {
       stroke: lijn, "stroke-width": gemarkeerd ? 9 : 7 }, g);
   },
 
-  /* Het opschrift van een vast object, midden op het object zelf. */
-  opschrift(g, tekst) {
-    const t = this.el("text", { x: 0, y: 6, "text-anchor": "middle",
+  /* Het opschrift van een vast object, midden op het object zelf, of op
+     hoogte y als het ergens anders moet staan. */
+  opschrift(g, tekst, y = 6) {
+    const t = this.el("text", { x: 0, y, "text-anchor": "middle",
       "font-size": 26,
       fill: "var(--ink-soft)", "letter-spacing": 1 }, g);
     t.textContent = tekst;

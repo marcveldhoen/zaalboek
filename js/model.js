@@ -267,7 +267,9 @@ const Model = {
   vasteObjectSoorten: {
     deur: { naam: "Deur", breedte:  95 },
     raam: { naam: "Raam", breedte: 150, diepte: 16 },
-    kast: { naam: "Kast", breedte: 120, diepte: 50, opschrift: "Kast" }
+    kast: { naam: "Kast", breedte: 120, diepte: 50, opschrift: "Kast" },
+    // diepte is hier de toonbank aan de zaalkant; 0 betekent een luik zonder toonbank
+    uitgifte: { naam: "Uitgifteluik", breedte: 130, diepte: 30, opschrift: "Uitgifte" }
   },
 
   nieuwVastObject(soort, x, y) {
