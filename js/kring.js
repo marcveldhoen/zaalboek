@@ -60,7 +60,7 @@ const Kring = {
     const ry = (kring.vorm === "ovaal" ? kring.ry : kring.rx);
     const { lengte } = this.omtrekOpmeten(rx, ry);
 
-    const nodig = (kring.n + kring.opening) * Vormen.maat.rijafstand;
+    const nodig = (kring.n + kring.opening) * Vormen.rijafstand();
     const factor = nodig / lengte;
 
     kring.rx = Math.max(70, Math.round(kring.rx * factor / 5) * 5);

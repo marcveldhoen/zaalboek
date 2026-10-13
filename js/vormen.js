@@ -11,9 +11,20 @@ const Vormen = {
 
   /* De maten die de tekening bij elkaar houden. */
   maat: {
-    stoel: 45,        // een stoel is vierkant
-    stoelruimte: 8,   // ruimte tussen tafelrand en stoel
-    rijafstand: 54    // hart-op-hart afstand tussen twee stoelen naast elkaar
+    stoelruimte: 8,       // ruimte tussen tafelrand en stoel
+    stoeltussenruimte: 9  // ruimte tussen twee stoelen naast elkaar
+  },
+
+  /* De maat van een stoel komt uit het meubeltype "stoel", zodat een andere
+     maat in Beheer meteen overal in de tekening doorwerkt. */
+  stoelmaat() {
+    const m = Model.meubel("stoel");
+    return m ? { breedte: m.breedte, diepte: m.diepte } : { breedte: 45, diepte: 45 };
+  },
+
+  /* Hart-op-hart afstand tussen twee stoelen naast elkaar, in een rij of kring. */
+  rijafstand() {
+    return this.stoelmaat().breedte + this.maat.stoeltussenruimte;
   },
 
   /* Maakt een tekenonderdeel aan. Alle vormen hieronder gebruiken dit. */
@@ -27,12 +38,12 @@ const Vormen = {
   /* ---------------- meubilair ---------------- */
 
   stoel(g, gemarkeerd) {
-    const S = this.maat.stoel;
+    const { breedte: B, diepte: D } = this.stoelmaat();
     const lijn = gemarkeerd ? "var(--accent)" : "var(--ink)";
-    this.el("rect", { x: -S / 2, y: -S / 2 + 4, width: S, height: S - 4, rx: 7,
+    this.el("rect", { x: -B / 2, y: -D / 2 + 4, width: B, height: D - 4, rx: 7,
       fill: "var(--oak-light)", stroke: lijn, "stroke-width": gemarkeerd ? 5 : 3 }, g);
     // de rugleuning, zodat je ziet welke kant de stoel op staat
-    this.el("line", { x1: -S / 2 + 5, y1: -S / 2 + 3, x2: S / 2 - 5, y2: -S / 2 + 3,
+    this.el("line", { x1: -B / 2 + 5, y1: -D / 2 + 3, x2: B / 2 - 5, y2: -D / 2 + 3,
       stroke: lijn, "stroke-width": 7, "stroke-linecap": "round" }, g);
   },
 

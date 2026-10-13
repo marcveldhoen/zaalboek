@@ -142,7 +142,7 @@ const Tekening = {
   tafel(g, element, gemarkeerd) {
     const meubel = Model.meubel(element.meubelId);
     const b = meubel.breedte, d = meubel.diepte;
-    const afstand = Vormen.maat.stoelruimte + Vormen.maat.stoel / 2;
+    const afstand = Vormen.maat.stoelruimte + Vormen.stoelmaat().diepte / 2;
     const s = element.stoelen;
 
     /* Per zijde: hoeveel stoelen, over welke lengte ze verdeeld worden, hoe ver
@@ -170,7 +170,7 @@ const Tekening = {
 
   rij(g, element, gemarkeerd) {
     for (let i = 0; i < element.n; i++) {
-      const p = Vormen.maat.rijafstand * (i - (element.n - 1) / 2);
+      const p = Vormen.rijafstand() * (i - (element.n - 1) / 2);
       const sg = this.el("g", { transform: `translate(${p} 0)` }, g);
       Vormen.stoel(sg, gemarkeerd);
     }
@@ -187,7 +187,7 @@ const Tekening = {
      staan de tafels tegen elkaar. Waar elke tafel komt te staan, rekent
      tafelkring.js uit; een weggelaten plaats blijft gewoon leeg. */
   tafelkring(g, element, gemarkeerd) {
-    const afstand = Vormen.maat.stoelruimte + Vormen.maat.stoel / 2;
+    const afstand = Vormen.maat.stoelruimte + Vormen.stoelmaat().diepte / 2;
 
     Tafelkring.plaatsen(element).forEach(plaats => {
       if (plaats.weggelaten) return;

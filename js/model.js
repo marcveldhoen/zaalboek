@@ -39,7 +39,7 @@ const Model = {
       { id: "t180",       soort: "tafel",  naam: "Tafel lang",     breedte: 180, diepte: 80, korteNaam: "Lang",     meervoud: "Tafels lang" },
       { id: "t120",       soort: "tafel",  naam: "Tafel kort",     breedte: 120, diepte: 80, korteNaam: "Kort",     meervoud: "Tafels kort" },
       { id: "t80",        soort: "tafel",  naam: "Tafel vierkant", breedte:  80, diepte: 80, korteNaam: "Vierkant", meervoud: "Tafels vierkant" },
-      { id: "stoel",      soort: "stoel",  naam: "Stoel",          breedte:  45, diepte: 45, meervoud: "Stoelen" },
+      { id: "stoel",      soort: "stoel",  naam: "Stoel",          breedte:  43, diepte: 42, meervoud: "Stoelen" },
       { id: "smartboard", soort: "object", naam: "Smartboard",     breedte: 175, diepte: 70, symbool: "bordDonker" },
       { id: "whiteboard", soort: "object", naam: "Whiteboard",     breedte: 150, diepte: 60, symbool: "bordLicht" },
       { id: "piano",      soort: "object", naam: "Piano",          breedte: 148, diepte: 64, symbool: "klavier" },
