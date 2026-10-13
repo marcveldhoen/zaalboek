@@ -310,8 +310,8 @@ const SchermZaal = {
 
     return `
       <p class="selname tussen">${naam}</p>
-      ${this.teller("Breedte", o.breedte, "breedte", 20, 400)}
-      ${o.diepte != null ? this.teller(o.soort === "uitgifte" ? "Toonbank" : "Diepte", o.diepte, "diepte", this.minDiepte(o), 100) : ""}
+      ${this.teller("Breedte", o.breedte, "breedte", 20, this.maxBreedte(o))}
+      ${o.diepte != null ? this.teller(o.soort === "uitgifte" ? "Toonbank" : "Diepte", o.diepte, "diepte", this.minDiepte(o), this.maxDiepte(o)) : ""}
       ${o.soort === "deur" ? `
         <div class="row"><button class="ghost" data-doe="kant">Scharnierkant spiegelen</button></div>
       ` : ""}
@@ -333,6 +333,15 @@ const SchermZaal = {
   /* Een uitgifteluik mag zonder toonbank (diepte 0); al het andere is minstens 5 cm diep. */
   minDiepte(o) {
     return o.soort === "uitgifte" ? 0 : 5;
+  },
+
+  /* Een kast kan een hele wand beslaan; de rest blijft binnen 400 × 100 cm. */
+  maxBreedte(o) {
+    return o.soort === "kast" ? 800 : 400;
+  },
+
+  maxDiepte(o) {
+    return o.soort === "kast" ? 150 : 100;
   },
 
   teller(label, waarde, actie, min, max) {
@@ -578,8 +587,8 @@ const SchermZaal = {
     if (stap) {
       const delen = stap.split(":");
       const richting = +delen[1];
-      if (delen[0] === "breedte") o.breedte = Math.max(20, Math.min(400, o.breedte + richting * 5));
-      if (delen[0] === "diepte")  o.diepte  = Math.max(this.minDiepte(o), Math.min(100, o.diepte + richting * 5));
+      if (delen[0] === "breedte") o.breedte = Math.max(20, Math.min(this.maxBreedte(o), o.breedte + richting * 5));
+      if (delen[0] === "diepte")  o.diepte  = Math.max(this.minDiepte(o), Math.min(this.maxDiepte(o), o.diepte + richting * 5));
     }
 
     // vaste objecten staan tegen rechte muren, dus draaien gaat in stappen van 90°
