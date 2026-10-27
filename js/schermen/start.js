@@ -178,7 +178,7 @@ const SchermStart = {
           </p>
         </div>
         <div class="overzichtknoppen">
-          <button class="knop" data-afdrukplanning="1">Planning afdrukken</button>
+          <button class="knop accent" data-afdrukplanning="1">Planning afdrukken</button>
         </div>
       </div>
       <div class="roosterkader">${Planning.rooster()}</div>
