@@ -174,7 +174,7 @@ const SchermStart = {
           <p class="roosteruitleg">
             <span><span class="roosterteken eigen"></span>Geboekt</span>
             <span><span class="roosterteken via"></span>Bezet via een samengevoegde zaal</span>
-            <span><span class="roosterteken botsing"></span>Botsing</span>
+            <span><span class="roosterteken botsing"></span>Dubbel geboekt</span>
           </p>
         </div>
         <div class="overzichtknoppen">
