@@ -174,7 +174,7 @@
      daarvoor was vermoedelijk de oorzaak van een vrijwel lege pagina na elk
      blad. Bewust ook geen overflow:hidden en geen break-inside:avoid meer
      op .blad: die bleken in Safari zélf al een lege pagina na ieder blad te
-     veroorzaken, los van dit probleem — zie OVERDRACHT.md. */
+     veroorzaken, los van dit probleem — zie PROJECTLOGBOEK.md. */
   .blad{box-shadow:none;margin:0 auto;padding:0;width:180mm;height:245mm}
   .afdrukscherm.liggend .blad{width:267mm;height:160mm}
   /* elk blad na het eerste begint op een nieuwe pagina; zo komt er nooit een

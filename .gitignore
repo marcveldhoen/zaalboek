@@ -37,9 +37,6 @@ credentials*
 # Persoonlijke instellingen van Claude Code
 .claude/settings.local.json
 
-# Werkoverdracht tussen sessies: kan projectdetails bevatten, blijft lokaal
-OVERDRACHT.md
-
 # Ontwerpdocumenten en prototype: bevatten echte zaalnamen, blijven lokaal
 docs/
 
