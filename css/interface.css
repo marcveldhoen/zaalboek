@@ -58,6 +58,9 @@
   --kaart-schaduw:0 1px 2px rgba(35,43,43,.04);
   --zwevend-schaduw:0 8px 24px rgba(35,43,43,.12);   /* uitklapper, hulpkaartje */
   --miniatuur:#EFEDE6;        /* achter de plattegrondminiaturen */
+  --opstellingkaart-rand:#CAC8BD;
+  --opstellingkaart-schaduw:0 2px 4px rgba(35,43,43,.10), 0 10px 26px rgba(35,43,43,.12);
+  --opstellingkaart-schaduw-hover:0 4px 10px rgba(35,43,43,.14), 0 18px 40px rgba(35,43,43,.18);
   --menu:#232B2B;             /* zijbalk en bovenbalk */
   --menu-tekst:#ECEAE2;
   --menu-tekst-zacht:#B7BDBA;
@@ -572,12 +575,18 @@ header[hidden]{display:none}
 
 .kaarten{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
 @media (max-width:1250px){.kaarten{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* De kaarten moeten loskomen van de lichte achtergrond: een duidelijkere rand
+   en een schaduw, die onder de muis dieper wordt terwijl de kaart iets omhoog
+   komt. Een lijntje scheidt de miniatuur (bijna de kleur van de achtergrond)
+   van de tekst. */
 .opstellingkaart{
   display:flex;flex-direction:column;overflow:hidden;
-  background:var(--kaart);border:1px solid var(--kaart-rand);
-  border-radius:var(--hoek-kaart);box-shadow:var(--kaart-schaduw);
+  background:var(--kaart);border:1px solid var(--opstellingkaart-rand);
+  border-radius:var(--hoek-kaart);box-shadow:var(--opstellingkaart-schaduw);
+  transition:box-shadow .15s, border-color .15s, transform .15s;
 }
-.kaartmini{display:block;width:100%;height:300px;padding:22px;border:0;background:var(--miniatuur);cursor:pointer}
+.opstellingkaart:not(.bewerkkaart):hover{border-color:var(--knoprand);box-shadow:var(--opstellingkaart-schaduw-hover);transform:translateY(-2px)}
+.kaartmini{display:block;width:100%;height:300px;padding:22px;border:0;border-bottom:1px solid var(--opstellingkaart-rand);background:var(--miniatuur);cursor:pointer}
 .kaartmini svg{display:block;width:100%;height:100%}
 .kaartinfo{padding:18px 20px 12px}
 .kaarttitel{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
