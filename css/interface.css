@@ -463,6 +463,8 @@ kbd{
 #nieuweZaalKnop{background-color:var(--accent);color:var(--wit)}
 #nieuweVerenigingKnop{background-color:var(--accent);color:var(--wit)}
 .startvereniging{flex:1;font-weight:500}
+/* de kleine tekening vooraan in een meubelregel (beheer, tabbladen Meubilair en Voorraad) */
+.meubeltekening{flex:0 0 48px;width:48px;height:28px;display:block;pointer-events:none}
 .startmoment{color:var(--ink-soft);font-size:var(--tekst-klein)}
 .startnieuw{display:flex;gap:6px;align-items:center;margin-top:8px}
 .startnieuwnaam{
@@ -686,3 +688,5 @@ header[hidden]{display:none}
 .beheertab.actief{color:var(--ink);border-bottom-color:var(--accent)}
 .beheervak{max-width:360px}
 .beheervak h2{margin-top:22px}
+/* naam met de kleine tekening ervoor (beheer, tabblad Voorraad per zaal) */
+.voorraadnaam{display:flex;align-items:center;gap:10px}

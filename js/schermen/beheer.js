@@ -46,8 +46,8 @@ const SchermBeheer = {
 
     const vak = document.getElementById("beheerInhoud");
     if (this.tab === "verenigingen")    vak.innerHTML = this.tabVerenigingen();
-    else if (this.tab === "meubilair")  vak.innerHTML = this.tabMeubilair();
-    else                                vak.innerHTML = this.tabVoorraad();
+    else if (this.tab === "meubilair")  { vak.innerHTML = this.tabMeubilair(); this.tekenMeubels(vak); }
+    else                                { vak.innerHTML = this.tabVoorraad(); this.tekenMeubels(vak); }
   },
 
   /* ================= scherm 5: verenigingen ================= */
@@ -170,6 +170,7 @@ const SchermBeheer = {
 
     return `<div class="startregel">
       <span class="startregelnaam">
+        <svg class="meubeltekening" data-meubeltekening="${m.id}" aria-hidden="true"></svg>
         <span class="startvereniging">${m.naam}</span>
         <span class="startmoment">${maat}</span>
       </span>
@@ -177,6 +178,29 @@ const SchermBeheer = {
       <button class="ghost klein" data-meubelverwijder="${m.id}"
         ${inGebruik ? 'disabled title="Nog in gebruik in een opstelling"' : ""}>Verwijderen</button>
     </div>`;
+  },
+
+  /* Een kleine tekening van elk meubelstuk vooraan in zijn regel (tabbladen
+     Meubilair en Voorraad per zaal), net als op de tegels van het tekenscherm
+     (zie paletGroepen in schermen/tekenen.js):
+     gemaakt door Tekening.element() zelf, dus altijd gelijk aan de
+     plattegrond. Kan pas als de regels op de pagina staan, want getBBox()
+     geeft anders niets terug. Elke tekening vult haar eigen vakje; ze staan
+     dus niet onderling op schaal. */
+  tekenMeubels(vak) {
+    vak.querySelectorAll("[data-meubeltekening]").forEach(svg => {
+      const m = Model.meubel(svg.dataset.meubeltekening);
+      const voorbeeld = m.soort === "tafel"
+        ? { type: "tafel", meubelId: m.id, x: 0, y: 0, hoek: 0,
+            stoelen: { boven: 0, onder: 0, links: 0, rechts: 0 }, functie: "geen" }
+        : m.soort === "stoel"
+        ? { type: "stoel", x: 0, y: 0, hoek: 0 }
+        : { type: "object", meubelId: m.id, x: 0, y: 0, hoek: 0 };
+      const b = Tekening.element(voorbeeld, svg, 0, false).getBBox();
+      const marge = Math.max(b.width, b.height) * 0.06;
+      svg.setAttribute("viewBox",
+        `${b.x - marge} ${b.y - marge} ${b.width + marge * 2} ${b.height + marge * 2}`);
+    });
   },
 
   symboolOpties(huidig) {
@@ -293,7 +317,9 @@ const SchermBeheer = {
 
     const groep = (titel, soort) => {
       const rijen = Model.meubeltypen(soort).map(m => `
-        <div class="field"><label>${m.naam}</label>
+        <div class="field"><label class="voorraadnaam">
+            <svg class="meubeltekening" data-meubeltekening="${m.id}" aria-hidden="true"></svg>
+            ${m.naam}</label>
           <input type="number" min="0" data-voorraad="${m.id}" value="${voorraad[m.id] || 0}">
         </div>`).join("");
       return rijen ? `<h2>${titel}</h2>${rijen}` : "";
