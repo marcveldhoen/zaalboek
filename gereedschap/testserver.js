@@ -200,7 +200,14 @@ const taak = { soort: null, bezig: false, begin: null, einde: null, uitkomst: nu
 
 function claudeOmgeving() {
   const extra = [path.join(os.homedir(), ".local", "bin"), "/opt/homebrew/bin", "/usr/local/bin"];
-  return Object.assign({}, process.env, { PATH: extra.concat(process.env.PATH || "").join(":") });
+  const omgeving = Object.assign({}, process.env, { PATH: extra.concat(process.env.PATH || "").join(":") });
+  // Start de server vanuit de Claude-app (preview), dan erft hij instellingen
+  // van die app. Daarmee zou `claude` de aanmelding van de app proberen in
+  // plaats van Marcs eigen aanmelding; dus weghalen.
+  for (const naam of Object.keys(omgeving)) {
+    if (/^(CLAUDE|ANTHROPIC)/.test(naam)) delete omgeving[naam];
+  }
+  return omgeving;
 }
 
 function startClaude(soort, opdracht, gereedschap, naAfloop) {
@@ -227,7 +234,7 @@ function startClaude(soort, opdracht, gereedschap, naAfloop) {
     let samenvatting = uit.trim().slice(-2000);
     if (/authenticat|not logged in|\/login/i.test(uit)) {
       uitkomst = "mislukt";
-      samenvatting = "Claude Code is niet (meer) aangemeld. Open Terminal, typ claude, meld je aan met /login en probeer het daarna opnieuw.\n\n" + samenvatting;
+      samenvatting = "Claude Code is niet (meer) aangemeld. Open Terminal, typ: claude auth login — meld je aan in de browser en probeer het daarna opnieuw.\n\n" + samenvatting;
     }
     Object.assign(taak, { bezig: false, einde: Date.now(), uitkomst, samenvatting });
   };
