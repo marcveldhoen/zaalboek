@@ -58,3 +58,7 @@ node_modules/
 
 # Herontwerp-opdracht en aangeleverde bestanden: bevatten echte zaalnamen, blijven lokaal
 ontwerp/
+
+# Markdown-bestanden (CLAUDE.md, README.md e.d.) blijven alleen op deze computer.
+# Claude Code leest CLAUDE.md uit deze map, ook vanuit een worktree eronder.
+*.md
