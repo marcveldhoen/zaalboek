@@ -47,7 +47,7 @@ const SchermStart = {
         <input type="search" id="startZoek" class="menuzoek" placeholder="Naam van een vereniging">
         <nav class="menuzalen" id="menuzalen" aria-label="Zalen"></nav>
         <div class="menuvoet">
-          <button class="menuknop omlijnd" id="startAfdrukken" ${Model.document.opstellingen.length ? "" : "disabled"}>Hele map afdrukken</button>
+          <button class="menuknop omlijnd" id="startAfdrukken" ${Model.document.opstellingen.length ? "" : "disabled"}><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 6V2.5h7V6"/><path d="M4.5 11.5h-2v-5.5h11v5.5h-2"/><path d="M4.5 9.5h7v4h-7z"/></svg>Hele map afdrukken</button>
           <button class="menuknop" id="menuZalen">Zalen inrichten</button>
           <button class="menuknop" id="menuBeheer">Beheer</button>
           <span class="status" data-status role="status"></span>
