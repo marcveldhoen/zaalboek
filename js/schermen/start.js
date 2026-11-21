@@ -43,8 +43,7 @@ const SchermStart = {
           <img class="menuzegel" src="img/kerkzegel.png" alt="Zegel van de ${Model.gemeente}">
           <div><b>Zaalboek</b><span>${Model.gemeente}</span></div>
         </div>
-        <label class="menulabel" for="startZoek">Zoek op vereniging</label>
-        <input type="search" id="startZoek" class="menuzoek" placeholder="Naam van een vereniging">
+        <input type="search" id="startZoek" class="menuzoek" placeholder="Naam van een vereniging" aria-label="Zoek op vereniging">
         <nav class="menuzalen" id="menuzalen" aria-label="Zalen"></nav>
         <div class="menuvoet">
           <button class="menuknop omlijnd" id="startAfdrukken" ${Model.document.opstellingen.length ? "" : "disabled"}><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 6V2.5h7V6"/><path d="M4.5 11.5h-2v-5.5h11v5.5h-2"/><path d="M4.5 9.5h7v4h-7z"/></svg>Opstellingen afdrukken</button>
