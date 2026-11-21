@@ -473,7 +473,7 @@ header[hidden]{display:none}
 /* het zwart-op-witte zegel, omgedraaid tot een witte lijntekening */
 .menuzegel{width:80px;height:auto;flex:0 0 80px;filter:invert(1);mix-blend-mode:screen}
 .menukop b{display:block;font-size:20px;font-weight:600;letter-spacing:-.01em;color:var(--wit)}
-.menukop span{display:block;font-size:11px;line-height:1.35;color:var(--menu-tekst-zacht)}
+.menukop span{display:block;font-size:11px;font-weight:700;line-height:1.35;color:var(--menu-tekst-zacht)}
 .menulabel{display:block;font-size:var(--tekst-klein);color:var(--menu-tekst-zacht);margin-bottom:6px}
 .menuzoek{
   width:100%;padding:10px 12px;font:inherit;color:var(--wit);
