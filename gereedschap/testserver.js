@@ -190,6 +190,136 @@ function inGegevens(tekst) {
   return gevonden;
 }
 
+/* ---------------- /tekst: een getypte tekst direct in de code ----------------
+   Marc typte in de testpagina een nieuwe tekst. Staat de oude tekst op
+   precies één plek in de code (in een tekst van JavaScript of in de HTML,
+   niet in commentaar), dan zet de server hem daar meteen om: geen Claude
+   nodig. De wijziging staat dan klaar voor "Goedkeuren en live zetten".
+   Staat hij nergens of op meer plekken, dan gaat de aanwijzing gewoon naar
+   Verwerk, waar Claude uitzoekt welke plek bedoeld is. */
+
+function codebestanden() {
+  const uit = [INDEX];
+  const loop = map => fs.readdirSync(map, { withFileTypes: true }).forEach(d => {
+    const vol = path.join(map, d.name);
+    if (d.isDirectory()) loop(vol);
+    else if (d.name.endsWith(".js")) uit.push(vol);
+  });
+  loop(path.join(PROJECTMAP, "js"));
+  return uit;
+}
+
+/* Waar in een bestand staat "gewone" tekst? Voor JavaScript: binnen '…',
+   "…" of `…` (niet in commentaar). Voor HTML: alles buiten <!-- … -->.
+   Geeft een lijst { begin, eind, soort } met soort het aanhalingsteken,
+   of "html". */
+function tekstgebieden(inhoud, isHtml) {
+  const gebieden = [];
+  if (isHtml) {
+    let i = 0;
+    while (i < inhoud.length) {
+      const c = inhoud.indexOf("<!--", i);
+      gebieden.push({ begin: i, eind: c < 0 ? inhoud.length : c, soort: "html" });
+      if (c < 0) break;
+      const e = inhoud.indexOf("-->", c);
+      i = e < 0 ? inhoud.length : e + 3;
+    }
+    return gebieden;
+  }
+  let i = 0;
+  while (i < inhoud.length) {
+    const c = inhoud[i], d = inhoud[i + 1];
+    if (c === "/" && d === "/") { const e = inhoud.indexOf("\n", i); i = e < 0 ? inhoud.length : e; continue; }
+    if (c === "/" && d === "*") { const e = inhoud.indexOf("*/", i + 2); i = e < 0 ? inhoud.length : e + 2; continue; }
+    if (c === '"' || c === "'" || c === "`") {
+      let j = i + 1;
+      while (j < inhoud.length && inhoud[j] !== c) {
+        if (inhoud[j] === "\\") j++;
+        if (c !== "`" && inhoud[j] === "\n") break;       // geen echte tekst; stoppen
+        j++;
+      }
+      gebieden.push({ begin: i + 1, eind: j, soort: c });
+      i = j + 1;
+      continue;
+    }
+    i++;
+  }
+  return gebieden;
+}
+
+// de nieuwe tekst veilig maken voor de plek waar hij komt te staan
+function veilig(tekst, soort) {
+  if (soort === "html" || soort === "`") {
+    tekst = tekst.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    if (soort === "`") tekst = tekst.replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/\$\{/g, "\\${");
+    return tekst;
+  }
+  return tekst.replace(/\\/g, "\\\\").replace(new RegExp(soort, "g"), "\\" + soort);
+}
+
+function vindPlekken(oud) {
+  const plekken = [];
+  for (const bestand of codebestanden()) {
+    const inhoud = fs.readFileSync(bestand, "utf8");
+    for (const g of tekstgebieden(inhoud, bestand.endsWith(".html"))) {
+      let i = inhoud.indexOf(oud, g.begin);
+      while (i >= 0 && i + oud.length <= g.eind) {
+        plekken.push({ bestand, positie: i, soort: g.soort });
+        i = inhoud.indexOf(oud, i + oud.length);
+      }
+    }
+  }
+  return plekken;
+}
+
+function controleerJs(bestand) {
+  return new Promise(klaar => execFile(process.execPath, ["--check", bestand], fout => klaar(!fout)));
+}
+
+async function tekstDirect(verzoek, antwoord) {
+  if (verzoek.method !== "POST") return stuur(antwoord, 405, { message: "Niet toegestaan" });
+  if (taak.bezig) return stuur(antwoord, 423, { message: "Claude is bezig" });
+  let lijf;
+  try { lijf = JSON.parse(await leesLijf(verzoek)); }
+  catch (e) { return stuur(antwoord, 422, { message: "Onleesbaar verzoek" }); }
+
+  const lijst = leesAanwijzingen();
+  const a = lijst.find(x => x.nummer === lijf.nummer);
+  const l = a && a.gesprek[a.gesprek.length - 1];
+  // alleen een kale tekstwijziging; met een wens of opmaak erbij doet Claude het
+  if (!a || a.status !== "open" || !l || l.van !== "marc" || !l.tekstwijziging || l.tekst || l.stijl) {
+    return stuur(antwoord, 200, { direct: false, reden: "niet alleen een tekstwijziging" });
+  }
+  const { oud, nieuw } = l.tekstwijziging;
+  const nu = new Date().toISOString();
+  const naarClaude = reden => {
+    a.gesprek.push({ van: "systeem", tekst: `Niet direct aangepast: ${reden}. Staat klaar voor Verwerk.`, tijd: nu });
+    schrijfAanwijzingen(lijst);
+    return stuur(antwoord, 200, { direct: false, reden });
+  };
+
+  if (inGegevens(oud)) return naarClaude("de tekst komt uit de gegevens");
+  const plekken = vindPlekken(oud);
+  if (!plekken.length) return naarClaude("de tekst staat niet letterlijk in de code (hij wordt misschien samengesteld)");
+  if (plekken.length > 1) return naarClaude(`de tekst staat op ${plekken.length} plekken in de code`);
+
+  const p = plekken[0];
+  const voor = fs.readFileSync(p.bestand, "utf8");
+  const na = voor.slice(0, p.positie) + veilig(nieuw, p.soort) + voor.slice(p.positie + oud.length);
+  fs.writeFileSync(p.bestand, na);
+  if (p.bestand.endsWith(".js") && !(await controleerJs(p.bestand))) {
+    fs.writeFileSync(p.bestand, voor);                 // terugzetten: liever niets dan kapot
+    return naarClaude("de code werd ongeldig na het vervangen");
+  }
+
+  const waar = path.relative(PROJECTMAP, p.bestand);
+  a.gesprek.push({ van: "systeem", tekst: `Direct aangepast in ${waar}. Klaar om live te zetten.`, tijd: nu });
+  a.status = "verwerkt";
+  a.direct = true;            // de tekstwijziging blijft als voorbeeld tot de pagina herladen is
+  schrijfAanwijzingen(lijst);
+  stuur(antwoord, 200, { direct: true, bestand: waar });
+}
+
 /* ---------------- git ---------------- */
 
 function git(...args) {
@@ -350,11 +480,13 @@ async function terugdraaien(verzoek, antwoord) {
 
   /* Wat Claude deed is weg. Aanwijzingen waar Claude al aan werkte gaan
      weer open, met een melding in hun gesprek, zodat Marc ze kan aanpassen
-     en Claude bij het volgende Verwerk weet dat hij opnieuw begint. */
+     en Claude bij het volgende Verwerk weet dat hij opnieuw begint. Ook
+     teksten die direct in de code waren gezet (a.direct). */
   schrijfAanwijzingen(leesAanwijzingen().map(a => {
-    if (!(a.gesprek || []).some(b => b.van === "claude")) return a;
-    a.gesprek.push({ van: "systeem", tekst: `Teruggedraaid op ${tijd}: wat Claude veranderde is weggehaald.`, tijd: new Date().toISOString() });
+    if (!(a.gesprek || []).some(b => b.van === "claude") && !a.direct) return a;
+    a.gesprek.push({ van: "systeem", tekst: `Teruggedraaid op ${tijd}: wat er in de code veranderd was, is weggehaald.`, tijd: new Date().toISOString() });
     if (a.status === "verwerkt") a.status = "open";
+    delete a.direct;
     return a;
   }));
   stuur(antwoord, 200, { teruggedraaid: nu.bestanden });
@@ -398,6 +530,7 @@ http.createServer(async (verzoek, antwoord) => {
     if (pad === "/verwerk")      return await verwerk(verzoek, antwoord);
     if (pad === "/goedkeuren")   return await goedkeuren(verzoek, antwoord);
     if (pad === "/terugdraaien") return await terugdraaien(verzoek, antwoord);
+    if (pad === "/tekst")        return await tekstDirect(verzoek, antwoord);
     if (pad === "/taak")         return stuur(antwoord, 200, taak);
     if (pad === "/gegevenstekst") {
       const tekst = (new URL(verzoek.url, "http://localhost").searchParams.get("tekst") || "").trim();

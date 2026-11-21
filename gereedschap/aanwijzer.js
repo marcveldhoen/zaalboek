@@ -660,7 +660,7 @@
   /* De getypte tekst als aanwijzing: een nieuwe, of bij een bestaande het
      laatste bericht bijwerken (nog niet verwerkt) of een reactie toevoegen
      (verwerkt, of Claude had een vraag). */
-  function registreerTekst(t, nieuw) {
+  async function registreerTekst(t, nieuw) {
     const nu = new Date().toISOString();
     let a = aanwijzingVoor(t.el);
 
@@ -692,7 +692,31 @@
       staat.lijst.push(a);
     }
     a.tekstwijziging = wijziging;
-    bewaren();
+    await bewaren();
+    if (!staat.nietBewaard) zetDirect(a);
+  }
+
+  /* Alleen een tekst veranderd, zonder wens of opmaak erbij? Dan zet de
+     testserver hem meteen in de code, zonder Claude: hij staat daarna klaar
+     voor "Goedkeuren en live zetten". Lukt dat niet (de tekst staat op meer
+     plekken, of nergens letterlijk), dan blijft hij open voor Verwerk. */
+  async function zetDirect(a) {
+    let uit;
+    try {
+      const antwoord = await fetch("/tekst", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nummer: a.nummer })
+      });
+      uit = await antwoord.json();
+    } catch (e) { return; }
+    if (uit.direct) {
+      meld(`Tekst aangepast in de code (${uit.bestand}). Klaar om live te zetten via ‘Goedkeuren en live zetten’ in de Lijst.`, 8);
+    } else if (uit.reden && uit.reden !== "niet alleen een tekstwijziging") {
+      meld(`Klaargezet voor Verwerk: ${uit.reden}.`, 8);
+    }
+    await ophalen();
+    haalWijzigingen();
   }
 
   /* ---------------- inspreken ----------------
@@ -1195,7 +1219,7 @@
       const el = zoekElement(a);
       // De app tekent schermen opnieuw: de nieuwe tekst als voorbeeld terugzetten
       // (niet terwijl het venster van deze aanwijzing open is; dat doet het venster zelf).
-      if (el && a.tekstwijziging && isOpen(a) && !(staat.typen && staat.typen.el === el) &&
+      if (el && a.tekstwijziging && (isOpen(a) || a.direct) && !(staat.typen && staat.typen.el === el) &&
           !(staat.venster && staat.venster.aanwijzing === a) &&
           eigenTekst(el) === a.tekstwijziging.oud) {
         zetEigenTekst(el, a.tekstwijziging.nieuw);
