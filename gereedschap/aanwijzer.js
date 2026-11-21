@@ -1,36 +1,47 @@
 /* aanwijzer.js — het Aanwijzer-tooltje voor de lokale testopstelling.
 
-   Alleen geladen in test-lokaal.html, nooit in index.html. Hiermee klik je in
-   de app op een onderdeel en typ je erbij wat er moet veranderen. De
-   aanwijzingen gaan naar de testserver (gereedschap/testserver.js), die ze
-   bewaart in aanwijzingen.json. Daarna zeg je in Claude Code "verwerk de
-   aanwijzingen".
+   Alleen geladen in de testpagina die gereedschap/testserver.js maakt, nooit
+   in index.html. Hiermee klik je in de app op een onderdeel en zeg of typ je
+   wat er moet veranderen; opmaak (vet, cursief, onderstreept, kleuren) kun je
+   meteen als voorbeeld op het scherm zetten.
 
-   Bediening:
-   - knop "Aanwijzen" rechtsonder (of de toets A met Shift) zet de aanwijsmodus
-     aan en uit; Esc zet hem uit;
-   - in de aanwijsmodus krijgt het onderdeel onder de muis een rand; klikken
-     opent een chatvenstertje in plaats van dat de app reageert;
-   - Enter bewaart, Shift+Enter is een nieuwe regel;
-   - de knop met het aantal opent de lijst: bewerken, verwijderen, wissen.
+   De gang van zaken:
+   1. Aanwijzen: knop "Aanwijzen" rechtsonder (of Shift+A), klik op een
+      onderdeel, typ of spreek in, kies eventueel opmaak, Bewaar (of Enter).
+   2. Verwerken: in de Lijst op "Verwerk" klikken. De testserver laat Claude
+      Code de code aanpassen, zonder commit. Daarna herlaadt de pagina.
+   3. Bekijken: klopt het, dan "Goedkeuren en live zetten" (Claude controleert,
+      commit en pusht naar main). Klopt het niet: "Terugdraaien", of de
+      aanwijzing aanpassen en opnieuw verwerken.
 
    Het tooltje verandert niets aan de app zelf. Alles wat het toont staat in
-   één eigen laag (#aanwijzer) die boven de app ligt. */
+   één eigen laag (#aanwijzer) die boven de app ligt; de opmaakvoorbeelden in
+   één eigen <style>-blok. */
 
 (function () {
   "use strict";
 
-  const ADRES = "/aanwijzingen";
   const VANGNET = "zaalboek-aanwijzingen";      // localStorage, als de server weg is
+  const NA_HERLADEN = "zaalboek-aanwijzer-melding";
 
   const staat = {
     lijst: [],
     modus: false,
     onderMuis: null,     // het element waar de muis nu op staat
-    venster: null,       // { element, aanwijzing } van het open chatvenster
+    venster: null,       // het open chatvenster (zie openVenster)
     lijstOpen: false,
-    nietBewaard: false
+    nietBewaard: false,
+    taak: null,          // wat Claude op de achtergrond doet (van /taak)
+    wijzigingen: { bestanden: [], nietGepusht: 0 }
   };
+
+  /* De kleuren van de app zelf, als keuze bij de opmaak. Bewaard als
+     var(--…), zodat Claude de bestaande CSS-variabele gebruikt. */
+  const KLEUREN = [
+    ["accent (groen)", "--accent"], ["donker", "--ink"], ["grijs", "--ink-soft"],
+    ["lichtgrijs", "--ink-faint"], ["eiken", "--oak"], ["licht eiken", "--oak-light"],
+    ["hout", "--wood"], ["leisteen", "--slate"], ["vloer", "--floor"]
+  ];
 
   /* ---------------- de eigen laag ---------------- */
 
@@ -45,31 +56,55 @@
     #aanwijzer .aw-balk { position: fixed; right: 16px; bottom: 16px; display: flex; gap: 6px; pointer-events: auto; }
     #aanwijzer button { font-size: 13px; border: 1px solid #C9C6BC; background: #fff; color: #232B2B;
       border-radius: 6px; padding: 7px 12px; cursor: pointer; }
-    #aanwijzer button:hover { background: #F2F1EC; }
-    #aanwijzer .aw-balk .aw-aan { background: #D9480F; border-color: #D9480F; color: #fff; }
-    #aanwijzer .aw-balk .aw-waarschuwing { border-color: #C92A2A; color: #C92A2A; }
+    #aanwijzer button:hover:not(:disabled) { background: #F2F1EC; }
+    #aanwijzer button:disabled { opacity: .45; cursor: default; }
+    #aanwijzer .aw-aan, #aanwijzer .aw-aan:hover:not(:disabled) { background: #D9480F; border-color: #D9480F; color: #fff; }
+    #aanwijzer .aw-hoofd, #aanwijzer .aw-hoofd:hover:not(:disabled) { background: #2F6F6A; border-color: #2F6F6A; color: #fff; }
+    #aanwijzer .aw-waarschuwing { border-color: #C92A2A; color: #C92A2A; }
     #aanwijzer .aw-venster, #aanwijzer .aw-lijst { position: fixed; background: #fff; border: 1px solid #C9C6BC;
       border-radius: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.18); pointer-events: auto; color: #232B2B; font-size: 13px; }
-    #aanwijzer .aw-venster { width: 320px; padding: 10px; }
+    #aanwijzer .aw-venster { width: 340px; padding: 10px; }
     #aanwijzer .aw-wat { font-size: 12px; color: #5A6462; margin-bottom: 6px; }
-    #aanwijzer textarea { width: 100%; min-height: 72px; resize: vertical; font-size: 13px; padding: 6px;
-      border: 1px solid #C9C6BC; border-radius: 5px; }
-    #aanwijzer .aw-knoppen { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
-    #aanwijzer .aw-knoppen .aw-hoofd { background: #2F6F6A; border-color: #2F6F6A; color: #fff; }
-    #aanwijzer .aw-lijst { right: 16px; bottom: 60px; width: 380px; max-height: 60vh; overflow: auto; padding: 10px; }
+    #aanwijzer .aw-invoer { display: flex; gap: 6px; align-items: flex-start; }
+    #aanwijzer textarea { flex: 1; min-height: 72px; resize: vertical; font-size: 13px; padding: 6px;
+      border: 1px solid #C9C6BC; border-radius: 5px; color: #232B2B; background: #fff; }
+    #aanwijzer .aw-mic { padding: 6px 9px; font-size: 16px; line-height: 1; }
+    #aanwijzer .aw-mic.aw-aan { animation: aw-knipper 1.2s infinite; }
+    @keyframes aw-knipper { 50% { opacity: .55; } }
+    #aanwijzer .aw-opmaak { margin-top: 8px; border-top: 1px solid #E2E0D7; padding-top: 8px; }
+    #aanwijzer .aw-rij { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+    #aanwijzer .aw-rij > span { width: 66px; font-size: 12px; color: #5A6462; }
+    #aanwijzer .aw-schakel { width: 30px; padding: 4px 0; text-align: center; }
+    #aanwijzer .aw-staal { width: 20px; height: 20px; padding: 0; border-radius: 50%; border: 1px solid #C9C6BC; }
+    #aanwijzer .aw-staal.aw-gekozen { outline: 2px solid #D9480F; outline-offset: 1px; }
+    #aanwijzer input[type=color] { width: 26px; height: 22px; padding: 0; border: 1px solid #C9C6BC; border-radius: 4px; background: #fff; }
+    #aanwijzer .aw-bereik label { font-size: 12px; margin-right: 8px; }
+    #aanwijzer .aw-klein { font-size: 12px; color: #5A6462; }
+    #aanwijzer .aw-knoppen { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    #aanwijzer .aw-lijst { right: 16px; bottom: 60px; width: 400px; max-height: 70vh; overflow: auto; padding: 10px; }
     #aanwijzer .aw-lijst h3 { margin: 0 0 8px; font-size: 14px; }
+    #aanwijzer .aw-vak { background: #F7F6F2; border-radius: 6px; padding: 8px; margin-bottom: 8px; }
+    #aanwijzer .aw-vak pre { white-space: pre-wrap; font-size: 12px; margin: 6px 0 0; max-height: 140px; overflow: auto; }
     #aanwijzer .aw-item { border-top: 1px solid #E2E0D7; padding: 8px 0; }
-    #aanwijzer .aw-item.aw-verwerkt .aw-tekst { text-decoration: line-through; color: #949C99; }
-    #aanwijzer .aw-item .aw-tekst { white-space: pre-wrap; margin: 2px 0 6px; }
+    #aanwijzer .aw-item.aw-verwerkt .aw-tekst { color: #949C99; }
+    #aanwijzer .aw-item .aw-tekst { white-space: pre-wrap; margin: 2px 0 4px; }
+    #aanwijzer .aw-antwoord { color: #2F6F6A; font-size: 12px; margin-bottom: 4px; }
+    #aanwijzer .aw-vraag { color: #1C5D99; font-size: 12px; margin-bottom: 4px; font-weight: 600; }
     #aanwijzer .aw-item button { padding: 3px 8px; font-size: 12px; }
     #aanwijzer .aw-leeg { color: #5A6462; }
     #aanwijzer .aw-speld { position: fixed; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
       background: #D9480F; color: #fff; font-size: 12px; font-weight: 600; display: flex; align-items: center;
       justify-content: center; pointer-events: auto; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
-    #aanwijzer .aw-melding { position: fixed; right: 16px; bottom: 60px; background: #232B2B; color: #fff;
+    #aanwijzer .aw-speld.aw-speld-vraag { background: #1C5D99; }
+    #aanwijzer .aw-melding { position: fixed; right: 16px; bottom: 60px; max-width: 380px; background: #232B2B; color: #fff;
       padding: 8px 12px; border-radius: 6px; font-size: 13px; pointer-events: none; }
   `;
   document.head.appendChild(stijl);
+
+  // de opmaakvoorbeelden: wat Marc ziet voordat Claude het definitief maakt
+  const voorbeelden = document.createElement("style");
+  voorbeelden.id = "aanwijzer-voorbeelden";
+  document.head.appendChild(voorbeelden);
 
   const laag = document.createElement("div");
   laag.id = "aanwijzer";
@@ -78,7 +113,7 @@
     <div class="aw-label"></div>
     <div class="aw-spelden"></div>
     <div class="aw-balk">
-      <button type="button" class="aw-lijstknop" title="Alle aanwijzingen">Lijst (0)</button>
+      <button type="button" class="aw-lijstknop" title="Alle aanwijzingen, verwerken en live zetten">Lijst (0)</button>
       <button type="button" class="aw-modusknop" title="Klik daarna op een onderdeel (Shift+A)">Aanwijzen</button>
     </div>`;
   document.body.appendChild(laag);
@@ -90,6 +125,8 @@
   const modusknop = laag.querySelector(".aw-modusknop");
 
   const vanOns = el => el instanceof Node && laag.contains(el);
+  const claudeBezig = () => !!(staat.taak && staat.taak.bezig);
+  const isOpen = a => a.status === "open" || a.status === "vraag";
 
   /* ---------------- een onderdeel beschrijven ----------------
      Zo dat Claude het in de code terugvindt: wat het is, de tekst erop, de
@@ -153,6 +190,18 @@
     return delen.join(" > ");
   }
 
+  function klassenVan(el) {
+    return (typeof el.className === "string" ? el.className : (el.getAttribute("class") || ""))
+      .split(/\s+/).filter(Boolean);
+  }
+
+  /* "Alle gelijke onderdelen": hetzelfde soort element met dezelfde klassen. */
+  function gelijkeSelector(el) {
+    const klassen = klassenVan(el);
+    if (!klassen.length) return null;
+    return el.tagName.toLowerCase() + klassen.map(k => "." + CSS.escape(k)).join("");
+  }
+
   function dataKenmerken(el) {
     const uit = {};
     for (const a of el.attributes) if (a.name.startsWith("data-")) uit[a.name] = a.value;
@@ -182,7 +231,7 @@
         omschrijving: omschrijving(el),
         tag: el.tagName.toLowerCase(),
         id: el.id || "",
-        klassen: typeof el.className === "string" ? el.className : (el.getAttribute("class") || ""),
+        klassen: klassenVan(el).join(" "),
         tekst: korteTekst(el),
         data: dataKenmerken(el),
         cssPad: cssPad(el)
@@ -192,16 +241,55 @@
     };
   }
 
+  /* ---------------- opmaakvoorbeelden ----------------
+     Een stijl is { bereik: "dit" | "alle", selector, eigenschappen }. Als
+     voorbeeld wordt hij met !important over de app heen gelegd; Claude maakt
+     hem bij het verwerken definitief in de css. */
+
+  function stijlRegel(s) {
+    if (!s || !s.selector) return "";
+    const regels = Object.entries(s.eigenschappen || {}).map(([k, v]) => `${k}: ${v} !important;`).join(" ");
+    return regels ? `${s.selector} { ${regels} }` : "";
+  }
+
+  function heeftStijl(s) {
+    return !!(s && s.eigenschappen && Object.keys(s.eigenschappen).length);
+  }
+
+  function tekenVoorbeelden() {
+    const bewerkt = staat.venster && staat.venster.aanwijzing;
+    const regels = staat.lijst
+      .filter(a => isOpen(a) && a !== bewerkt && heeftStijl(a.stijl))
+      .map(a => stijlRegel(a.stijl));
+    if (staat.venster && staat.venster.stijl) regels.push(stijlRegel(staat.venster.stijl));
+    const tekst = regels.filter(Boolean).join("\n");
+    if (voorbeelden.textContent !== tekst) voorbeelden.textContent = tekst;
+  }
+
+  function beschrijfStijl(s) {
+    if (!heeftStijl(s)) return "";
+    const namen = { "font-weight": "dikte", "font-style": "schuin", "text-decoration": "streep",
+                    "color": "tekstkleur", "background-color": "vlakkleur" };
+    const kleurnaam = v => (KLEUREN.find(([, n]) => v === `var(${n})`) || [v])[0];
+    const delen = Object.entries(s.eigenschappen).map(([k, v]) => {
+      if (k === "font-weight") return v === "700" ? "vet" : "niet vet";
+      if (k === "font-style") return v === "italic" ? "cursief" : "niet cursief";
+      if (k === "text-decoration") return v === "underline" ? "onderstreept" : "niet onderstreept";
+      return `${namen[k] || k} ${kleurnaam(v)}`;
+    });
+    return "Opmaak: " + delen.join(", ") + (s.bereik === "alle" ? " (alle gelijke onderdelen)" : "");
+  }
+
   /* ---------------- bewaren en ophalen ---------------- */
 
   async function ophalen() {
     try {
-      const antwoord = await fetch(ADRES, { cache: "no-store" });
+      const antwoord = await fetch("/aanwijzingen", { cache: "no-store" });
       if (!antwoord.ok) throw new Error(antwoord.status);
       staat.lijst = await antwoord.json();
       // was er nog iets dat niet bij de server aankwam? Dan dat bewaren.
       const vangnet = leesVangnet();
-      if (vangnet && vangnet.nietBewaard) {
+      if (vangnet && vangnet.nietBewaard && !claudeBezig()) {
         staat.lijst = vangnet.lijst;
         await bewaren();
       }
@@ -219,11 +307,16 @@
 
   async function bewaren() {
     try {
-      const antwoord = await fetch(ADRES, {
+      const antwoord = await fetch("/aanwijzingen", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(staat.lijst)
       });
+      if (antwoord.status === 423) {
+        meld("Claude is bezig met de aanwijzingen; wacht tot dat klaar is.");
+        await ophalen();
+        return;
+      }
       if (!antwoord.ok) throw new Error(antwoord.status);
       staat.nietBewaard = false;
     } catch (e) {
@@ -237,12 +330,12 @@
   /* ---------------- meldingen ---------------- */
 
   let meldingTijd = null;
-  function meld(tekst) {
+  function meld(tekst, seconden) {
     let m = laag.querySelector(".aw-melding");
     if (!m) { m = document.createElement("div"); m.className = "aw-melding"; laag.appendChild(m); }
     m.textContent = tekst;
     clearTimeout(meldingTijd);
-    meldingTijd = setTimeout(() => m.remove(), 5000);
+    meldingTijd = setTimeout(() => m.remove(), (seconden || 6) * 1000);
   }
 
   /* ---------------- de aanwijsmodus ---------------- */
@@ -251,7 +344,7 @@
     staat.modus = aan;
     modusknop.classList.toggle("aw-aan", aan);
     modusknop.textContent = aan ? "Aanwijzen (Esc = stoppen)" : "Aanwijzen";
-    if (!aan) { staat.onderMuis = null; toonRand(null); }
+    if (!aan) { staat.onderMuis = null; if (!staat.venster) toonRand(null); }
   }
 
   function toonRand(el) {
@@ -312,73 +405,385 @@
     }
   }, true);
 
+  /* ---------------- inspreken ----------------
+     Met de spraakherkenning van de browser (Safari en Chrome). Werkt die
+     niet, dan kan altijd het dicteren van de Mac zelf: twee keer op de
+     Fn-toets (of de microfoontoets), in het tekstvak. */
+
+  const Spraak = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  function koppelSpraak(knop, vak) {
+    if (!Spraak) {
+      knop.title = "Deze browser kan niet inspreken. Gebruik dicteren van de Mac: klik in het tekstvak en druk twee keer op Fn.";
+      knop.addEventListener("click", () => { vak.focus(); meld(knop.title, 8); });
+      return () => {};
+    }
+    let herkenning = null;
+    let basis = "";
+
+    const stop = () => { if (herkenning) { herkenning.stop(); herkenning = null; } knop.classList.remove("aw-aan"); };
+
+    knop.addEventListener("click", () => {
+      if (herkenning) { stop(); return; }
+      herkenning = new Spraak();
+      herkenning.lang = "nl-NL";
+      herkenning.continuous = true;
+      herkenning.interimResults = true;
+      basis = vak.value.trim() ? vak.value.trim() + " " : "";
+      herkenning.onresult = ev => {
+        let vast = "", voorlopig = "";
+        for (let i = 0; i < ev.results.length; i++) {
+          const r = ev.results[i];
+          if (r.isFinal) vast += r[0].transcript; else voorlopig += r[0].transcript;
+        }
+        vak.value = basis + vast + voorlopig;
+      };
+      herkenning.onerror = ev => {
+        const uitleg = ev.error === "not-allowed" || ev.error === "service-not-allowed"
+          ? "De browser mag de microfoon niet gebruiken. Sta het toe (Safari: Instellingen › Websites › Microfoon), of gebruik dicteren van de Mac: twee keer Fn."
+          : ev.error === "no-speech" ? "Niets gehoord. Klik nog eens op de microfoon en spreek."
+          : "Inspreken lukt niet (" + ev.error + "). Gebruik anders dicteren van de Mac: twee keer Fn.";
+        meld(uitleg, 9);
+        stop();
+      };
+      herkenning.onend = () => { herkenning = null; knop.classList.remove("aw-aan"); };
+      try { herkenning.start(); knop.classList.add("aw-aan"); }
+      catch (e) { meld("Inspreken lukt niet. Gebruik dicteren van de Mac: twee keer Fn.", 8); herkenning = null; }
+    });
+    return stop;
+  }
+
   /* ---------------- het chatvenster ---------------- */
 
   function openVenster(el, aanwijzing) {
+    if (claudeBezig()) { meld("Claude is bezig met de aanwijzingen; wacht tot dat klaar is."); return; }
     sluitVenster();
+
     const venster = document.createElement("div");
     venster.className = "aw-venster";
-    const wat = aanwijzing ? aanwijzing.onderdeel.omschrijving : omschrijving(el);
     venster.innerHTML = `
       <div class="aw-wat"></div>
-      <textarea placeholder="Wat moet hier veranderen?"></textarea>
+      <div class="aw-invoer">
+        <textarea placeholder="Wat moet hier veranderen? Typ, of klik op de microfoon."></textarea>
+        <button type="button" class="aw-mic" title="Inspreken (nog eens klikken = stoppen)">🎤</button>
+      </div>
+      <div class="aw-opmaak">
+        <div class="aw-rij">
+          <span>Opmaak</span>
+          <button type="button" class="aw-schakel" data-schakel="vet" title="Vet"><b>B</b></button>
+          <button type="button" class="aw-schakel" data-schakel="cursief" title="Cursief"><i>I</i></button>
+          <button type="button" class="aw-schakel" data-schakel="onderstreept" title="Onderstreept"><u>U</u></button>
+          <button type="button" class="aw-wisopmaak" title="Alle opmaak van deze aanwijzing weghalen" style="padding:4px 8px;font-size:12px">Wis opmaak</button>
+        </div>
+        <div class="aw-rij" data-kleur="color"><span>Tekstkleur</span></div>
+        <div class="aw-rij" data-kleur="background-color"><span>Vlakkleur</span></div>
+        <div class="aw-rij aw-bereik">
+          <label><input type="radio" name="aw-bereik" value="dit"> alleen dit onderdeel</label>
+          <label><input type="radio" name="aw-bereik" value="alle"> <span class="aw-alle">alle gelijke</span></label>
+        </div>
+      </div>
+      <div class="aw-klein aw-svguitleg" hidden>Opmaak kiezen kan niet in de tekening (die is ook het printblad); beschrijf het in woorden.</div>
       <div class="aw-knoppen">
         <button type="button" class="aw-annuleer">Annuleer</button>
         <button type="button" class="aw-hoofd aw-bewaar">Bewaar</button>
       </div>`;
+
+    const wat = aanwijzing ? aanwijzing.onderdeel.omschrijving : omschrijving(el);
     venster.querySelector(".aw-wat").textContent = (aanwijzing ? `Aanwijzing ${aanwijzing.nummer} · ` : "") + wat;
     const vak = venster.querySelector("textarea");
-    if (aanwijzing) vak.value = aanwijzing.tekst;
+    if (aanwijzing) vak.value = aanwijzing.tekst || "";
+
+    const v = {
+      element: el,
+      aanwijzing,
+      dom: venster,
+      stijl: aanwijzing && aanwijzing.stijl
+        ? JSON.parse(JSON.stringify(aanwijzing.stijl))
+        : { bereik: "dit", selector: el ? cssPad(el) : "", eigenschappen: {} }
+    };
+    v.stopSpraak = koppelSpraak(venster.querySelector(".aw-mic"), vak);
+
+    // opmaak alleen voor gewone onderdelen van de pagina, niet in de tekening
+    const inTekening = el ? el instanceof SVGElement : (aanwijzing && /^(g|svg|rect|path|line|circle|text)$/.test(aanwijzing.onderdeel.tag));
+    if (inTekening) {
+      venster.querySelector(".aw-opmaak").hidden = true;
+      venster.querySelector(".aw-svguitleg").hidden = false;
+      v.stijl = null;
+    } else {
+      maakOpmaak(v);
+    }
+
     venster.querySelector(".aw-annuleer").addEventListener("click", sluitVenster);
     venster.querySelector(".aw-bewaar").addEventListener("click", bewaarVenster);
     laag.appendChild(venster);
+    staat.venster = v;
 
     // naast het onderdeel, maar binnen het scherm
     const r = el ? el.getBoundingClientRect()
-                 : { left: aanwijzing.positie.x, top: aanwijzing.positie.y, right: aanwijzing.positie.x, bottom: aanwijzing.positie.y };
+                 : { left: aanwijzing.positie.x, top: aanwijzing.positie.y, right: aanwijzing.positie.x + aanwijzing.positie.breedte };
     const b = venster.offsetWidth, h = venster.offsetHeight;
     let x = r.right + 10, y = r.top;
     if (x + b > window.innerWidth - 8) x = Math.max(8, r.left - b - 10);
+    if (x + b > window.innerWidth - 8) x = Math.max(8, window.innerWidth - b - 8);
     if (y + h > window.innerHeight - 8) y = Math.max(8, window.innerHeight - h - 8);
     venster.style.left = x + "px";
     venster.style.top = Math.max(8, y) + "px";
 
-    staat.venster = { element: el, aanwijzing, dom: venster };
     if (el) toonRand(el);
+    tekenVoorbeelden();
     vak.focus();
+  }
+
+  function maakOpmaak(v) {
+    const venster = v.dom;
+    const el = v.element;
+    const s = v.stijl;
+
+    const bijwerken = () => {
+      venster.querySelectorAll("[data-schakel]").forEach(k => {
+        const prop = SCHAKELAARS[k.dataset.schakel][0];
+        k.classList.toggle("aw-aan", prop in s.eigenschappen);
+      });
+      venster.querySelectorAll(".aw-staal").forEach(k =>
+        k.classList.toggle("aw-gekozen", s.eigenschappen[k.dataset.prop] === k.dataset.waarde));
+      tekenVoorbeelden();
+    };
+
+    // vet, cursief, onderstreept: het tegenovergestelde van wat er nu staat
+    const SCHAKELAARS = {
+      vet:          ["font-weight",     cs => parseInt(cs.fontWeight, 10) >= 600 ? "400" : "700"],
+      cursief:      ["font-style",      cs => cs.fontStyle === "italic" ? "normal" : "italic"],
+      onderstreept: ["text-decoration", cs => cs.textDecorationLine.includes("underline") ? "none" : "underline"]
+    };
+    venster.querySelectorAll("[data-schakel]").forEach(knop => knop.addEventListener("click", () => {
+      const [prop, tegendeel] = SCHAKELAARS[knop.dataset.schakel];
+      if (prop in s.eigenschappen) delete s.eigenschappen[prop];
+      else {
+        const doel = el || document.querySelector(s.selector);
+        s.eigenschappen[prop] = doel ? tegendeel(getComputedStyle(doel)) : tegendeel({ fontWeight: "400", fontStyle: "normal", textDecorationLine: "none" });
+      }
+      bijwerken();
+    }));
+
+    // kleuren: de kleuren van de app, en een vrije kleur
+    const wortel = getComputedStyle(document.documentElement);
+    venster.querySelectorAll("[data-kleur]").forEach(rij => {
+      const prop = rij.dataset.kleur;
+      const opties = KLEUREN.filter(([, n]) => wortel.getPropertyValue(n).trim())
+        .map(([naam, n]) => [naam, `var(${n})`]).concat([["wit", "#ffffff"]]);
+      opties.forEach(([naam, waarde]) => {
+        const staal = document.createElement("button");
+        staal.type = "button";
+        staal.className = "aw-staal";
+        staal.title = naam;
+        staal.style.background = waarde;
+        staal.dataset.prop = prop;
+        staal.dataset.waarde = waarde;
+        staal.addEventListener("click", () => {
+          if (s.eigenschappen[prop] === waarde) delete s.eigenschappen[prop];
+          else s.eigenschappen[prop] = waarde;
+          bijwerken();
+        });
+        rij.appendChild(staal);
+      });
+      const vrij = document.createElement("input");
+      vrij.type = "color";
+      vrij.title = "Andere kleur";
+      vrij.addEventListener("input", () => { s.eigenschappen[prop] = vrij.value; bijwerken(); });
+      rij.appendChild(vrij);
+    });
+
+    venster.querySelector(".aw-wisopmaak").addEventListener("click", () => { s.eigenschappen = {}; bijwerken(); });
+
+    // alleen dit onderdeel, of alle gelijke
+    const gelijk = el ? gelijkeSelector(el) : (s.bereik === "alle" ? s.selector : null);
+    const dit = el ? cssPad(el) : (s.bereik === "dit" ? s.selector : null);
+    const keuzes = venster.querySelectorAll("[name=aw-bereik]");
+    keuzes.forEach(k => {
+      k.checked = k.value === s.bereik;
+      k.disabled = k.value === "alle" ? !gelijk : !dit;
+      k.addEventListener("change", () => {
+        s.bereik = k.value;
+        s.selector = k.value === "alle" ? gelijk : dit;
+        bijwerken();
+      });
+    });
+    if (gelijk) {
+      let aantal = 0;
+      try { aantal = document.querySelectorAll(gelijk).length; } catch (e) {}
+      venster.querySelector(".aw-alle").textContent = `alle gelijke (${aantal} nu op het scherm)`;
+    } else {
+      venster.querySelector(".aw-alle").textContent = "alle gelijke (niet mogelijk: geen klasse)";
+    }
+
+    bijwerken();
   }
 
   function sluitVenster() {
     if (!staat.venster) return;
+    staat.venster.stopSpraak();
     staat.venster.dom.remove();
     staat.venster = null;
     if (!staat.modus) toonRand(null);
+    tekenVoorbeelden();
   }
 
   function bewaarVenster() {
     const v = staat.venster;
     if (!v) return;
     const tekst = v.dom.querySelector("textarea").value.trim();
-    if (!tekst) { sluitVenster(); return; }
-    if (v.aanwijzing) {
-      v.aanwijzing.tekst = tekst;
-      v.aanwijzing.status = "open";
+    const stijl = heeftStijl(v.stijl) ? v.stijl : null;
+    if (!tekst && !stijl) { sluitVenster(); return; }
+
+    let a = v.aanwijzing;
+    if (a) {
+      a.tekst = tekst;
+      a.status = "open";
+      delete a.antwoord;
+      delete a.vraag;
     } else {
-      staat.lijst.push(vastleggen(v.element, tekst));
+      a = vastleggen(v.element, tekst);
+      staat.lijst.push(a);
     }
+    if (stijl) a.stijl = stijl; else delete a.stijl;
+
     sluitVenster();
     staat.onderMuis = null;
     if (staat.modus) toonRand(null);
     bewaren();
   }
 
+  /* ---------------- verwerken, goedkeuren, terugdraaien ---------------- */
+
+  async function haalWijzigingen() {
+    try { staat.wijzigingen = await (await fetch("/wijzigingen", { cache: "no-store" })).json(); }
+    catch (e) { /* server weg: dat meldt ophalen() al */ }
+    tekenAlles();
+  }
+
+  async function volgTaak() {
+    let t;
+    try { t = await (await fetch("/taak", { cache: "no-store" })).json(); }
+    catch (e) { return; }
+    const wasBezig = claudeBezig();
+    staat.taak = t;
+    if (t.bezig) setTimeout(volgTaak, 2000);
+    else if (wasBezig) taakKlaar(t);
+    tekenAlles();
+  }
+
+  async function start(adres) {
+    let antwoord;
+    try { antwoord = await fetch(adres, { method: "POST" }); }
+    catch (e) { meld("De testserver is niet bereikbaar."); return null; }
+    const uit = await antwoord.json().catch(() => ({}));
+    if (!antwoord.ok) { meld(uit.message || "Dat lukte niet."); return null; }
+    return uit;
+  }
+
+  async function verwerk() {
+    if (staat.venster) sluitVenster();
+    zetModus(false);
+    if (await start("/verwerk")) { staat.lijstOpen = true; volgTaak(); }
+  }
+
+  async function goedkeuren() {
+    const w = staat.wijzigingen;
+    if (!confirm("Deze wijzigingen live zetten op GitHub?\n\n" + w.bestanden.join("\n") +
+                 "\n\nClaude controleert eerst wat er meegaat, en commit en pusht daarna naar main.")) return;
+    if (await start("/goedkeuren")) volgTaak();
+  }
+
+  async function terugdraaien() {
+    const w = staat.wijzigingen;
+    if (!confirm("Alle wijzigingen die nog niet live staan opzij zetten?\n\n" + w.bestanden.join("\n") +
+                 "\n\nZe zijn niet weg: ze staan in 'git stash' en zijn terug te halen.")) return;
+    const uit = await start("/terugdraaien");
+    if (uit) {
+      sessionStorage.setItem(NA_HERLADEN, "Teruggedraaid. De aanwijzingen staan weer open; pas ze aan en verwerk ze opnieuw.");
+      location.reload();
+    }
+  }
+
+  function taakKlaar(t) {
+    if (t.soort === "verwerken" && t.uitkomst !== "mislukt") {
+      // de code is veranderd: herladen om het resultaat te zien
+      sessionStorage.setItem(NA_HERLADEN, t.uitkomst === "gelukt"
+        ? "Verwerkt. Bekijk het resultaat; staat het goed, kies dan in de Lijst ‘Goedkeuren en live zetten’."
+        : "Deels verwerkt: Claude heeft een vraag. Zie de blauwe aanwijzingen in de Lijst.");
+      sessionStorage.setItem(NA_HERLADEN + "-lijst", "1");
+      location.reload();
+      return;
+    }
+    if (t.soort === "goedkeuren" && t.uitkomst === "gelukt") meld("Live gezet: gecommit en gepusht naar main.", 8);
+    else meld("Dat is niet gelukt. Zie de uitleg in de Lijst.", 8);
+    staat.lijstOpen = true;
+    ophalen();
+    haalWijzigingen();
+  }
+
+  function duur(ms) {
+    const s = Math.max(0, Math.round(ms / 1000));
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  }
+
   /* ---------------- de lijst ---------------- */
+
+  function knop(tekst, klasse, actie, uit) {
+    const k = document.createElement("button");
+    k.type = "button";
+    k.textContent = tekst;
+    if (klasse) k.className = klasse;
+    if (uit) k.disabled = true;
+    k.addEventListener("click", actie);
+    return k;
+  }
 
   function tekenLijst() {
     let paneel = laag.querySelector(".aw-lijst");
     if (!staat.lijstOpen) { if (paneel) paneel.remove(); return; }
     if (!paneel) { paneel = document.createElement("div"); paneel.className = "aw-lijst"; laag.appendChild(paneel); }
+    const scroll = paneel.scrollTop;
     paneel.innerHTML = "<h3>Aanwijzingen</h3>";
+
+    const t = staat.taak;
+    const bezig = claudeBezig();
+    const open = staat.lijst.filter(a => a.status === "open").length;
+    const w = staat.wijzigingen;
+
+    // 1. verwerken
+    const vak1 = document.createElement("div");
+    vak1.className = "aw-vak";
+    if (bezig) {
+      const wat = t.soort === "verwerken" ? "Claude verwerkt de aanwijzingen" : "Claude controleert en zet live";
+      vak1.innerHTML = `<b class="aw-klok"></b>`;
+      vak1.querySelector(".aw-klok").textContent = `${wat}… ${duur(Date.now() - t.begin)}`;
+    } else {
+      vak1.appendChild(knop(`Verwerk ${open} open aanwijzing${open === 1 ? "" : "en"}`, "aw-hoofd", verwerk, !open));
+      if (t && t.uitkomst === "mislukt" && t.samenvatting) {
+        const pre = document.createElement("pre");
+        pre.textContent = (t.soort === "goedkeuren" ? "Niet live gezet. " : "Verwerken mislukt. ") + t.samenvatting.slice(-600);
+        vak1.appendChild(pre);
+      }
+    }
+    paneel.appendChild(vak1);
+
+    // 2. bekijken en live zetten
+    if (w.bestanden.length || w.nietGepusht) {
+      const vak2 = document.createElement("div");
+      vak2.className = "aw-vak";
+      const uitleg = document.createElement("div");
+      uitleg.className = "aw-klein";
+      uitleg.textContent = (w.bestanden.length ? "Gewijzigd, nog niet live: " + w.bestanden.join(", ") : "") +
+                           (w.nietGepusht ? ` ${w.nietGepusht} commit(s) nog niet gepusht.` : "");
+      vak2.appendChild(uitleg);
+      const rij = document.createElement("div");
+      rij.className = "aw-knoppen";
+      rij.appendChild(knop("Terugdraaien", "", terugdraaien, bezig || !w.bestanden.length));
+      rij.appendChild(knop("Goedkeuren en live zetten", "aw-hoofd", goedkeuren, bezig));
+      vak2.appendChild(rij);
+      paneel.appendChild(vak2);
+    }
 
     if (!staat.lijst.length) {
       const leeg = document.createElement("div");
@@ -388,37 +793,57 @@
       return;
     }
 
+    // 3. de aanwijzingen
+    const statusNaam = { open: "open", vraag: "Claude heeft een vraag", verwerkt: "verwerkt, nog niet live" };
     staat.lijst.forEach(a => {
       const item = document.createElement("div");
       item.className = "aw-item" + (a.status === "verwerkt" ? " aw-verwerkt" : "");
-      item.innerHTML = `<div class="aw-wat"></div><div class="aw-tekst"></div>
-        <button type="button" class="aw-bewerk">Bewerk</button>
-        <button type="button" class="aw-weg">Verwijder</button>`;
-      item.querySelector(".aw-wat").textContent =
-        `${a.nummer}. ${a.onderdeel.omschrijving} · ${a.scherm}` + (a.status === "verwerkt" ? " · verwerkt" : "");
-      item.querySelector(".aw-tekst").textContent = a.tekst;
-      item.querySelector(".aw-bewerk").addEventListener("click", () => openVenster(zoekElement(a), a));
-      item.querySelector(".aw-weg").addEventListener("click", () => {
+      const kop = document.createElement("div");
+      kop.className = "aw-wat";
+      kop.textContent = `${a.nummer}. ${a.onderdeel.omschrijving} · ${a.scherm} · ${statusNaam[a.status] || a.status}`;
+      item.appendChild(kop);
+      if (a.tekst) {
+        const tekst = document.createElement("div");
+        tekst.className = "aw-tekst";
+        tekst.textContent = a.tekst;
+        item.appendChild(tekst);
+      }
+      if (heeftStijl(a.stijl)) {
+        const s = document.createElement("div");
+        s.className = "aw-klein";
+        s.textContent = beschrijfStijl(a.stijl);
+        item.appendChild(s);
+      }
+      if (a.vraag && a.status === "vraag") {
+        const q = document.createElement("div");
+        q.className = "aw-vraag";
+        q.textContent = "Claude vraagt: " + a.vraag + " (Bewerk de aanwijzing om te antwoorden.)";
+        item.appendChild(q);
+      }
+      if (a.antwoord) {
+        const ant = document.createElement("div");
+        ant.className = "aw-antwoord";
+        ant.textContent = "Claude: " + a.antwoord;
+        item.appendChild(ant);
+      }
+      item.appendChild(knop("Bewerk", "", () => openVenster(zoekElement(a), a), bezig));
+      item.appendChild(document.createTextNode(" "));
+      item.appendChild(knop("Verwijder", "", () => {
         staat.lijst = staat.lijst.filter(x => x !== a);
         bewaren();
-      });
+      }, bezig));
       paneel.appendChild(item);
     });
 
     const knoppen = document.createElement("div");
     knoppen.className = "aw-knoppen";
-    knoppen.innerHTML = `<button type="button" class="aw-wisverwerkt">Wis verwerkte</button>
-                         <button type="button" class="aw-wisalles">Wis alles</button>`;
-    knoppen.querySelector(".aw-wisverwerkt").addEventListener("click", () => {
-      staat.lijst = staat.lijst.filter(a => a.status !== "verwerkt");
-      bewaren();
-    });
-    knoppen.querySelector(".aw-wisalles").addEventListener("click", () => {
+    knoppen.appendChild(knop("Wis alles", "", () => {
       if (!confirm("Alle aanwijzingen wissen?")) return;
       staat.lijst = [];
       bewaren();
-    });
+    }, bezig));
     paneel.appendChild(knoppen);
+    paneel.scrollTop = scroll;
   }
 
   /* ---------------- spelden op de onderdelen ----------------
@@ -437,7 +862,7 @@
   }
 
   function plaatsSpelden() {
-    const open = staat.lijst.filter(a => a.status !== "verwerkt");
+    const open = staat.lijst.filter(isOpen);
     while (spelden.children.length > open.length) spelden.lastChild.remove();
     while (spelden.children.length < open.length) {
       const s = document.createElement("div");
@@ -448,40 +873,71 @@
       });
       spelden.appendChild(s);
     }
+    const scherm = welkScherm();
     open.forEach((a, i) => {
       const s = spelden.children[i];
       const el = zoekElement(a);
       // alleen tonen op het scherm waar de aanwijzing gemaakt is
-      if (a.scherm !== welkScherm() || !zichtbaar(el)) { s.style.display = "none"; return; }
+      if (a.scherm !== scherm || !zichtbaar(el)) { s.style.display = "none"; return; }
       const r = el.getBoundingClientRect();
       s.style.display = "flex";
       s.style.left = r.right + "px";
       s.style.top = r.top + "px";
-      s.textContent = a.nummer;
+      s.textContent = a.status === "vraag" ? "?" : a.nummer;
+      s.classList.toggle("aw-speld-vraag", a.status === "vraag");
       s.dataset.nummer = a.nummer;
-      s.title = a.tekst;
+      s.title = a.status === "vraag" ? "Claude vraagt: " + a.vraag : (a.tekst || beschrijfStijl(a.stijl));
     });
   }
 
   function tekenAlles() {
-    const aantal = staat.lijst.filter(a => a.status !== "verwerkt").length;
-    lijstknop.textContent = `Lijst (${aantal})` + (staat.nietBewaard ? " · niet bewaard" : "");
+    const open = staat.lijst.filter(isOpen).length;
+    let tekst = `Lijst (${open})`;
+    if (claudeBezig()) tekst += " · Claude bezig…";
+    else if (staat.wijzigingen.bestanden.length) tekst += " · nog niet live";
+    if (staat.nietBewaard) tekst += " · niet bewaard";
+    lijstknop.textContent = tekst;
     lijstknop.classList.toggle("aw-waarschuwing", staat.nietBewaard);
     tekenLijst();
     plaatsSpelden();
+    tekenVoorbeelden();
   }
 
   /* ---------------- starten ---------------- */
 
   modusknop.addEventListener("click", () => zetModus(!staat.modus));
-  lijstknop.addEventListener("click", () => { staat.lijstOpen = !staat.lijstOpen; tekenAlles(); });
+  lijstknop.addEventListener("click", () => {
+    staat.lijstOpen = !staat.lijstOpen;
+    if (staat.lijstOpen) haalWijzigingen();
+    tekenAlles();
+  });
 
   // De app tekent zichzelf steeds opnieuw; de spelden lopen gewoon mee.
-  setInterval(plaatsSpelden, 400);
+  setInterval(plaatsSpelden, 300);
+  // de klok bij "Claude is bezig"
+  setInterval(() => {
+    const klok = laag.querySelector(".aw-klok");
+    if (klok && claudeBezig()) klok.textContent = klok.textContent.replace(/\d+:\d\d$/, duur(Date.now() - staat.taak.begin));
+  }, 1000);
 
-  // Claude kan aanwijzingen.json bijwerken terwijl de pagina openstaat
-  // (status 'verwerkt'). Kom je terug in het venster, dan de nieuwste lijst.
-  window.addEventListener("focus", () => { if (!staat.venster) ophalen(); });
+  // Terug in het venster (bijvoorbeeld na werk in Claude Code): de nieuwste stand.
+  window.addEventListener("focus", () => {
+    if (staat.venster) return;
+    ophalen();
+    haalWijzigingen();
+  });
+
+  const naHerladen = sessionStorage.getItem(NA_HERLADEN);
+  if (naHerladen) {
+    sessionStorage.removeItem(NA_HERLADEN);
+    meld(naHerladen, 10);
+  }
+  if (sessionStorage.getItem(NA_HERLADEN + "-lijst")) {
+    sessionStorage.removeItem(NA_HERLADEN + "-lijst");
+    staat.lijstOpen = true;
+  }
 
   ophalen();
+  haalWijzigingen();
+  volgTaak();
 })();
