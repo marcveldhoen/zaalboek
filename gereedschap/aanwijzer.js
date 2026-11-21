@@ -10,9 +10,12 @@
       onderdeel, typ of spreek in, kies eventueel opmaak, Bewaar (of Enter).
    2. Verwerken: in de Lijst op "Verwerk" klikken. De testserver laat Claude
       Code de code aanpassen, zonder commit. Daarna herlaadt de pagina.
-   3. Bekijken: klopt het, dan "Goedkeuren en live zetten" (Claude controleert,
-      commit en pusht naar main). Klopt het niet: "Terugdraaien", of de
-      aanwijzing aanpassen en opnieuw verwerken.
+   3. Bekijken: een verwerkte aanwijzing krijgt een groen speldje ✓. Niet
+      tevreden? Klik erop (of op "Reageer" in de Lijst) en zeg wat er anders
+      moet; elke aanwijzing is een gesprekje, en Claude bouwt bij het volgende
+      "Verwerk" voort op wat er al staat. Tevreden: "Goedkeuren en live
+      zetten" (Claude controleert, commit en pusht naar main). Alles weg:
+      "Terugdraaien".
 
    Het tooltje verandert niets aan de app zelf. Alles wat het toont staat in
    één eigen laag (#aanwijzer) die boven de app ligt; de opmaakvoorbeelden in
@@ -96,6 +99,13 @@
       background: #D9480F; color: #fff; font-size: 12px; font-weight: 600; display: flex; align-items: center;
       justify-content: center; pointer-events: auto; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
     #aanwijzer .aw-speld.aw-speld-vraag { background: #1C5D99; }
+    #aanwijzer .aw-speld.aw-speld-klaar { background: #2F6F6A; }
+    #aanwijzer .aw-gesprek { max-height: 180px; overflow: auto; margin-bottom: 8px; padding-bottom: 6px;
+      border-bottom: 1px solid #E2E0D7; }
+    #aanwijzer .aw-bericht { white-space: pre-wrap; margin-bottom: 6px; }
+    #aanwijzer .aw-van-claude { color: #2F6F6A; }
+    #aanwijzer .aw-van-claude.aw-is-vraag { color: #1C5D99; }
+    #aanwijzer .aw-van-systeem { color: #949C99; font-style: italic; }
     #aanwijzer .aw-melding { position: fixed; right: 16px; bottom: 60px; max-width: 380px; background: #232B2B; color: #fff;
       padding: 8px 12px; border-radius: 6px; font-size: 13px; pointer-events: none; }
   `;
@@ -127,6 +137,56 @@
   const vanOns = el => el instanceof Node && laag.contains(el);
   const claudeBezig = () => !!(staat.taak && staat.taak.bezig);
   const isOpen = a => a.status === "open" || a.status === "vraag";
+  const laatste = a => (a.gesprek && a.gesprek[a.gesprek.length - 1]) || null;
+  // nog niet verwerkt en het laatste woord is van Marc: dan bewerk je dat bericht
+  const kanBewerken = a => a.status === "open" && laatste(a) && laatste(a).van === "marc";
+
+  /* Elke aanwijzing is een gesprek: berichten van Marc ("marc"), van Claude
+     ("claude", eventueel met vraag: true) en meldingen ("systeem"). Oudere
+     aanwijzingen hadden losse velden tekst/antwoord/vraag; die worden hier
+     omgezet. */
+  function naarGesprek(a) {
+    if (Array.isArray(a.gesprek)) return a;
+    a.gesprek = [];
+    if (a.tekst || a.stijl) {
+      const b = { van: "marc", tekst: a.tekst || "", tijd: a.tijd };
+      if (a.stijl) b.stijl = a.stijl;
+      a.gesprek.push(b);
+    }
+    if (a.antwoord) a.gesprek.push({ van: "claude", tekst: a.antwoord });
+    if (a.vraag) a.gesprek.push({ van: "claude", tekst: a.vraag, vraag: true });
+    delete a.tekst; delete a.antwoord; delete a.vraag;
+    return a;
+  }
+
+  function tekenGesprek(doel, berichten) {
+    berichten.forEach(b => {
+      const r = document.createElement("div");
+      r.className = "aw-bericht aw-van-" + b.van + (b.vraag ? " aw-is-vraag" : "");
+      const wie = document.createElement("b");
+      wie.textContent = b.van === "marc" ? "Jij: " : b.van === "claude" ? (b.vraag ? "Claude vraagt: " : "Claude: ") : "";
+      r.appendChild(wie);
+      r.appendChild(document.createTextNode(b.tekst || ""));
+      if (heeftStijl(b.stijl)) {
+        const st = document.createElement("div");
+        st.className = "aw-klein";
+        st.textContent = beschrijfStijl(b.stijl);
+        r.appendChild(st);
+      }
+      doel.appendChild(r);
+    });
+  }
+
+  const STATUSNAAM = {
+    nieuw: "nieuw, nog te verwerken",
+    reactie: "jouw reactie, nog te verwerken",
+    vraag: "Claude heeft een vraag",
+    verwerkt: "verwerkt: bekijk het, reageer of zet live"
+  };
+  function statusNaam(a) {
+    if (a.status === "open") return a.gesprek.some(b => b.van === "claude") ? STATUSNAAM.reactie : STATUSNAAM.nieuw;
+    return STATUSNAAM[a.status] || a.status;
+  }
 
   /* ---------------- een onderdeel beschrijven ----------------
      Zo dat Claude het in de code terugvindt: wat het is, de tekst erop, de
@@ -217,14 +277,14 @@
     return "zaal inrichten";
   }
 
-  function vastleggen(el, tekst) {
+  function vastleggen(el) {
     const r = el.getBoundingClientRect();
     const kruimel = document.getElementById("kruimel");
     return {
       nummer: staat.lijst.reduce((m, a) => Math.max(m, a.nummer || 0), 0) + 1,
       tijd: new Date().toISOString(),
       status: "open",
-      tekst,
+      gesprek: [],
       scherm: welkScherm(),
       kruimelpad: kruimel ? Array.from(kruimel.children).map(k => k.textContent.trim()).filter(Boolean).join(" · ") : "",
       onderdeel: {
@@ -286,16 +346,16 @@
     try {
       const antwoord = await fetch("/aanwijzingen", { cache: "no-store" });
       if (!antwoord.ok) throw new Error(antwoord.status);
-      staat.lijst = await antwoord.json();
+      staat.lijst = (await antwoord.json()).map(naarGesprek);
       // was er nog iets dat niet bij de server aankwam? Dan dat bewaren.
       const vangnet = leesVangnet();
       if (vangnet && vangnet.nietBewaard && !claudeBezig()) {
-        staat.lijst = vangnet.lijst;
+        staat.lijst = vangnet.lijst.map(naarGesprek);
         await bewaren();
       }
     } catch (e) {
       const vangnet = leesVangnet();
-      staat.lijst = vangnet ? vangnet.lijst : [];
+      staat.lijst = vangnet ? vangnet.lijst.map(naarGesprek) : [];
       meld("De testserver is niet bereikbaar; aanwijzingen staan alleen in deze browser.");
     }
     tekenAlles();
@@ -463,6 +523,7 @@
     venster.className = "aw-venster";
     venster.innerHTML = `
       <div class="aw-wat"></div>
+      <div class="aw-gesprek" hidden></div>
       <div class="aw-invoer">
         <textarea placeholder="Wat moet hier veranderen? Typ, of klik op de microfoon."></textarea>
         <button type="button" class="aw-mic" title="Inspreken (nog eens klikken = stoppen)">🎤</button>
@@ -488,18 +549,41 @@
         <button type="button" class="aw-hoofd aw-bewaar">Bewaar</button>
       </div>`;
 
+    /* Drie soorten: een nieuwe aanwijzing; het laatste (nog niet verwerkte)
+       bericht bewerken; of reageren op wat Claude deed of vroeg. */
+    const soort = !aanwijzing ? "nieuw" : kanBewerken(aanwijzing) ? "bewerk" : "reageer";
     const wat = aanwijzing ? aanwijzing.onderdeel.omschrijving : omschrijving(el);
-    venster.querySelector(".aw-wat").textContent = (aanwijzing ? `Aanwijzing ${aanwijzing.nummer} · ` : "") + wat;
+    venster.querySelector(".aw-wat").textContent = aanwijzing
+      ? `Aanwijzing ${aanwijzing.nummer} · ${wat} · ${statusNaam(aanwijzing)}` : wat;
     const vak = venster.querySelector("textarea");
-    if (aanwijzing) vak.value = aanwijzing.tekst || "";
+
+    let beginstijl = null;
+    if (aanwijzing) {
+      const eerder = soort === "bewerk" ? aanwijzing.gesprek.slice(0, -1) : aanwijzing.gesprek;
+      if (eerder.length) {
+        const g = venster.querySelector(".aw-gesprek");
+        g.hidden = false;
+        tekenGesprek(g, eerder);
+      }
+      if (soort === "bewerk") {
+        vak.value = laatste(aanwijzing).tekst || "";
+        beginstijl = laatste(aanwijzing).stijl || aanwijzing.stijl || null;
+      } else {
+        vak.placeholder = aanwijzing.status === "vraag"
+          ? "Je antwoord op de vraag van Claude. Typ, of klik op de microfoon."
+          : "Wat moet er nog anders? Typ, of klik op de microfoon.";
+        venster.querySelector(".aw-bewaar").textContent = "Bewaar reactie";
+      }
+    }
+    const pad = el ? cssPad(el) : (aanwijzing ? aanwijzing.onderdeel.cssPad : "");
 
     const v = {
       element: el,
       aanwijzing,
+      soort,
       dom: venster,
-      stijl: aanwijzing && aanwijzing.stijl
-        ? JSON.parse(JSON.stringify(aanwijzing.stijl))
-        : { bereik: "dit", selector: el ? cssPad(el) : "", eigenschappen: {} }
+      stijl: beginstijl ? JSON.parse(JSON.stringify(beginstijl))
+                        : { bereik: "dit", selector: pad, eigenschappen: {} }
     };
     v.stopSpraak = koppelSpraak(venster.querySelector(".aw-mic"), vak);
 
@@ -517,6 +601,9 @@
     venster.querySelector(".aw-bewaar").addEventListener("click", bewaarVenster);
     laag.appendChild(venster);
     staat.venster = v;
+
+    const gesprek = venster.querySelector(".aw-gesprek");
+    gesprek.scrollTop = gesprek.scrollHeight;
 
     // naast het onderdeel, maar binnen het scherm
     const r = el ? el.getBoundingClientRect()
@@ -597,7 +684,8 @@
 
     // alleen dit onderdeel, of alle gelijke
     const gelijk = el ? gelijkeSelector(el) : (s.bereik === "alle" ? s.selector : null);
-    const dit = el ? cssPad(el) : (s.bereik === "dit" ? s.selector : null);
+    const dit = el ? cssPad(el)
+              : (v.aanwijzing && v.aanwijzing.onderdeel.cssPad) || (s.bereik === "dit" ? s.selector : null);
     const keuzes = venster.querySelectorAll("[name=aw-bereik]");
     keuzes.forEach(k => {
       k.checked = k.value === s.bereik;
@@ -635,16 +723,21 @@
     const stijl = heeftStijl(v.stijl) ? v.stijl : null;
     if (!tekst && !stijl) { sluitVenster(); return; }
 
+    const bericht = { van: "marc", tekst, tijd: new Date().toISOString() };
+    if (stijl) bericht.stijl = stijl;
+
     let a = v.aanwijzing;
-    if (a) {
-      a.tekst = tekst;
-      a.status = "open";
-      delete a.antwoord;
-      delete a.vraag;
-    } else {
-      a = vastleggen(v.element, tekst);
+    if (!a) {
+      a = vastleggen(v.element);
+      a.gesprek.push(bericht);
       staat.lijst.push(a);
+    } else if (v.soort === "bewerk") {
+      a.gesprek[a.gesprek.length - 1] = bericht;
+    } else {
+      a.gesprek.push(bericht);
+      a.status = "open";
     }
+    // a.stijl is het opmaakvoorbeeld van het verzoek dat nog verwerkt moet worden
     if (stijl) a.stijl = stijl; else delete a.stijl;
 
     sluitVenster();
@@ -709,8 +802,8 @@
     if (t.soort === "verwerken" && t.uitkomst !== "mislukt") {
       // de code is veranderd: herladen om het resultaat te zien
       sessionStorage.setItem(NA_HERLADEN, t.uitkomst === "gelukt"
-        ? "Verwerkt. Bekijk het resultaat; staat het goed, kies dan in de Lijst ‘Goedkeuren en live zetten’."
-        : "Deels verwerkt: Claude heeft een vraag. Zie de blauwe aanwijzingen in de Lijst.");
+        ? "Verwerkt. Niet tevreden? Klik op het groene speldje ✓ om te reageren. Wel goed? Kies in de Lijst ‘Goedkeuren en live zetten’."
+        : "Deels verwerkt: Claude heeft een vraag. Klik op het blauwe speldje ? of kijk in de Lijst.");
       sessionStorage.setItem(NA_HERLADEN + "-lijst", "1");
       location.reload();
       return;
@@ -793,42 +886,20 @@
       return;
     }
 
-    // 3. de aanwijzingen
-    const statusNaam = { open: "open", vraag: "Claude heeft een vraag", verwerkt: "verwerkt, nog niet live" };
+    // 3. de aanwijzingen, elk met hun gesprek
     staat.lijst.forEach(a => {
       const item = document.createElement("div");
       item.className = "aw-item" + (a.status === "verwerkt" ? " aw-verwerkt" : "");
       const kop = document.createElement("div");
       kop.className = "aw-wat";
-      kop.textContent = `${a.nummer}. ${a.onderdeel.omschrijving} · ${a.scherm} · ${statusNaam[a.status] || a.status}`;
+      kop.textContent = `${a.nummer}. ${a.onderdeel.omschrijving} · ${a.scherm} · ${statusNaam(a)}`;
       item.appendChild(kop);
-      if (a.tekst) {
-        const tekst = document.createElement("div");
-        tekst.className = "aw-tekst";
-        tekst.textContent = a.tekst;
-        item.appendChild(tekst);
-      }
-      if (heeftStijl(a.stijl)) {
-        const s = document.createElement("div");
-        s.className = "aw-klein";
-        s.textContent = beschrijfStijl(a.stijl);
-        item.appendChild(s);
-      }
-      if (a.vraag && a.status === "vraag") {
-        const q = document.createElement("div");
-        q.className = "aw-vraag";
-        q.textContent = "Claude vraagt: " + a.vraag + " (Bewerk de aanwijzing om te antwoorden.)";
-        item.appendChild(q);
-      }
-      if (a.antwoord) {
-        const ant = document.createElement("div");
-        ant.className = "aw-antwoord";
-        ant.textContent = "Claude: " + a.antwoord;
-        item.appendChild(ant);
-      }
-      item.appendChild(knop("Bewerk", "", () => openVenster(zoekElement(a), a), bezig));
+      tekenGesprek(item, a.gesprek);
+      const openen = () => openVenster(zoekElement(a), a);
+      item.appendChild(knop(kanBewerken(a) ? "Bewerk" : "Reageer", kanBewerken(a) ? "" : "aw-hoofd", openen, bezig));
       item.appendChild(document.createTextNode(" "));
       item.appendChild(knop("Verwijder", "", () => {
+        if (a.status === "verwerkt" && !confirm("Deze aanwijzing verwijderen? De wijziging zelf blijft staan; die haal je weg met Terugdraaien.")) return;
         staat.lijst = staat.lijst.filter(x => x !== a);
         bewaren();
       }, bezig));
@@ -862,7 +933,7 @@
   }
 
   function plaatsSpelden() {
-    const open = staat.lijst.filter(isOpen);
+    const open = staat.lijst;
     while (spelden.children.length > open.length) spelden.lastChild.remove();
     while (spelden.children.length < open.length) {
       const s = document.createElement("div");
@@ -883,10 +954,12 @@
       s.style.display = "flex";
       s.style.left = r.right + "px";
       s.style.top = r.top + "px";
-      s.textContent = a.status === "vraag" ? "?" : a.nummer;
+      s.textContent = a.status === "vraag" ? "?" : a.status === "verwerkt" ? "✓" : a.nummer;
       s.classList.toggle("aw-speld-vraag", a.status === "vraag");
+      s.classList.toggle("aw-speld-klaar", a.status === "verwerkt");
       s.dataset.nummer = a.nummer;
-      s.title = a.status === "vraag" ? "Claude vraagt: " + a.vraag : (a.tekst || beschrijfStijl(a.stijl));
+      const l = laatste(a);
+      s.title = `${a.nummer}. ${statusNaam(a)}` + (l ? ` — ${l.van === "claude" ? "Claude" : "Jij"}: ${l.tekst || beschrijfStijl(l.stijl)}` : "");
     });
   }
 

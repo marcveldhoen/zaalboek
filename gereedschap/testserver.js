@@ -148,6 +148,22 @@ async function opslag(verzoek, antwoord) {
 
 /* ---------------- /aanwijzingen ---------------- */
 
+/* Oudere aanwijzingen hadden losse velden tekst/antwoord/vraag in plaats van
+   een gesprek; zelfde omzetting als in aanwijzer.js. */
+function naarGesprek(a) {
+  if (Array.isArray(a.gesprek)) return a;
+  a.gesprek = [];
+  if (a.tekst || a.stijl) {
+    const b = { van: "marc", tekst: a.tekst || "", tijd: a.tijd };
+    if (a.stijl) b.stijl = a.stijl;
+    a.gesprek.push(b);
+  }
+  if (a.antwoord) a.gesprek.push({ van: "claude", tekst: a.antwoord });
+  if (a.vraag) a.gesprek.push({ van: "claude", tekst: a.vraag, vraag: true });
+  delete a.tekst; delete a.antwoord; delete a.vraag;
+  return a;
+}
+
 function leesAanwijzingen() {
   try { return JSON.parse(fs.readFileSync(AANWIJZINGEN, "utf8")); } catch (e) { return []; }
 }
@@ -252,11 +268,13 @@ Verwerk de aanwijzingen in aanwijzingen.json met status "open", volgens de werkw
 - Test niet in de browser; controleer JavaScript wel met "node --check".
 - Wijzig alleen de code van de app (js/, css/, index.html). Nooit zaalboek.json, testgegevens/, gereedschap/ of .md-bestanden.
 
-Elke aanwijzing heeft "tekst" (wat Marc wil, in zijn woorden) en/of "stijl" (opmaak die Marc als voorbeeld al op het scherm zag). Maak een "stijl" definitief op de juiste plek in de css: bij bereik "dit" alleen voor dat onderdeel, bij bereik "alle" voor de klasse in "selector". Een kleur als var(--accent) is een bestaande CSS-variabele: gebruik die. Bedenk ook of de wijziging het printblad (css/blad.css) mag raken; meestal niet.
+Elke aanwijzing is een gesprek: "gesprek" is een lijst berichten, oudste eerst, met "van" ("marc", "claude" of "systeem") en "tekst", en soms "stijl" (opmaak die Marc als voorbeeld al op het scherm zag). Het LAATSTE bericht van Marc is wat je nu moet doen; de eerdere berichten zijn de achtergrond.
+- Staat er al een antwoord van jou ("claude") in het gesprek, dan is dit een reactie van Marc op wat je eerder deed. Die eerdere wijziging staat nog in de code (niet gecommit; zie git diff). Bouw daarop voort en pas die aan; begin niet opnieuw ernaast. Zegt een "systeem"-bericht dat er is teruggedraaid, dan is je eerdere werk weg en begin je wel opnieuw.
+- Een "stijl" maak je definitief op de juiste plek in de css: bij bereik "dit" alleen voor dat onderdeel, bij bereik "alle" voor de klasse in "selector". Een kleur als var(--accent) is een bestaande CSS-variabele: gebruik die. Bedenk ook of de wijziging het printblad (css/blad.css) mag raken; meestal niet.
 
 Werk daarna aanwijzingen.json bij, en verander daarin verder niets:
-- uitgevoerd: zet "status" op "verwerkt" en zet in "antwoord" in één korte Nederlandse zin wat je hebt gedaan;
-- niet duidelijk wat Marc bedoelt, of te groot of riskant: verander niets aan de code, zet "status" op "vraag" en zet in "vraag" in één korte zin wat je wilt weten.
+- uitgevoerd: voeg aan "gesprek" een bericht toe {"van": "claude", "tekst": "<één of twee korte Nederlandse zinnen: wat je hebt gedaan>"}, zet "status" op "verwerkt" en haal het veld "stijl" van de aanwijzing weg (de opmaak staat nu in de css). Heb je het onderdeel zelf veranderd zodat het op een andere plek in de pagina staat, werk dan "onderdeel.cssPad" bij, zodat het tooltje het nog terugvindt;
+- niet duidelijk wat Marc bedoelt, of te groot of riskant: verander niets aan de code, voeg {"van": "claude", "tekst": "<je vraag in één korte zin>", "vraag": true} toe en zet "status" op "vraag".
 
 Eindig met een samenvatting van hooguit drie zinnen in gewoon Nederlands.`;
 
@@ -285,7 +303,9 @@ async function verwerk(verzoek, antwoord) {
   if (verzoek.method !== "POST") return stuur(antwoord, 405, { message: "Niet toegestaan" });
   if (taak.bezig) return stuur(antwoord, 409, { message: "Claude is al bezig" });
   if (!(await aangemeld())) return stuur(antwoord, 401, { message: NIET_AANGEMELD });
-  if (!leesAanwijzingen().some(a => a.status === "open")) return stuur(antwoord, 422, { message: "Geen open aanwijzingen" });
+  const lijst = leesAanwijzingen().map(naarGesprek);
+  if (!lijst.some(a => a.status === "open")) return stuur(antwoord, 422, { message: "Geen open aanwijzingen" });
+  schrijfAanwijzingen(lijst);   // Claude krijgt altijd het gespreksformaat
 
   startClaude("verwerken", OPDRACHT_VERWERKEN, "Read,Edit,Write,Glob,Grep,Bash(node --check:*)", async (code) => {
     if (code !== 0) return "mislukt";
@@ -329,12 +349,14 @@ async function terugdraaien(verzoek, antwoord) {
   const uit = await git("stash", "push", "--include-untracked", "-m", `Aanwijzer: teruggedraaid op ${tijd}`);
   if (!uit.gelukt) return stuur(antwoord, 500, { message: uit.fout });
 
-  // de verwerkte aanwijzingen weer open zetten, zodat Marc ze kan aanpassen
-  schrijfAanwijzingen(leesAanwijzingen().map(a => {
-    if (a.status !== "verwerkt") return a;
-    const b = Object.assign({}, a, { status: "open" });
-    delete b.antwoord;
-    return b;
+  /* Wat Claude deed is weg. Aanwijzingen waar Claude al aan werkte gaan
+     weer open, met een melding in hun gesprek, zodat Marc ze kan aanpassen
+     en Claude bij het volgende Verwerk weet dat hij opnieuw begint. */
+  schrijfAanwijzingen(leesAanwijzingen().map(naarGesprek).map(a => {
+    if (!a.gesprek.some(b => b.van === "claude")) return a;
+    a.gesprek.push({ van: "systeem", tekst: `Teruggedraaid op ${tijd}: wat Claude veranderde is weggehaald.`, tijd: new Date().toISOString() });
+    if (a.status === "verwerkt") a.status = "open";
+    return a;
   }));
   stuur(antwoord, 200, { teruggedraaid: nu.bestanden });
 }
