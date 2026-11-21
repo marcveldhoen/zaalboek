@@ -8,6 +8,8 @@
    De gang van zaken:
    1. Aanwijzen: knop "Aanwijzen" rechtsonder (of Shift+A), klik op een
       onderdeel, typ of spreek in, kies eventueel opmaak, Bewaar (of Enter).
+      Een tekst zelf aanpassen: in het veld "Tekst" bovenin het venster, of
+      meteen met een dubbelklik op de tekst.
    2. Verwerken: in de Lijst op "Verwerk" klikken. De testserver laat Claude
       Code de code aanpassen, zonder commit. Daarna herlaadt de pagina.
    3. Bekijken: een verwerkte aanwijzing krijgt een groen speldje ✓. Niet
@@ -82,6 +84,10 @@
     #aanwijzer .aw-staal.aw-gekozen { outline: 2px solid #D9480F; outline-offset: 1px; }
     #aanwijzer input[type=color] { width: 26px; height: 22px; padding: 0; border: 1px solid #C9C6BC; border-radius: 4px; background: #fff; }
     #aanwijzer .aw-bereik label { font-size: 12px; margin-right: 8px; }
+    #aanwijzer .aw-tekstveld { flex: 1; font-size: 13px; padding: 5px 6px; border: 1px solid #C9C6BC;
+      border-radius: 5px; color: #232B2B; background: #fff; }
+    #aanwijzer .aw-tekstveld:disabled { background: #F2F1EC; color: #949C99; }
+    #aanwijzer .aw-tekstuitleg { margin: -2px 0 6px; }
     #aanwijzer .aw-klein { font-size: 12px; color: #5A6462; }
     #aanwijzer .aw-knoppen { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
     #aanwijzer .aw-lijst { right: 16px; bottom: 60px; width: 400px; max-height: 70vh; overflow: auto; padding: 10px; }
@@ -142,21 +148,16 @@
   const kanBewerken = a => a.status === "open" && laatste(a) && laatste(a).van === "marc";
 
   /* Elke aanwijzing is een gesprek: berichten van Marc ("marc"), van Claude
-     ("claude", eventueel met vraag: true) en meldingen ("systeem"). Oudere
-     aanwijzingen hadden losse velden tekst/antwoord/vraag; die worden hier
-     omgezet. */
-  function naarGesprek(a) {
-    if (Array.isArray(a.gesprek)) return a;
-    a.gesprek = [];
-    if (a.tekst || a.stijl) {
-      const b = { van: "marc", tekst: a.tekst || "", tijd: a.tijd };
-      if (a.stijl) b.stijl = a.stijl;
-      a.gesprek.push(b);
-    }
-    if (a.antwoord) a.gesprek.push({ van: "claude", tekst: a.antwoord });
-    if (a.vraag) a.gesprek.push({ van: "claude", tekst: a.vraag, vraag: true });
-    delete a.tekst; delete a.antwoord; delete a.vraag;
-    return a;
+     ("claude", eventueel met vraag: true) en meldingen ("systeem"). Een
+     bericht van Marc kan ook "stijl" (opmaak) en "tekstwijziging" ({ oud,
+     nieuw }) hebben. */
+
+  // een bericht in één regel, zoals in het gesprek
+  function berichtTekst(b) {
+    const delen = [];
+    if (b.tekstwijziging) delen.push(`Tekst wijzigen: ‘${b.tekstwijziging.oud}’ → ‘${b.tekstwijziging.nieuw}’`);
+    if (b.tekst) delen.push(b.tekst);
+    return delen.join("\n");
   }
 
   function tekenGesprek(doel, berichten) {
@@ -166,7 +167,7 @@
       const wie = document.createElement("b");
       wie.textContent = b.van === "marc" ? "Jij: " : b.van === "claude" ? (b.vraag ? "Claude vraagt: " : "Claude: ") : "";
       r.appendChild(wie);
-      r.appendChild(document.createTextNode(b.tekst || ""));
+      r.appendChild(document.createTextNode(berichtTekst(b)));
       if (heeftStijl(b.stijl)) {
         const st = document.createElement("div");
         st.className = "aw-klein";
@@ -248,6 +249,26 @@
       el = el.parentElement;
     }
     return delen.join(" > ");
+  }
+
+  /* De eigen tekst van een onderdeel: alleen de tekst die er direct in staat,
+     niet die van een icoontje of van onderdelen erbinnen. Zo blijft bij het
+     aanpassen een icoontje in een knop gewoon staan. Niet in de tekening. */
+  function tekstKnoop(el) {
+    if (!el || el instanceof SVGElement) return null;
+    return Array.from(el.childNodes).find(k => k.nodeType === 3 && k.nodeValue.trim()) || null;
+  }
+
+  function eigenTekst(el) {
+    const k = tekstKnoop(el);
+    return k ? k.nodeValue.trim() : "";
+  }
+
+  function zetEigenTekst(el, tekst) {
+    const k = tekstKnoop(el);
+    if (!k || k.nodeValue.trim() === tekst) return;
+    // spaties eromheen laten staan
+    k.nodeValue = k.nodeValue.replace(k.nodeValue.trim(), tekst);
   }
 
   function klassenVan(el) {
@@ -346,16 +367,16 @@
     try {
       const antwoord = await fetch("/aanwijzingen", { cache: "no-store" });
       if (!antwoord.ok) throw new Error(antwoord.status);
-      staat.lijst = (await antwoord.json()).map(naarGesprek);
+      staat.lijst = await antwoord.json();
       // was er nog iets dat niet bij de server aankwam? Dan dat bewaren.
       const vangnet = leesVangnet();
       if (vangnet && vangnet.nietBewaard && !claudeBezig()) {
-        staat.lijst = vangnet.lijst.map(naarGesprek);
+        staat.lijst = vangnet.lijst;
         await bewaren();
       }
     } catch (e) {
       const vangnet = leesVangnet();
-      staat.lijst = vangnet ? vangnet.lijst.map(naarGesprek) : [];
+      staat.lijst = vangnet ? vangnet.lijst : [];
       meld("De testserver is niet bereikbaar; aanwijzingen staan alleen in deze browser.");
     }
     tekenAlles();
@@ -432,6 +453,14 @@
       if (!staat.modus || vanOns(ev.target)) return;
       ev.preventDefault();
       ev.stopPropagation();
+      // dubbelklik op een tekst: de eerste klik opende het venster, nu het tekstveld
+      if (soort === "dblclick" && staat.venster) {
+        const veld = staat.venster.dom.querySelector(".aw-tekstveld");
+        if (veld && !staat.venster.dom.querySelector(".aw-tekstrij").hidden && !veld.disabled) {
+          veld.focus();
+          veld.select();
+        }
+      }
       if (soort === "pointerdown" && !staat.venster) {
         const el = kiesOnderdeel(document.elementFromPoint(ev.clientX, ev.clientY));
         if (el) openVenster(el, null);
@@ -445,7 +474,8 @@
   window.addEventListener("keydown", ev => {
     if (vanOns(ev.target)) {
       ev.stopPropagation();
-      if (ev.key === "Enter" && !ev.shiftKey && ev.target.tagName === "TEXTAREA") {
+      if (ev.key === "Enter" && !ev.shiftKey &&
+          (ev.target.tagName === "TEXTAREA" || ev.target.classList.contains("aw-tekstveld"))) {
         ev.preventDefault();
         bewaarVenster();
       } else if (ev.key === "Escape") {
@@ -524,6 +554,11 @@
     venster.innerHTML = `
       <div class="aw-wat"></div>
       <div class="aw-gesprek" hidden></div>
+      <div class="aw-rij aw-tekstrij" hidden>
+        <span>Tekst</span>
+        <input type="text" class="aw-tekstveld">
+      </div>
+      <div class="aw-klein aw-tekstuitleg" hidden></div>
       <div class="aw-invoer">
         <textarea placeholder="Wat moet hier veranderen? Typ, of klik op de microfoon."></textarea>
         <button type="button" class="aw-mic" title="Inspreken (nog eens klikken = stoppen)">🎤</button>
@@ -586,6 +621,7 @@
                         : { bereik: "dit", selector: pad, eigenschappen: {} }
     };
     v.stopSpraak = koppelSpraak(venster.querySelector(".aw-mic"), vak);
+    maakTekstveld(v);
 
     // opmaak alleen voor gewone onderdelen van de pagina, niet in de tekening
     const inTekening = el ? el instanceof SVGElement : (aanwijzing && /^(g|svg|rect|path|line|circle|text)$/.test(aanwijzing.onderdeel.tag));
@@ -597,7 +633,7 @@
       maakOpmaak(v);
     }
 
-    venster.querySelector(".aw-annuleer").addEventListener("click", sluitVenster);
+    venster.querySelector(".aw-annuleer").addEventListener("click", () => sluitVenster());
     venster.querySelector(".aw-bewaar").addEventListener("click", bewaarVenster);
     laag.appendChild(venster);
     staat.venster = v;
@@ -619,6 +655,47 @@
     if (el) toonRand(el);
     tekenVoorbeelden();
     vak.focus();
+  }
+
+  /* Het veld "Tekst": de eigen tekst van het onderdeel, direct aan te
+     passen. Wat je typt staat meteen op het scherm. v.tekst onthoudt:
+     oud (de tekst in de code), huidig (wat er stond toen het venster
+     openging) en of het veld gebruikt kan worden. */
+  function maakTekstveld(v) {
+    const el = v.element;
+    const a = v.aanwijzing;
+    const huidig = eigenTekst(el);
+    if (!huidig) return;
+
+    const eerder = v.soort === "bewerk" && laatste(a).tekstwijziging;
+    v.tekst = { oud: eerder ? eerder.oud : huidig, huidig };
+
+    const rij = v.dom.querySelector(".aw-tekstrij");
+    const veld = v.dom.querySelector(".aw-tekstveld");
+    rij.hidden = false;
+    veld.value = huidig;
+    veld.addEventListener("input", () => zetEigenTekst(el, veld.value.trim() || v.tekst.oud));
+
+    // tekst uit de gegevens (zaal-, verenigings- of meubelnaam) hoort niet in de code
+    fetch("/gegevenstekst?tekst=" + encodeURIComponent(v.tekst.oud), { cache: "no-store" })
+      .then(r => r.json())
+      .then(uit => {
+        if (!uit.inGegevens || staat.venster !== v) return;
+        veld.disabled = true;
+        const u = v.dom.querySelector(".aw-tekstuitleg");
+        u.hidden = false;
+        u.textContent = "Deze tekst komt uit de gegevens (bijvoorbeeld een zaal- of verenigingsnaam). Pas hem aan in de app zelf, via Beheer of Wijzigen.";
+      })
+      .catch(() => {});
+  }
+
+  // de nieuwe tekst uit het veld, of null als die niet veranderd is
+  function tekstwijzigingVan(v) {
+    if (!v.tekst) return null;
+    const veld = v.dom.querySelector(".aw-tekstveld");
+    const nieuw = veld.value.trim();
+    if (veld.disabled || !nieuw || nieuw === v.tekst.oud) return null;
+    return { oud: v.tekst.oud, nieuw };
   }
 
   function maakOpmaak(v) {
@@ -707,8 +784,12 @@
     bijwerken();
   }
 
-  function sluitVenster() {
+  /* nieuweTekst: wat er na het sluiten op het scherm hoort te staan. Bij
+     Annuleer is dat de tekst van vóór het venster. */
+  function sluitVenster(nieuweTekst) {
     if (!staat.venster) return;
+    const v = staat.venster;
+    if (v.tekst && v.element) zetEigenTekst(v.element, nieuweTekst || v.tekst.huidig);
     staat.venster.stopSpraak();
     staat.venster.dom.remove();
     staat.venster = null;
@@ -721,14 +802,21 @@
     if (!v) return;
     const tekst = v.dom.querySelector("textarea").value.trim();
     const stijl = heeftStijl(v.stijl) ? v.stijl : null;
-    if (!tekst && !stijl) { sluitVenster(); return; }
+    const wijziging = tekstwijzigingVan(v);
+    if (!tekst && !stijl && !wijziging) { sluitVenster(); return; }
 
     const bericht = { van: "marc", tekst, tijd: new Date().toISOString() };
     if (stijl) bericht.stijl = stijl;
+    if (wijziging) bericht.tekstwijziging = wijziging;
 
     let a = v.aanwijzing;
     if (!a) {
       a = vastleggen(v.element);
+      // het onderdeel toont al de nieuwe tekst; vastleggen zoals het in de code staat
+      if (wijziging) {
+        a.onderdeel.tekst = wijziging.oud;
+        a.onderdeel.omschrijving = a.onderdeel.omschrijving.replace(wijziging.nieuw, wijziging.oud);
+      }
       a.gesprek.push(bericht);
       staat.lijst.push(a);
     } else if (v.soort === "bewerk") {
@@ -739,8 +827,10 @@
     }
     // a.stijl is het opmaakvoorbeeld van het verzoek dat nog verwerkt moet worden
     if (stijl) a.stijl = stijl; else delete a.stijl;
+    // a.tekstwijziging idem: de nieuwe tekst als voorbeeld, tot Claude hem verwerkt
+    if (wijziging) a.tekstwijziging = wijziging; else delete a.tekstwijziging;
 
-    sluitVenster();
+    sluitVenster(wijziging ? wijziging.nieuw : (v.tekst ? v.tekst.oud : undefined));
     staat.onderMuis = null;
     if (staat.modus) toonRand(null);
     bewaren();
@@ -948,6 +1038,12 @@
     open.forEach((a, i) => {
       const s = spelden.children[i];
       const el = zoekElement(a);
+      // De app tekent schermen opnieuw: de nieuwe tekst als voorbeeld terugzetten
+      // (niet terwijl het venster van deze aanwijzing open is; dat doet het venster zelf).
+      if (el && a.tekstwijziging && isOpen(a) && !(staat.venster && staat.venster.aanwijzing === a) &&
+          eigenTekst(el) === a.tekstwijziging.oud) {
+        zetEigenTekst(el, a.tekstwijziging.nieuw);
+      }
       // alleen tonen op het scherm waar de aanwijzing gemaakt is
       if (a.scherm !== scherm || !zichtbaar(el)) { s.style.display = "none"; return; }
       const r = el.getBoundingClientRect();
@@ -959,7 +1055,7 @@
       s.classList.toggle("aw-speld-klaar", a.status === "verwerkt");
       s.dataset.nummer = a.nummer;
       const l = laatste(a);
-      s.title = `${a.nummer}. ${statusNaam(a)}` + (l ? ` — ${l.van === "claude" ? "Claude" : "Jij"}: ${l.tekst || beschrijfStijl(l.stijl)}` : "");
+      s.title = `${a.nummer}. ${statusNaam(a)}` + (l ? ` — ${l.van === "claude" ? "Claude" : "Jij"}: ${berichtTekst(l) || beschrijfStijl(l.stijl)}` : "");
     });
   }
 

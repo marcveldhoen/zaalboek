@@ -148,22 +148,6 @@ async function opslag(verzoek, antwoord) {
 
 /* ---------------- /aanwijzingen ---------------- */
 
-/* Oudere aanwijzingen hadden losse velden tekst/antwoord/vraag in plaats van
-   een gesprek; zelfde omzetting als in aanwijzer.js. */
-function naarGesprek(a) {
-  if (Array.isArray(a.gesprek)) return a;
-  a.gesprek = [];
-  if (a.tekst || a.stijl) {
-    const b = { van: "marc", tekst: a.tekst || "", tijd: a.tijd };
-    if (a.stijl) b.stijl = a.stijl;
-    a.gesprek.push(b);
-  }
-  if (a.antwoord) a.gesprek.push({ van: "claude", tekst: a.antwoord });
-  if (a.vraag) a.gesprek.push({ van: "claude", tekst: a.vraag, vraag: true });
-  delete a.tekst; delete a.antwoord; delete a.vraag;
-  return a;
-}
-
 function leesAanwijzingen() {
   try { return JSON.parse(fs.readFileSync(AANWIJZINGEN, "utf8")); } catch (e) { return []; }
 }
@@ -188,6 +172,22 @@ async function aanwijzingen(verzoek, antwoord) {
   }
 
   stuur(antwoord, 405, { message: "Niet toegestaan" });
+}
+
+/* ---------------- /gegevenstekst ----------------
+   Komt een tekst uit de gegevens (een zaal-, verenigings- of meubelnaam)?
+   Dan hoort hij niet in de code te veranderen maar in de app zelf. Gezocht
+   wordt in de kopie: een tekstwaarde die precies gelijk is. */
+
+function inGegevens(tekst) {
+  let gevonden = false;
+  const loop = w => {
+    if (gevonden) return;
+    if (typeof w === "string") { if (w.trim() === tekst) gevonden = true; }
+    else if (w && typeof w === "object") Object.values(w).forEach(loop);
+  };
+  try { loop(JSON.parse(fs.readFileSync(KOPIE, "utf8"))); } catch (e) {}
+  return gevonden;
 }
 
 /* ---------------- git ---------------- */
@@ -270,10 +270,11 @@ Verwerk de aanwijzingen in aanwijzingen.json met status "open", volgens de werkw
 
 Elke aanwijzing is een gesprek: "gesprek" is een lijst berichten, oudste eerst, met "van" ("marc", "claude" of "systeem") en "tekst", en soms "stijl" (opmaak die Marc als voorbeeld al op het scherm zag). Het LAATSTE bericht van Marc is wat je nu moet doen; de eerdere berichten zijn de achtergrond.
 - Staat er al een antwoord van jou ("claude") in het gesprek, dan is dit een reactie van Marc op wat je eerder deed. Die eerdere wijziging staat nog in de code (niet gecommit; zie git diff). Bouw daarop voort en pas die aan; begin niet opnieuw ernaast. Zegt een "systeem"-bericht dat er is teruggedraaid, dan is je eerdere werk weg en begin je wel opnieuw.
+- Een "tekstwijziging" ({"oud", "nieuw"}) betekent: Marc heeft de zichtbare tekst van dit onderdeel zelf aangepast en zag het resultaat al. Vervang die tekst in de code, alleen op deze plek, tenzij Marc in zijn bericht zegt dat het overal moet. Laat iconen en de rest van het onderdeel staan. Blijkt de tekst uit de gegevens te komen, of uit stukjes te zijn samengesteld zodat het niet eenduidig is: stel een vraag.
 - Een "stijl" maak je definitief op de juiste plek in de css: bij bereik "dit" alleen voor dat onderdeel, bij bereik "alle" voor de klasse in "selector". Een kleur als var(--accent) is een bestaande CSS-variabele: gebruik die. Bedenk ook of de wijziging het printblad (css/blad.css) mag raken; meestal niet.
 
 Werk daarna aanwijzingen.json bij, en verander daarin verder niets:
-- uitgevoerd: voeg aan "gesprek" een bericht toe {"van": "claude", "tekst": "<één of twee korte Nederlandse zinnen: wat je hebt gedaan>"}, zet "status" op "verwerkt" en haal het veld "stijl" van de aanwijzing weg (de opmaak staat nu in de css). Heb je het onderdeel zelf veranderd zodat het op een andere plek in de pagina staat, werk dan "onderdeel.cssPad" bij, zodat het tooltje het nog terugvindt;
+- uitgevoerd: voeg aan "gesprek" een bericht toe {"van": "claude", "tekst": "<één of twee korte Nederlandse zinnen: wat je hebt gedaan>"}, zet "status" op "verwerkt" en haal de velden "stijl" en "tekstwijziging" van de aanwijzing zelf weg (die staan nu in de code; laat ze in de berichten staan). Heb je het onderdeel zelf veranderd zodat het op een andere plek in de pagina staat, werk dan "onderdeel.cssPad" bij, zodat het tooltje het nog terugvindt;
 - niet duidelijk wat Marc bedoelt, of te groot of riskant: verander niets aan de code, voeg {"van": "claude", "tekst": "<je vraag in één korte zin>", "vraag": true} toe en zet "status" op "vraag".
 
 Eindig met een samenvatting van hooguit drie zinnen in gewoon Nederlands.`;
@@ -303,9 +304,7 @@ async function verwerk(verzoek, antwoord) {
   if (verzoek.method !== "POST") return stuur(antwoord, 405, { message: "Niet toegestaan" });
   if (taak.bezig) return stuur(antwoord, 409, { message: "Claude is al bezig" });
   if (!(await aangemeld())) return stuur(antwoord, 401, { message: NIET_AANGEMELD });
-  const lijst = leesAanwijzingen().map(naarGesprek);
-  if (!lijst.some(a => a.status === "open")) return stuur(antwoord, 422, { message: "Geen open aanwijzingen" });
-  schrijfAanwijzingen(lijst);   // Claude krijgt altijd het gespreksformaat
+  if (!leesAanwijzingen().some(a => a.status === "open")) return stuur(antwoord, 422, { message: "Geen open aanwijzingen" });
 
   startClaude("verwerken", OPDRACHT_VERWERKEN, "Read,Edit,Write,Glob,Grep,Bash(node --check:*)", async (code) => {
     if (code !== 0) return "mislukt";
@@ -352,8 +351,8 @@ async function terugdraaien(verzoek, antwoord) {
   /* Wat Claude deed is weg. Aanwijzingen waar Claude al aan werkte gaan
      weer open, met een melding in hun gesprek, zodat Marc ze kan aanpassen
      en Claude bij het volgende Verwerk weet dat hij opnieuw begint. */
-  schrijfAanwijzingen(leesAanwijzingen().map(naarGesprek).map(a => {
-    if (!a.gesprek.some(b => b.van === "claude")) return a;
+  schrijfAanwijzingen(leesAanwijzingen().map(a => {
+    if (!(a.gesprek || []).some(b => b.van === "claude")) return a;
     a.gesprek.push({ van: "systeem", tekst: `Teruggedraaid op ${tijd}: wat Claude veranderde is weggehaald.`, tijd: new Date().toISOString() });
     if (a.status === "verwerkt") a.status = "open";
     return a;
@@ -400,6 +399,10 @@ http.createServer(async (verzoek, antwoord) => {
     if (pad === "/goedkeuren")   return await goedkeuren(verzoek, antwoord);
     if (pad === "/terugdraaien") return await terugdraaien(verzoek, antwoord);
     if (pad === "/taak")         return stuur(antwoord, 200, taak);
+    if (pad === "/gegevenstekst") {
+      const tekst = (new URL(verzoek.url, "http://localhost").searchParams.get("tekst") || "").trim();
+      return stuur(antwoord, 200, { inGegevens: !!tekst && inGegevens(tekst) });
+    }
     if (pad === "/wijzigingen")  return stuur(antwoord, 200, await stand());
     bestand(verzoek, antwoord, pad);
   } catch (e) {
