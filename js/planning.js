@@ -121,11 +121,11 @@ const Planning = {
           .filter(z => z.gebouwId === gebouw.id)
           .sort((a, b) => a.volgorde - b.volgorde);
         if (!zalen.length) return "";
-        return `<tr class="roostergebouw"><th colspan="8" scope="colgroup">${gebouw.naam}</th></tr>` +
+        return `<tr class="roostergebouw"><th colspan="8" scope="colgroup">${veilig(gebouw.naam)}</th></tr>` +
           zalen.map(zaal => `<tr>
-            <th class="roosterzaal" scope="row">${zaal.naam}</th>
+            <th class="roosterzaal" scope="row">${veilig(zaal.naam)}</th>
             ${week[zaal.id].map((blokken, dag) => `<td class="roostervak${weekend(dag)}"${
-              afdruk ? "" : ` data-leegvak="${zaal.id}|${Model.dagen[dag]}" title="Nieuwe opstelling in ${zaal.naam} op ${Model.dagen[dag]}"`}>${
+              afdruk ? "" : ` data-leegvak="${zaal.id}|${Model.dagen[dag]}" title="Nieuwe opstelling in ${veilig(zaal.naam)} op ${Model.dagen[dag]}"`}>${
               blokken.map(blok => this.blokHtml(blok, afdruk)).join("")}</td>`).join("")}
           </tr>`).join("");
       }).join("");
@@ -138,10 +138,10 @@ const Planning = {
     const m = blok.moment;
     const klassen = ["roosterblok", blok.soort === "via" ? "via" : "", blok.botsing ? "botsing" : ""]
       .filter(Boolean).join(" ");
-    const via = blok.soort === "via" ? `<span class="roostervia">bezet via ${blok.viaZaal.naam}</span>` : "";
+    const via = blok.soort === "via" ? `<span class="roostervia">bezet via ${veilig(blok.viaZaal.naam)}</span>` : "";
     const botsing = blok.botsing ? `${WAARSCHUWING_ICOON}<span class="schermlezer">Botsing: </span>` : "";
-    const inhoud = `<span class="roostertijd">${botsing}${m.begin}–${m.eind}</span>
-      <span class="roosternaam">${this.naam(blok.opstelling)}</span>${via}`;
+    const inhoud = `<span class="roostertijd">${botsing}${veilig(m.begin)}–${veilig(m.eind)}</span>
+      <span class="roosternaam">${veilig(this.naam(blok.opstelling))}</span>${via}`;
     return afdruk
       ? `<div class="${klassen}">${inhoud}</div>`
       : `<button class="${klassen}" data-opstelling="${blok.opstelling.id}">${inhoud}</button>`;

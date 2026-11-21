@@ -50,7 +50,7 @@ const SchermZaal = {
       const zalen = Model.document.zalen
         .filter(z => z.gebouwId === gebouw.id)
         .map(z => this.zaalKnop(z)).join("");
-      return `<div class="group"><h2>${gebouw.naam}</h2>
+      return `<div class="group"><h2>${veilig(gebouw.naam)}</h2>
         ${zalen || '<p class="empty">Nog geen zalen</p>'}</div>`;
     }).join("");
 
@@ -67,7 +67,7 @@ const SchermZaal = {
     const maat = `<span>${meter(k.x1 - k.x0)}</span><span>×</span><span>${meter(k.y1 - k.y0)} m</span>`;
     const gekozen = this.zaal === zaal ? "gekozen" : "";
     return `<button class="tool zaalknop ${gekozen}" data-zaal="${zaal.id}">
-      <span class="zaalnaam">${zaal.naam}</span><span class="zaalmaat">${maat}</span></button>`;
+      <span class="zaalnaam">${veilig(zaal.naam)}</span><span class="zaalmaat">${maat}</span></button>`;
   },
 
   selecteer(zaal) {
@@ -86,14 +86,14 @@ const SchermZaal = {
     const z = this.zaal;
 
     const gebouwOpties = Model.document.gebouwen.map(g =>
-      `<option value="${g.id}" ${z && z.gebouwId === g.id ? "selected" : ""}>${g.naam}</option>`
+      `<option value="${g.id}" ${z && z.gebouwId === g.id ? "selected" : ""}>${veilig(g.naam)}</option>`
     ).join("");
 
     const vormType = z ? z.vorm.type : "rechthoek";
 
     vak.innerHTML = `
-      <p class="selname">${z ? z.naam : "Nieuwe zaal"}</p>
-      <p class="selsub">${z ? Model.gebouw(z.gebouwId).naam : "Nog niet bewaard"}</p>
+      <p class="selname">${veilig(z ? z.naam : "Nieuwe zaal")}</p>
+      <p class="selsub">${veilig(z ? Model.gebouw(z.gebouwId).naam : "Nog niet bewaard")}</p>
 
       <div class="veld-vol">
         <label>Gebouw</label>
@@ -108,7 +108,7 @@ const SchermZaal = {
       </div>
       <div class="veld-vol">
         <label>Naam van de zaal</label>
-        <input type="text" id="zNaam" value="${z ? z.naam : ""}">
+        <input type="text" id="zNaam" value="${veilig(z ? z.naam : "")}">
       </div>
 
       <h2>Vorm</h2>
@@ -317,7 +317,7 @@ const SchermZaal = {
     const naam = (basis && basis.naam) || o.opschrift || o.soort;
 
     return `
-      <p class="selname tussen">${naam}</p>
+      <p class="selname tussen">${veilig(naam)}</p>
       ${this.maatveld("Breedte", "breedte", o.breedte, 20, this.maxBreedte(o))}
       ${o.diepte != null ? this.maatveld(o.soort === "uitgifte" ? "Toonbank" : "Diepte", "diepte", o.diepte, this.minDiepte(o), this.maxDiepte(o)) : ""}
       ${o.soort === "deur" ? `
@@ -325,7 +325,7 @@ const SchermZaal = {
       ` : ""}
       ${o.opschrift != null ? `
         <div class="veld-vol"><label>Opschrift</label>
-          <input type="text" id="vObjOpschrift" value="${o.opschrift}"></div>
+          <input type="text" id="vObjOpschrift" value="${veilig(o.opschrift)}"></div>
       ` : ""}
       <div class="row">
         <button class="ghost" data-doe="draai-">Draai ↺</button>

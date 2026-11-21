@@ -144,8 +144,8 @@ const SchermAfdrukken = {
     const gebouw = Model.gebouw(groep.zaal.gebouwId);
     const tussenblad = metTussenblad ? `
       <div class="blad bladtussen">
-        <h1>${groep.zaal.naam}</h1>
-        <p>${gebouw.naam}</p>
+        <h1>${veilig(groep.zaal.naam)}</h1>
+        <p>${veilig(gebouw.naam)}</p>
       </div>` : "";
 
     const bladenHtml = groep.opstellingen.map(opstelling => {
@@ -174,8 +174,8 @@ const SchermAfdrukken = {
        zoveel hoogte in dat de tekening er niet groter door wordt. */
     const kop = `<div class="bladkop">
         <div>
-          <p class="bladplaats">${gebouw.naam} · ${zaal.naam}</p>
-          <h1>${vereniging ? vereniging.naam : "Geen vereniging"}</h1>
+          <p class="bladplaats">${veilig(gebouw.naam)} · ${veilig(zaal.naam)}</p>
+          <h1>${veilig(vereniging ? vereniging.naam : "Geen vereniging")}</h1>
           <p class="bladmoment">${this.momentenRegels(opstelling.gebruiksmomenten)}</p>
         </div>
         <img class="bladzegel" src="img/kerkzegel.png"
@@ -205,17 +205,17 @@ const SchermAfdrukken = {
           <div class="bladvak">
             <h2>Klaarzetten</h2>
             ${regels.map(r => `<div class="bline${r.tekort ? " over" : ""}">
-              <span>${r.tekort ? WAARSCHUWING_ICOON : ""}${r.naam}</span><b>${r.aantal}</b></div>`).join("")}
+              <span>${r.tekort ? WAARSCHUWING_ICOON : ""}${veilig(r.naam)}</span><b>${r.aantal}</b></div>`).join("")}
             ${tekorten.length ? `<p class="bladwaarschuwing">${WAARSCHUWING_ICOON}
               <span>Meer dan er in deze zaal staan: ${tekorten.map(r =>
-                `${r.tekort} ${r.naam.toLowerCase()}`).join(", ")}.</span></p>` : ""}
+                `${r.tekort} ${veilig(r.naam.toLowerCase())}`).join(", ")}.</span></p>` : ""}
           </div>
           <div class="bladvak">
             <h2>Verantwoordelijk</h2>
             <p>${Model.verantwoordelijkheden[opstelling.verantwoordelijke] || "—"}</p>
           </div>
           ${opstelling.opmerkingen ? `<div class="bladvak">
-            <h2>Opmerkingen</h2><p>${opstelling.opmerkingen}</p></div>` : ""}
+            <h2>Opmerkingen</h2><p>${veilig(opstelling.opmerkingen)}</p></div>` : ""}
         </div>
       </div>
 
@@ -228,8 +228,8 @@ const SchermAfdrukken = {
 
   /* "Dinsdag · avond · 20:00–22:00", zoals in de kop van het blad. */
   momentRegel(m) {
-    return [SchermStart.hoofdletter(m.dag), Model.dagdeel(m.begin), `${m.begin}–${m.eind}`]
-      .filter(Boolean).join(" · ");
+    return veilig([SchermStart.hoofdletter(m.dag), Model.dagdeel(m.begin), `${m.begin}–${m.eind}`]
+      .filter(Boolean).join(" · "));
   },
 
   /* Alle momenten van een opstelling, elk op een eigen regel (<br>). */

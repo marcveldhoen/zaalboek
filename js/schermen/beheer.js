@@ -81,8 +81,8 @@ const SchermBeheer = {
 
     return `<div class="startregel">
       <span class="startregelnaam">
-        <span class="startvereniging">${v.naam}</span>
-        <span class="startmoment">${gebruik}</span>
+        <span class="startvereniging">${veilig(v.naam)}</span>
+        <span class="startmoment">${veilig(gebruik)}</span>
       </span>
       <button class="ghost klein" data-verenigingbewerk="${v.id}">Wijzigen</button>
       <button class="ghost klein" data-verenigingverwijder="${v.id}"
@@ -95,7 +95,7 @@ const SchermBeheer = {
   verenigingFormulier(v) {
     return `<div class="startbewerk startformulier">
       <div class="veld-vol"><label>Naam</label>
-        <input type="text" class="bwVerenigingNaam" value="${v ? v.naam : ""}"></div>
+        <input type="text" class="bwVerenigingNaam" value="${veilig(v ? v.naam : "")}"></div>
       <div class="row">
         <button class="ghost" ${v ? `data-verenigingopslaan="${v.id}"` : 'data-verenigingaanmaken="1"'}>
           ${v ? "Opslaan" : "Aanmaken"}</button>
@@ -171,7 +171,7 @@ const SchermBeheer = {
     return `<div class="startregel">
       <span class="startregelnaam">
         <svg class="meubeltekening" data-meubeltekening="${m.id}" aria-hidden="true"></svg>
-        <span class="startvereniging">${m.naam}</span>
+        <span class="startvereniging">${veilig(m.naam)}</span>
         <span class="startmoment">${maat}</span>
       </span>
       <button class="ghost klein" data-meubelbewerk="${m.id}">Wijzigen</button>
@@ -213,7 +213,7 @@ const SchermBeheer = {
   meubelFormulier(soort, m) {
     return `<div class="startbewerk startformulier">
       <div class="veld-vol"><label>Naam</label>
-        <input type="text" class="bwMeubelNaam" value="${m ? m.naam : ""}"></div>
+        <input type="text" class="bwMeubelNaam" value="${veilig(m ? m.naam : "")}"></div>
       <div class="veld-vol"><label>Breedte (cm)</label>
         <input type="number" min="1" class="bwMeubelBreedte" value="${m ? m.breedte : ""}"></div>
       <div class="veld-vol"><label>Diepte (cm)</label>
@@ -300,8 +300,8 @@ const SchermBeheer = {
           .sort((a, b) => a.volgorde - b.volgorde);
         if (!zalen.length) return "";
         const opties = zalen.map(z =>
-          `<option value="${z.id}" ${z.id === this.voorraadZaalId ? "selected" : ""}>${z.naam}</option>`).join("");
-        return `<optgroup label="${gebouw.naam}">${opties}</optgroup>`;
+          `<option value="${z.id}" ${z.id === this.voorraadZaalId ? "selected" : ""}>${veilig(z.naam)}</option>`).join("");
+        return `<optgroup label="${veilig(gebouw.naam)}">${opties}</optgroup>`;
       }).join("");
 
     return `<div class="beheervak">
@@ -319,7 +319,7 @@ const SchermBeheer = {
       const rijen = Model.meubeltypen(soort).map(m => `
         <div class="field"><label class="voorraadnaam">
             <svg class="meubeltekening" data-meubeltekening="${m.id}" aria-hidden="true"></svg>
-            ${m.naam}</label>
+            ${veilig(m.naam)}</label>
           <input type="number" min="0" data-voorraad="${m.id}" value="${voorraad[m.id] || 0}">
         </div>`).join("");
       return rijen ? `<h2>${titel}</h2>${rijen}` : "";

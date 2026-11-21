@@ -94,12 +94,12 @@ const SchermStart = {
             return `<button class="menuzaal${actief ? " actief" : ""}" data-kieszaal="${zaal.id}"
                 ${actief ? 'aria-current="true"' : ""}>
               ${this.vormIcoon(zaal)}
-              <span class="naam">${zaal.naam}${this.isCombinatie(zaal)
+              <span class="naam">${veilig(zaal.naam)}${this.isCombinatie(zaal)
                 ? '<span class="schermlezer"> (combinatie)</span>' : ""}</span>
               <span class="aantal">${this.opstellingenVan(zaal).length}</span>
             </button>`;
           }).join("");
-        return zalen ? `<h2 class="menugebouw">${gebouw.naam}</h2>${zalen}` : "";
+        return zalen ? `<h2 class="menugebouw">${veilig(gebouw.naam)}</h2>${zalen}` : "";
       }).join("");
 
     const planningActief = !this.zoekterm.trim() && this.weergave === "planning";
@@ -148,9 +148,9 @@ const SchermStart = {
 
     return `<div class="overzichtkop">
         <div>
-          <p class="overzichtgebouw">${gebouw.naam}
+          <p class="overzichtgebouw">${veilig(gebouw.naam)}
             ${this.isCombinatie(zaal) ? '<span class="combinatielabel">Combinatie</span>' : ""}</p>
-          <h1>${zaal.naam}</h1>
+          <h1>${veilig(zaal.naam)}</h1>
           <p class="overzichtmaat">${this.maatTekst(zaal)} · ${opstellingen.length}
             ${opstellingen.length === 1 ? "opstelling" : "opstellingen"}</p>
         </div>
@@ -183,8 +183,8 @@ const SchermStart = {
       <p class="roostertip">Klik op een leeg vak om daar een nieuwe opstelling te beginnen.</p>
       ${zonder.length ? `<h2 class="zoekzaal">Zonder vast moment</h2>
         <ul class="zondermoment">${zonder.map(o => `<li>
-          <button class="kaartnaam" data-opstelling="${o.id}">${Planning.naam(o)}</button>
-          <span>${Model.zaal(o.zaalId).naam}</span>
+          <button class="kaartnaam" data-opstelling="${o.id}">${veilig(Planning.naam(o))}</button>
+          <span>${veilig(Model.zaal(o.zaalId).naam)}</span>
           <button class="tekstknop" data-bewerkin="${o.id}">Moment toevoegen</button>
         </li>`).join("")}</ul>` : ""}`;
   },
@@ -197,7 +197,7 @@ const SchermStart = {
         return vereniging && vereniging.naam.toLowerCase().includes(zoekterm);
       });
       if (!gevonden.length) return "";
-      return `<h2 class="zoekzaal">${Model.gebouw(zaal.gebouwId).naam} · ${zaal.naam}</h2>
+      return `<h2 class="zoekzaal">${veilig(Model.gebouw(zaal.gebouwId).naam)} · ${veilig(zaal.naam)}</h2>
         <div class="kaarten">${gevonden.map(o => this.kaart(o)).join("")}</div>`;
     }).join("");
 
@@ -231,7 +231,7 @@ const SchermStart = {
     }
 
     const vereniging = o.verenigingId && Model.vereniging(o.verenigingId);
-    const naam = vereniging ? vereniging.naam : "Naamloze opstelling";
+    const naam = veilig(vereniging ? vereniging.naam : "Naamloze opstelling");
     const zaal = Model.zaal(o.zaalId);
     const k = Tekening.kader(zaal);
     const M = 60;
@@ -274,7 +274,7 @@ const SchermStart = {
       const meubel = Model.meubel(id);
       if (!meubel || !per[id]) return;
       const woord = per[id] === 1 ? meubel.naam : (meubel.meervoud || meubel.naam);
-      const tekst = `${per[id]} ${woord.toLowerCase()}`;
+      const tekst = `${per[id]} ${veilig(woord.toLowerCase())}`;
       delen.push(zaal && per[id] > (voorraad[id] || 0)
         ? `<span class="kaarttekort">${WAARSCHUWING_ICOON}${tekst} (${voorraad[id] || 0} in de zaal)</span>`
         : tekst);
@@ -294,21 +294,21 @@ const SchermStart = {
       const namen = [...new Set(botsingen.filter(b => b.moment === m).map(b => Planning.naam(b.ander)))];
       if (!namen.length) return regel;
       return `<span class="kaartbezet">${WAARSCHUWING_ICOON}${regel}</span>
-        <span class="kaartbezetdoor">bezet door ${namen.join(", ")}</span>`;
+        <span class="kaartbezetdoor">bezet door ${namen.map(veilig).join(", ")}</span>`;
     }).join("<br>");
   },
 
   nieuwKaart(zaal) {
     if (this.nieuwIn === zaal.id) {
       return `<div class="nieuwkaart open">
-        <p class="nieuwtitel">Nieuwe opstelling in zaal ${zaal.naam}</p>
+        <p class="nieuwtitel">Nieuwe opstelling in zaal ${veilig(zaal.naam)}</p>
         ${this.nieuweOpstellingFormulier(this.nieuwDag)}
       </div>`;
     }
     return `<button class="nieuwkaart" data-nieuwopstelling="${zaal.id}">
       <span class="plus" aria-hidden="true">+</span>
       <b>Nieuwe opstelling</b>
-      <span>in zaal ${zaal.naam}</span>
+      <span>in zaal ${veilig(zaal.naam)}</span>
     </button>`;
   },
 
@@ -336,7 +336,7 @@ const SchermStart = {
 
   nieuweOpstellingFormulier(voorDag) {
     const opties = Model.document.verenigingen.map(v =>
-      `<option value="${v.id}">${v.naam}</option>`).join("");
+      `<option value="${v.id}">${veilig(v.naam)}</option>`).join("");
 
     return `<div class="startnieuw startformulier">
       <select class="startnieuwselect">
@@ -397,9 +397,9 @@ const SchermStart = {
   momentRij(m) {
     return `<div class="momentrij">
       <select class="mDag" aria-label="Dag">${this.dagOpties(m.dag)}</select>
-      <input type="time" class="mBegin" aria-label="Van" value="${m.begin || ""}">
+      <input type="time" class="mBegin" aria-label="Van" value="${veilig(m.begin)}">
       <span aria-hidden="true">–</span>
-      <input type="time" class="mEind" aria-label="Tot" value="${m.eind || ""}">
+      <input type="time" class="mEind" aria-label="Tot" value="${veilig(m.eind)}">
       <button type="button" class="ghost momentweg" data-momentweg="1" aria-label="Moment verwijderen">✕</button>
     </div>`;
   },
@@ -425,7 +425,7 @@ const SchermStart = {
 
   opstellingBewerkFormulier(o) {
     const opties = Model.document.verenigingen.map(v =>
-      `<option value="${v.id}" ${o.verenigingId === v.id ? "selected" : ""}>${v.naam}</option>`).join("");
+      `<option value="${v.id}" ${o.verenigingId === v.id ? "selected" : ""}>${veilig(v.naam)}</option>`).join("");
 
     return `<div class="startbewerk startformulier">
       <div class="veld-vol">

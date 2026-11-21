@@ -149,7 +149,7 @@ const SchermTekenen = {
       knop.className = "tile" + (t.breed ? " breed" : "");
       knop.dataset.plaats = t.plaats;
       if (t.meubelId) knop.dataset.meubel = t.meubelId;
-      knop.innerHTML = `<span class="tart"></span><span class="tn">${t.naam}</span><span class="tm">${t.maat}</span>`;
+      knop.innerHTML = `<span class="tart"></span><span class="tn">${veilig(t.naam)}</span><span class="tm">${veilig(t.maat)}</span>`;
 
       const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       svg.setAttribute("viewBox", `-120 ${-t.H / 2} 240 ${t.H}`);
@@ -294,7 +294,7 @@ const SchermTekenen = {
       inhoud = `<h2>Rechte tafels ertussen</h2>
         <select id="rechtesoort">${rechteSoorten.map(m =>
           `<option value="${m.id}" ${e.rechteMeubelId === m.id ? "selected" : ""}>
-             ${m.naam} ${m.breedte}×${m.diepte}</option>`).join("")}</select>
+             ${veilig(m.naam)} ${veilig(m.breedte)}×${veilig(m.diepte)}</option>`).join("")}</select>
         <div class="tellers enkel">${tellers}</div>
         <h2>Stoelen</h2>
         <div class="tellers">${this.teller("Per tafel", e.stoelen, "stoelenPerTafel", 0, 4)}</div>
@@ -304,7 +304,7 @@ const SchermTekenen = {
         <div class="plaatsen">
           ${plaatsen.map(p => `
             <button class="plaatsknop${p.soort === "bocht" ? " bocht" : ""}${p.weggelaten ? " weg" : ""}"
-              data-doe="weglaten:${p.nummer}" title="${p.meubel.naam}">${p.nummer + 1}</button>`).join("")}
+              data-doe="weglaten:${p.nummer}" title="${veilig(p.meubel.naam)}">${p.nummer + 1}</button>`).join("")}
         </div>
         <p class="selsub">Gekleurd = trapeziumtafel (de bochten).</p>`;
     }
@@ -319,11 +319,11 @@ const SchermTekenen = {
       onder = `${m.breedte} × ${m.diepte} cm`;
     }
 
-    vak.innerHTML = `<p class="selname">${titel}</p><p class="selsub">${onder}</p>${inhoud}`;
+    vak.innerHTML = `<p class="selname">${veilig(titel)}</p><p class="selsub">${veilig(onder)}</p>${inhoud}`;
 
     // draaien, dupliceren en verwijderen staan in de gereedschapsstrook
     document.getElementById("selectieacties").innerHTML = `
-      <span class="strooknaam">${titel}:</span>
+      <span class="strooknaam">${veilig(titel)}:</span>
       <button class="strookactie" data-doe="draai-">Draai ↺</button>
       <button class="strookactie" data-doe="draai+">Draai ↻</button>
       <button class="strookactie" data-doe="dupliceer">Dupliceren</button>
@@ -369,13 +369,13 @@ const SchermTekenen = {
 
     html += `<h2>In deze opstelling</h2>` + regels.map(r =>
       `<div class="tline ${r.tekort ? "over" : ""}">
-         <span>${r.tekort ? WAARSCHUWING_ICOON : ""}${r.naam}</span><b>${r.aantal} van ${r.voorraad}</b>
+         <span>${r.tekort ? WAARSCHUWING_ICOON : ""}${veilig(r.naam)}</span><b>${r.aantal} van ${r.voorraad}</b>
        </div>`).join("") +
       `<div class="tline"><span>Aantal personen</span><b>${Telling.aantalPersonen(this.opstelling)}</b></div>`;
 
     if (tekorten.length) {
       html += `<div class="waarschuwing">${WAARSCHUWING_ICOON}<p>` + tekorten.map(r =>
-        `${r.tekort} ${r.naam.toLowerCase()} meer dan er in deze zaal staan.`
+        `${r.tekort} ${veilig(r.naam.toLowerCase())} meer dan er in deze zaal staan.`
       ).join("<br>") + `<br>Halen uit een andere zaal.</p></div>`;
     }
 
