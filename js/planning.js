@@ -71,6 +71,26 @@ const Planning = {
     return week;
   },
 
+  /* De botsingen van één opstelling: per vast moment de andere opstellingen
+     die tegelijk in dezelfde ruimte staan (ook via een samengevoegde zaal).
+     Voor de melding op de kaart in het overzicht. */
+  botsingen(opstelling) {
+    const zaal = Model.zaal(opstelling.zaalId);
+    if (!zaal) return [];
+    const uitkomst = [];
+    (opstelling.gebruiksmomenten || []).forEach(moment => {
+      Model.document.opstellingen.forEach(ander => {
+        if (ander === opstelling) return;
+        const zaalVan = Model.zaal(ander.zaalId);
+        if (!zaalVan || !this.overlappen(zaal, zaalVan)) return;
+        (ander.gebruiksmomenten || []).forEach(m => {
+          if (this.tegelijk(moment, m)) uitkomst.push({ moment, ander, zaal: zaalVan });
+        });
+      });
+    });
+    return uitkomst;
+  },
+
   /* Opstellingen zonder vast moment: die staan niet in het rooster, dus
      worden ze eronder genoemd, zodat ze niet stil verdwijnen. */
   zonderMoment() {

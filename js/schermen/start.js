@@ -250,29 +250,54 @@ const SchermStart = {
           <button class="kaartnaam" data-opstelling="${o.id}">${naam}</button>
           ${o.teControleren ? `<span class="controleerlabel">${WAARSCHUWING_ICOON}Te controleren</span>` : ""}
         </div>
-        <p class="kaartmoment">${SchermAfdrukken.momentenRegels(o.gebruiksmomenten)}</p>
-        <p class="kaartaantallen">${this.aantallenTekst(o)}</p>
-        ${o.gewijzigdOp ? `<p class="kaartdatum">Gewijzigd ${SchermAfdrukken.datumTekst(o.gewijzigdOp)}</p>` : ""}
-        <div class="kaartacties">
-          <button data-bewerk="${o.id}">Wijzigen</button>
-          <button class="gevaar" data-verwijder="${o.id}">Verwijderen</button>
+        <p class="kaartmoment${o.gebruiksmomenten && o.gebruiksmomenten.length ? "" : " geenmoment"}">${this.momentenTekst(o)}</p>
+        <p class="kaartaantallen">${this.aantallenTekst(o, zaal)}</p>
+        <div class="kaartvoet">
+          <span class="kaartdatum">${o.gewijzigdOp ? `Gewijzigd ${SchermAfdrukken.datumTekst(o.gewijzigdOp)}` : ""}</span>
+          <div class="kaartacties">
+            <button data-bewerk="${o.id}">Wijzigen</button>
+            <button class="gevaar" data-verwijder="${o.id}">Verwijderen</button>
+          </div>
         </div>
       </div>
     </div>`;
   },
 
   /* "30 personen · 5 tafels lang · 30 stoelen" — uit dezelfde telling als het
-     tekenscherm en het blad. */
-  aantallenTekst(o) {
+     tekenscherm en het blad. Het aantal personen staat vet voorop: dat is
+     waar de koster het eerst naar kijkt. Meer dan er in de zaal staat? Dan
+     krijgt dat aantal het icoon en de kleur van de telling in het
+     tekenscherm, met erachter hoeveel er in de zaal staan. */
+  aantallenTekst(o, zaal) {
     const per = Telling.aantallen(o);
-    const delen = [`${Telling.aantalPersonen(o)} personen`];
+    const voorraad = (zaal && zaal.voorraad) || {};
+    const delen = [`<b class="kaartpersonen">${Telling.aantalPersonen(o)} personen</b>`];
     Object.keys(per).sort((a, b) => (a === "stoel" ? -1 : b === "stoel" ? 1 : 0)).forEach(id => {
       const meubel = Model.meubel(id);
       if (!meubel || !per[id]) return;
       const woord = per[id] === 1 ? meubel.naam : (meubel.meervoud || meubel.naam);
-      delen.push(`${per[id]} ${woord.toLowerCase()}`);
+      const tekst = `${per[id]} ${woord.toLowerCase()}`;
+      delen.push(zaal && per[id] > (voorraad[id] || 0)
+        ? `<span class="kaarttekort">${WAARSCHUWING_ICOON}${tekst} (${voorraad[id] || 0} in de zaal)</span>`
+        : tekst);
     });
     return delen.join(" · ");
+  },
+
+  /* De momenten onder elkaar, zoals op het blad. Is de zaal op een moment al
+     bezet, dan krijgt dat moment het icoon van het rooster en erachter door
+     wie, zodat je dat al op de kaart ziet. */
+  momentenTekst(o) {
+    const momenten = Model.momentenOpVolgorde(o.gebruiksmomenten);
+    if (!momenten.length) return SchermAfdrukken.momentenRegels(momenten);
+    const botsingen = Planning.botsingen(o);
+    return momenten.map(m => {
+      const regel = SchermAfdrukken.momentRegel(m);
+      const namen = [...new Set(botsingen.filter(b => b.moment === m).map(b => Planning.naam(b.ander)))];
+      if (!namen.length) return regel;
+      return `<span class="kaartbezet">${WAARSCHUWING_ICOON}${regel}</span>
+        <span class="kaartbezetdoor">bezet door ${namen.join(", ")}</span>`;
+    }).join("<br>");
   },
 
   nieuwKaart(zaal) {

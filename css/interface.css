@@ -550,10 +550,28 @@ header[hidden]{display:none}
   font-size:var(--titel-kaart);font-weight:600;letter-spacing:-.01em;
 }
 .kaartnaam:hover{text-decoration:underline}
-.kaartmoment{margin:4px 0 12px;color:var(--ink-soft)}
-.kaartaantallen{margin:0 0 4px;font-size:13px}
-.kaartdatum{margin:0;font-size:12px;color:var(--ink-soft)}
-.kaartacties{display:flex;gap:2px;margin:12px -8px 0;padding-top:8px;border-top:1px solid var(--kaart-rand)}
+/* Volgorde van belang: de naam, dan wanneer (het moment), dan hoeveel (het
+   aantal personen vet, het meubilair zachter). Datum en knoppen staan samen
+   op één rustige onderregel. */
+.kaartmoment{margin:4px 0 10px;font-weight:500;color:var(--ink)}
+.kaartmoment.geenmoment{font-weight:400;font-style:italic;color:var(--ink-faint)}
+.kaartaantallen{margin:0;font-size:13px;color:var(--ink-soft)}
+.kaartpersonen{font-weight:600;color:var(--ink)}
+/* Wat niet klopt staat op zijn eigen plek, niet in een los blok: een tekort
+   bij het aantal (zoals in de telling), een bezette zaal bij het moment
+   (zoals in het rooster). Altijd icoon én tekst, nooit alleen kleur. */
+.kaarttekort, .kaartbezet{font-weight:600;color:var(--waarschuwing-rand)}
+.kaartbezetdoor{font-weight:400;color:var(--waarschuwing-tekst)}
+.kaarttekort svg, .kaartbezet svg{
+  width:12px;height:12px;margin:0 4px -1px 0;
+  fill:none;stroke:var(--waarschuwing-icoon);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
+}
+.kaartvoet{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  margin-top:14px;padding-top:8px;border-top:1px solid var(--kaart-rand);
+}
+.kaartdatum{font-size:12px;color:var(--ink-faint)}
+.kaartacties{display:flex;gap:2px;margin-right:-8px}
 .kaartacties button{
   padding:6px 8px;background:none;border:0;border-radius:var(--hoek-knop);
   cursor:pointer;font-weight:500;color:var(--ink-soft);
