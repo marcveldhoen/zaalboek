@@ -224,7 +224,12 @@ function startClaude(soort, opdracht, gereedschap, naAfloop) {
     fs.writeFileSync(TAAKLOG, `${new Date().toISOString()} ${soort}, code ${code}\n\n${uit}`);
     let uitkomst = code === 0 ? "gelukt" : "mislukt";
     try { uitkomst = (await naAfloop(code, uit)) || uitkomst; } catch (e) { uitkomst = "mislukt"; }
-    Object.assign(taak, { bezig: false, einde: Date.now(), uitkomst, samenvatting: uit.trim().slice(-2000) });
+    let samenvatting = uit.trim().slice(-2000);
+    if (/authenticat|not logged in|\/login/i.test(uit)) {
+      uitkomst = "mislukt";
+      samenvatting = "Claude Code is niet (meer) aangemeld. Open Terminal, typ claude, meld je aan met /login en probeer het daarna opnieuw.\n\n" + samenvatting;
+    }
+    Object.assign(taak, { bezig: false, einde: Date.now(), uitkomst, samenvatting });
   };
   proces.on("close", klaar);
   proces.on("error", e => {

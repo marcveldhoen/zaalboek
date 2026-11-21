@@ -762,7 +762,7 @@
       vak1.appendChild(knop(`Verwerk ${open} open aanwijzing${open === 1 ? "" : "en"}`, "aw-hoofd", verwerk, !open));
       if (t && t.uitkomst === "mislukt" && t.samenvatting) {
         const pre = document.createElement("pre");
-        pre.textContent = (t.soort === "goedkeuren" ? "Niet live gezet. " : "Verwerken mislukt. ") + t.samenvatting.slice(-600);
+        pre.textContent = (t.soort === "goedkeuren" ? "Niet live gezet. " : "Verwerken mislukt. ") + t.samenvatting.slice(0, 900);
         vak1.appendChild(pre);
       }
     }
