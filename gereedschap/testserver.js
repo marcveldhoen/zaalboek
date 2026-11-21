@@ -269,9 +269,22 @@ Zet ze live volgens de afspraken in CLAUDE.md:
 
 Eindig met één zin in gewoon Nederlands: wat je gecommit hebt, of waarom niet.`;
 
+/* Is het programma `claude` aangemeld? Vooraf controleren geeft meteen een
+   duidelijke melding, in plaats van een mislukte taak. */
+const NIET_AANGEMELD = "Claude Code is niet aangemeld. Open ‘Zaalboek testen’ opnieuw via Spotlight (dat vraagt de aanmelding vanzelf), of typ in Terminal: claude auth login";
+
+function aangemeld() {
+  return new Promise(klaar => {
+    execFile("claude", ["auth", "status"], { env: claudeOmgeving() }, (fout, uit) => {
+      klaar(/"loggedIn":\s*true/.test(String(uit || "")));
+    });
+  });
+}
+
 async function verwerk(verzoek, antwoord) {
   if (verzoek.method !== "POST") return stuur(antwoord, 405, { message: "Niet toegestaan" });
   if (taak.bezig) return stuur(antwoord, 409, { message: "Claude is al bezig" });
+  if (!(await aangemeld())) return stuur(antwoord, 401, { message: NIET_AANGEMELD });
   if (!leesAanwijzingen().some(a => a.status === "open")) return stuur(antwoord, 422, { message: "Geen open aanwijzingen" });
 
   startClaude("verwerken", OPDRACHT_VERWERKEN, "Read,Edit,Write,Glob,Grep,Bash(node --check:*)", async (code) => {
@@ -285,6 +298,7 @@ async function verwerk(verzoek, antwoord) {
 async function goedkeuren(verzoek, antwoord) {
   if (verzoek.method !== "POST") return stuur(antwoord, 405, { message: "Niet toegestaan" });
   if (taak.bezig) return stuur(antwoord, 409, { message: "Claude is al bezig" });
+  if (!(await aangemeld())) return stuur(antwoord, 401, { message: NIET_AANGEMELD });
   const nu = await stand();
   if (!nu.bestanden.length && !nu.nietGepusht) return stuur(antwoord, 422, { message: "Er is niets om live te zetten" });
 

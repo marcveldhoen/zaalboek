@@ -677,7 +677,7 @@
     try { antwoord = await fetch(adres, { method: "POST" }); }
     catch (e) { meld("De testserver is niet bereikbaar."); return null; }
     const uit = await antwoord.json().catch(() => ({}));
-    if (!antwoord.ok) { meld(uit.message || "Dat lukte niet."); return null; }
+    if (!antwoord.ok) { meld(uit.message || "Dat lukte niet.", 12); return null; }
     return uit;
   }
 
