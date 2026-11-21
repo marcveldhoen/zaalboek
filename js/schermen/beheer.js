@@ -60,7 +60,7 @@ const SchermBeheer = {
       <div class="startzaal">
         <div class="startzaalkop">
           <span class="startzaalnaam">Verenigingen</span>
-          <button class="ghost" data-nieuwevereniging="1">+ Nieuwe vereniging</button>
+          <button class="ghost" id="nieuweVerenigingKnop" data-nieuwevereniging="1">+ Nieuwe vereniging</button>
         </div>
         ${regels || '<p class="empty">Nog geen verenigingen.</p>'}
         ${nieuw}

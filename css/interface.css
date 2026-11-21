@@ -205,7 +205,19 @@ h2{
   cursor:pointer;text-align:left;
 }
 .tool:hover{background:var(--hover)}
-.tool .dim{color:var(--ink-soft);font-size:12px;margin-left:auto;font-variant-numeric:tabular-nums}
+/* zalenlijst (scherm 6): de naam boven over de volle breedte (een lange
+   naam loopt door op de volgende regel), de maat eronder in vaste kolommen,
+   zodat breedte, × en diepte van alle zalen precies onder elkaar staan */
+.tool.zaalknop{
+  flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;
+  height:auto;min-height:var(--tool-h);padding:6px 10px;
+}
+.tool .zaalnaam{max-width:100%;overflow-wrap:anywhere;line-height:1.3}
+.tool .zaalmaat{
+  display:grid;grid-template-columns:4ch auto 6ch;column-gap:4px;
+  color:var(--ink-soft);font-size:12px;font-weight:400;font-variant-numeric:tabular-nums;
+}
+.tool .zaalmaat span:first-child{text-align:right}
 
 /* ---------- gereedschapsstrook van het tekenscherm ---------- */
 .strook{
@@ -309,7 +321,7 @@ svg#plan.panning{cursor:grabbing}
 .tellers .stepper{width:100%;justify-content:space-between;background:var(--wit)}
 .tellers .stepper button{width:34px;height:34px;color:var(--ink);font-size:16px}
 .tellers .stepper span{flex:1}
-#paneelRechts select{width:100%;padding:8px 10px;border-color:var(--invoerrand);border-radius:var(--hoek-knop)}
+#paneelRechts select{width:100%;padding:8px 30px 8px 10px}
 .plaatsen{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
 .plaatsknop{
   width:30px;height:27px;cursor:pointer;
@@ -325,10 +337,22 @@ svg#plan.panning{cursor:grabbing}
 }
 .stepper button:hover{color:var(--ink)}
 .stepper span{width:30px;text-align:center;font-variant-numeric:tabular-nums}
+/* keuzelijsten: zonder het standaardknopje van de browser, met een eigen
+   pijltje (twee schuine vlakjes) rechts, zodat ze er overal hetzelfde uitzien */
 select{
-  font:inherit;color:inherit;border:1px solid var(--invoerrand);border-radius:var(--hoek-knop);
-  background:var(--wit);padding:6px 8px;
+  -webkit-appearance:none;appearance:none;cursor:pointer;
+  font:inherit;color:var(--ink);border:1px solid var(--invoerrand);border-radius:var(--hoek-knop);
+  padding:7px 30px 7px 9px;line-height:1.3;
+  background-color:var(--wit);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%),
+    linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%);
+  background-position:calc(100% - 16px) 50%, calc(100% - 11px) 50%;
+  background-size:5px 5px;background-repeat:no-repeat;
+  box-shadow:var(--kaart-schaduw);
 }
+select:hover{border-color:var(--knoprand)}
+select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .row{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
 .row .ghost{flex:1;text-align:center}
 
@@ -342,6 +366,14 @@ select{
   font:inherit;border:1px solid var(--invoerrand);border-radius:var(--hoek-knop);padding:7px 9px;background:var(--wit);
 }
 .field input[type=number]{width:76px;text-align:right}
+/* maten van de zaal: twee naast elkaar, de eenheid "m" rechts in het vak */
+.maten{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.maatinvoer{position:relative}
+.maatinvoer input{padding-right:26px;text-align:right}
+.maatinvoer span{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  color:var(--ink-soft);pointer-events:none;
+}
 .tool.gekozen{background:var(--kaart);border-color:var(--knoprand);font-weight:600}
 
 /* ---------- telling ----------
@@ -427,6 +459,9 @@ kbd{
 .startregel .ghost.klein{
   flex:0 0 auto;padding:5px 10px;font-size:12px;margin-right:6px;
 }
+#zBewaren{color:var(--wit);background-color:var(--accent)}
+#nieuweZaalKnop{background-color:var(--accent);color:var(--wit)}
+#nieuweVerenigingKnop{background-color:var(--accent);color:var(--wit)}
 .startvereniging{flex:1;font-weight:500}
 .startmoment{color:var(--ink-soft);font-size:var(--tekst-klein)}
 .startnieuw{display:flex;gap:6px;align-items:center;margin-top:8px}

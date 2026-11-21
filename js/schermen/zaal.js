@@ -61,11 +61,13 @@ const SchermZaal = {
 
   zaalKnop(zaal) {
     const k = Zaalvorm.kader(Zaalvorm.omtrek(zaal.vorm));
-    const meter = cm => Math.round(cm / 10) / 10;
-    const maat = `${meter(k.x1 - k.x0)} × ${meter(k.y1 - k.y0)} m`;
+    // altijd één decimaal, zodat de maten van alle zalen even breed zijn
+    const meter = cm => (Math.round(cm / 10) / 10).toFixed(1).replace(".", ",");
+    // drie losse stukjes, zodat het ×-teken in de lijst onder elkaar staat
+    const maat = `<span>${meter(k.x1 - k.x0)}</span><span>×</span><span>${meter(k.y1 - k.y0)} m</span>`;
     const gekozen = this.zaal === zaal ? "gekozen" : "";
-    return `<button class="tool ${gekozen}" data-zaal="${zaal.id}">
-      ${zaal.naam}<span class="dim">${maat}</span></button>`;
+    return `<button class="tool zaalknop ${gekozen}" data-zaal="${zaal.id}">
+      <span class="zaalnaam">${zaal.naam}</span><span class="zaalmaat">${maat}</span></button>`;
   },
 
   selecteer(zaal) {
@@ -110,7 +112,7 @@ const SchermZaal = {
       </div>
 
       <h2>Vorm</h2>
-      <div class="field"><label>Type</label>
+      <div class="veld-vol"><label>Type</label>
         <select id="zVormType">
           <option value="rechthoek" ${vormType === "rechthoek" ? "selected" : ""}>Rechthoek</option>
           <option value="l-vorm" ${vormType === "l-vorm" ? "selected" : ""}>L-vorm</option>
@@ -136,28 +138,34 @@ const SchermZaal = {
     const m = cm => (cm != null ? Math.round(cm) / 100 : "");
     const doel = document.getElementById("zVormVelden");
 
+    // label erboven en de eenheid in het vak, net als de andere velden van het formulier
     const maatveld = (id, label, waarde) => `
-      <div class="field"><label>${label}</label>
-        <input type="number" step="0.01" min="0.1" id="${id}" value="${waarde}"> m</div>`;
+      <div class="veld-vol"><label for="${id}">${label}</label>
+        <div class="maatinvoer">
+          <input type="number" step="0.01" min="0.1" id="${id}" value="${waarde}"><span>m</span>
+        </div></div>`;
+    // twee maten naast elkaar
+    const paar = (a, b) => `<div class="maten">${a}${b}</div>`;
 
     if (type === "rechthoek") {
-      doel.innerHTML =
-        maatveld("zBreedte", "Breedte", m(vorm && vorm.breedte)) +
-        maatveld("zDiepte",  "Diepte",  m(vorm && vorm.diepte));
+      doel.innerHTML = paar(
+        maatveld("zBreedte", "Breedte", m(vorm && vorm.breedte)),
+        maatveld("zDiepte",  "Diepte",  m(vorm && vorm.diepte)));
     } else {
       const hoek = (vorm && vorm.hoek) || "rechtsboven";
-      doel.innerHTML =
-        maatveld("zBreedte", "Breedte", m(vorm && vorm.breedte)) +
-        maatveld("zDiepte",  "Diepte",  m(vorm && vorm.diepte)) +
-        `<div class="field"><label>Hap in de hoek</label>
+      doel.innerHTML = paar(
+        maatveld("zBreedte", "Breedte", m(vorm && vorm.breedte)),
+        maatveld("zDiepte",  "Diepte",  m(vorm && vorm.diepte))) +
+        `<div class="veld-vol"><label>Hap in de hoek</label>
           <select id="zHoek">
             <option value="rechtsonder" ${hoek === "rechtsonder" ? "selected" : ""}>rechtsonder</option>
             <option value="linksonder"  ${hoek === "linksonder"  ? "selected" : ""}>linksonder</option>
             <option value="rechtsboven" ${hoek === "rechtsboven" ? "selected" : ""}>rechtsboven</option>
             <option value="linksboven"  ${hoek === "linksboven"  ? "selected" : ""}>linksboven</option>
           </select></div>` +
-        maatveld("zHapBreedte", "Hap breedte", m(vorm && vorm.hapBreedte)) +
-        maatveld("zHapDiepte",  "Hap diepte",  m(vorm && vorm.hapDiepte));
+        paar(
+          maatveld("zHapBreedte", "Hap breedte", m(vorm && vorm.hapBreedte)),
+          maatveld("zHapDiepte",  "Hap diepte",  m(vorm && vorm.hapDiepte)));
     }
 
     // deze velden zijn zojuist (opnieuw) aangemaakt en hebben dus hun eigen listener nodig

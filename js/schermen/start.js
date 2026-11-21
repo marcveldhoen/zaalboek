@@ -168,7 +168,6 @@ const SchermStart = {
     const zonder = Planning.zonderMoment();
     return `<div class="overzichtkop">
         <div>
-          <p class="overzichtgebouw">Vaste momenten van alle opstellingen</p>
           <h1>Weekplanning</h1>
           <p class="roosteruitleg">
             <span><span class="roosterteken eigen"></span>Geboekt</span>
