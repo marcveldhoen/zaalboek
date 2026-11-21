@@ -8,8 +8,9 @@
    De gang van zaken:
    1. Aanwijzen: knop "Aanwijzen" rechtsonder (of Shift+A), klik op een
       onderdeel, typ of spreek in, kies eventueel opmaak, Bewaar (of Enter).
-      Een tekst zelf aanpassen: in het veld "Tekst" bovenin het venster, of
-      meteen met een dubbelklik op de tekst.
+      Een tekst aanpassen: in de aanwijsmodus op de tekst klikken en typen,
+      in het Zaalboek zelf. Enter of ergens anders klikken bewaart, Esc zet
+      de oude tekst terug; het knopje 💬 ernaast opent het venster.
    2. Verwerken: in de Lijst op "Verwerk" klikken. De testserver laat Claude
       Code de code aanpassen, zonder commit. Daarna herlaadt de pagina.
    3. Bekijken: een verwerkte aanwijzing krijgt een groen speldje ✓. Niet
@@ -34,6 +35,7 @@
     modus: false,
     onderMuis: null,     // het element waar de muis nu op staat
     venster: null,       // het open chatvenster (zie openVenster)
+    typen: null,         // de tekst waarin nu getypt wordt (zie startTypen)
     lijstOpen: false,
     nietBewaard: false,
     taak: null,          // wat Claude op de achtergrond doet (van /taak)
@@ -84,10 +86,8 @@
     #aanwijzer .aw-staal.aw-gekozen { outline: 2px solid #D9480F; outline-offset: 1px; }
     #aanwijzer input[type=color] { width: 26px; height: 22px; padding: 0; border: 1px solid #C9C6BC; border-radius: 4px; background: #fff; }
     #aanwijzer .aw-bereik label { font-size: 12px; margin-right: 8px; }
-    #aanwijzer .aw-tekstveld { flex: 1; font-size: 13px; padding: 5px 6px; border: 1px solid #C9C6BC;
-      border-radius: 5px; color: #232B2B; background: #fff; }
-    #aanwijzer .aw-tekstveld:disabled { background: #F2F1EC; color: #949C99; }
-    #aanwijzer .aw-tekstuitleg { margin: -2px 0 6px; }
+    #aanwijzer .aw-praat { position: fixed; padding: 2px 6px; font-size: 13px; line-height: 1.3;
+      pointer-events: auto; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
     #aanwijzer .aw-klein { font-size: 12px; color: #5A6462; }
     #aanwijzer .aw-knoppen { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
     #aanwijzer .aw-lijst { right: 16px; bottom: 60px; width: 400px; max-height: 70vh; overflow: auto; padding: 10px; }
@@ -268,7 +268,8 @@
     const k = tekstKnoop(el);
     if (!k || k.nodeValue.trim() === tekst) return;
     // spaties eromheen laten staan
-    k.nodeValue = k.nodeValue.replace(k.nodeValue.trim(), tekst);
+    // als functie, anders betekenen tekens als $& in de nieuwe tekst iets anders
+    k.nodeValue = k.nodeValue.replace(k.nodeValue.trim(), () => tekst);
   }
 
   function klassenVan(el) {
@@ -422,6 +423,7 @@
   /* ---------------- de aanwijsmodus ---------------- */
 
   function zetModus(aan) {
+    if (!aan && staat.typen) stopTypen(true);
     staat.modus = aan;
     modusknop.classList.toggle("aw-aan", aan);
     modusknop.textContent = aan ? "Aanwijzen (Esc = stoppen)" : "Aanwijzen";
@@ -440,31 +442,29 @@
   }
 
   window.addEventListener("pointermove", ev => {
-    if (!staat.modus || staat.venster) return;
+    if (!staat.modus || staat.venster || staat.typen) return;
     const el = kiesOnderdeel(document.elementFromPoint(ev.clientX, ev.clientY));
     if (el !== staat.onderMuis) { staat.onderMuis = el; toonRand(el); }
   }, true);
 
   /* In de aanwijsmodus mag de app de klik niet krijgen: geen slepen, geen
      knop indrukken. Daarom worden deze gebeurtenissen al bij het venster
-     onderschept, vóór de app ze ziet. Klikken op het tooltje zelf gaan door. */
+     onderschept, vóór de app ze ziet. Klikken op het tooltje zelf gaan door.
+
+     Klik op een tekst: typen in het Zaalboek zelf (startTypen). Klik op iets
+     zonder eigen tekst: het venster. Het typvak hoort bij het tooltje, dus
+     klikken daarin gaan gewoon door. */
   ["pointerdown", "pointerup", "mousedown", "mouseup", "click", "dblclick", "contextmenu"].forEach(soort => {
     window.addEventListener(soort, ev => {
       if (!staat.modus || vanOns(ev.target)) return;
-      ev.preventDefault();
       ev.stopPropagation();
-      // dubbelklik op een tekst: de eerste klik opende het venster, nu het tekstveld
-      if (soort === "dblclick" && staat.venster) {
-        const veld = staat.venster.dom.querySelector(".aw-tekstveld");
-        if (veld && !staat.venster.dom.querySelector(".aw-tekstrij").hidden && !veld.disabled) {
-          veld.focus();
-          veld.select();
-        }
-      }
-      if (soort === "pointerdown" && !staat.venster) {
-        const el = kiesOnderdeel(document.elementFromPoint(ev.clientX, ev.clientY));
-        if (el) openVenster(el, null);
-      }
+      ev.preventDefault();
+      if (soort !== "pointerdown" || staat.venster) return;
+      if (staat.typen) stopTypen(true);                  // ergens anders klikken = bewaren
+      const el = kiesOnderdeel(document.elementFromPoint(ev.clientX, ev.clientY));
+      if (!el) return;
+      if (eigenTekst(el)) startTypen(el, ev.clientX, ev.clientY);
+      else openVenster(el, null);
     }, true);
   });
 
@@ -472,10 +472,15 @@
      worden, gaan niet naar de app (anders zou Delete of R in de tekening iets
      doen). */
   window.addEventListener("keydown", ev => {
+    if (staat.typen && staat.typen.span.contains(ev.target)) {
+      ev.stopPropagation();                    // de sneltoetsen van de app niet
+      if (ev.key === "Enter") { ev.preventDefault(); stopTypen(true); }
+      else if (ev.key === "Escape") { ev.preventDefault(); stopTypen(false); }
+      return;
+    }
     if (vanOns(ev.target)) {
       ev.stopPropagation();
-      if (ev.key === "Enter" && !ev.shiftKey &&
-          (ev.target.tagName === "TEXTAREA" || ev.target.classList.contains("aw-tekstveld"))) {
+      if (ev.key === "Enter" && !ev.shiftKey && ev.target.tagName === "TEXTAREA") {
         ev.preventDefault();
         bewaarVenster();
       } else if (ev.key === "Escape") {
@@ -494,6 +499,201 @@
       zetModus(!staat.modus);
     }
   }, true);
+
+  /* ---------------- typen in het Zaalboek zelf ----------------
+     Browsers laten niet typen in tekst binnen een knop of link. Daarom:
+     het stukje tekst in het Zaalboek wordt even onzichtbaar (in een eigen
+     <span>, "de plek"), en precies daarop ligt een typvak in hetzelfde
+     lettertype en dezelfde kleur. Elke letter gaat meteen ook in de plek,
+     zodat de knop meegroeit en je het echte resultaat ziet. Een icoontje
+     ernaast blijft staan. Na afloop is de plek weer gewone tekst. */
+
+  // de open aanwijzing (of die met een verwerkte wijziging) voor dit onderdeel
+  function aanwijzingVoor(el) {
+    const pad = cssPad(el);
+    const zelfde = staat.lijst.filter(a => a.onderdeel.cssPad === pad);
+    return zelfde[zelfde.length - 1] || null;
+  }
+
+  function startTypen(el, x, y) {
+    if (claudeBezig()) { meld("Claude is bezig met de aanwijzingen; wacht tot dat klaar is."); return; }
+    const knoop = tekstKnoop(el);
+    if (!knoop) return;
+    const huidig = knoop.nodeValue.trim();
+
+    // waar in de tekst werd geklikt? (vóór het inpakken)
+    let klikplek = null;
+    const r = document.caretRangeFromPoint ? document.caretRangeFromPoint(x, y)
+            : document.caretPositionFromPoint ? document.caretPositionFromPoint(x, y) : null;
+    if (r && (r.startContainer || r.offsetNode) === knoop) klikplek = r.startOffset != null ? r.startOffset : r.offset;
+
+
+    const bestaand = aanwijzingVoor(el);
+    const lopend = bestaand && isOpen(bestaand) && bestaand.tekstwijziging;
+    const t = {
+      el, huidig, laatste: huidig,
+      oud: lopend ? bestaand.tekstwijziging.oud : huidig,   // de tekst zoals hij in de code staat
+      vooraf: vastleggen(el)          // het onderdeel vóór het typen, voor een nieuwe aanwijzing
+    };
+
+    // de tekst inpakken; spaties eromheen blijven erbuiten
+    const waarde = knoop.nodeValue;
+    const begin = waarde.indexOf(huidig);
+    const plek = document.createElement("span");
+    plek.style.visibility = "hidden";
+    plek.textContent = huidig;
+    knoop.replaceWith(document.createTextNode(waarde.slice(0, begin)), plek,
+                      document.createTextNode(waarde.slice(begin + huidig.length)));
+    t.plek = plek;
+
+    // het typvak, met de letter en kleur van het onderdeel
+    const cs = getComputedStyle(el);
+    let achter = "#ffffff";
+    for (let o = el; o && o !== document.documentElement; o = o.parentElement) {
+      const kleur = getComputedStyle(o).backgroundColor;
+      if (kleur && kleur !== "transparent" && !/rgba\(.*,\s*0\)$/.test(kleur)) { achter = kleur; break; }
+    }
+    const span = document.createElement("span");
+    try { span.contentEditable = "plaintext-only"; } catch (e) { span.contentEditable = "true"; }
+    span.className = "aw-typen";
+    span.spellcheck = false;
+    Object.assign(span.style, {
+      position: "fixed", pointerEvents: "auto", whiteSpace: "pre-wrap", cursor: "text",
+      lineHeight: cs.lineHeight, boxSizing: "content-box", overflowWrap: "break-word",
+      fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontWeight: cs.fontWeight,
+      fontStyle: cs.fontStyle, letterSpacing: cs.letterSpacing, textTransform: cs.textTransform,
+      color: cs.color, background: achter, outline: "2px dashed #D9480F", outlineOffset: "2px",
+      minWidth: "1ch", padding: "0", margin: "0"
+    });
+    span.textContent = huidig;
+    laag.appendChild(span);
+    t.span = span;
+
+    span.addEventListener("input", () => {
+      // geen nieuwe regels (bijvoorbeeld bij plakken)
+      if (/\n/.test(span.textContent)) span.textContent = span.textContent.replace(/\s*\n\s*/g, " ");
+      t.laatste = span.textContent;
+      if (plek.isConnected) plek.textContent = span.textContent || "\u00a0";
+      plaatsTypen();
+    });
+    span.addEventListener("paste", ev => {
+      ev.preventDefault();
+      const platte = (ev.clipboardData && ev.clipboardData.getData("text/plain") || "").replace(/\s+/g, " ");
+      document.execCommand("insertText", false, platte);
+    });
+
+    // het knopje ernaast: het venster voor een wens of opmaak
+    const praat = document.createElement("button");
+    praat.type = "button";
+    praat.className = "aw-praat";
+    praat.textContent = "💬";
+    praat.title = "Een wens of opmaak bij dit onderdeel";
+    praat.addEventListener("click", () => {
+      const doel = t.el;
+      stopTypen(true);
+      openVenster(doel, aanwijzingVoor(doel));
+    });
+    laag.appendChild(praat);
+    t.praat = praat;
+
+    staat.typen = t;
+    toonRand(null);
+    plaatsTypen();
+
+    // cursor op de plek van de klik
+    span.focus();
+    const bereik = document.createRange();
+    const tekstIn = span.firstChild;
+    const pos = klikplek == null ? huidig.length : Math.max(0, Math.min(huidig.length, klikplek - begin));
+    if (tekstIn) { bereik.setStart(tekstIn, pos); bereik.collapse(true); }
+    else { bereik.selectNodeContents(span); bereik.collapse(false); }
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(bereik);
+
+    /* Zaal-, verenigings- en meubelnamen komen uit de gegevens: die wijzig je
+       in de app zelf. De controle loopt naast het typen, zodat er geen letter
+       verloren gaat; blijkt het een naam uit de gegevens, dan stopt het typen. */
+    fetch("/gegevenstekst?tekst=" + encodeURIComponent(huidig), { cache: "no-store" })
+      .then(r => r.json())
+      .then(uit => {
+        if (!uit.inGegevens || staat.typen !== t) return;
+        stopTypen(false);
+        meld("‘" + huidig + "’ komt uit de gegevens (een zaal-, verenigings- of meubelnaam). Wijzig die in de app zelf, via Beheer of Wijzigen.", 8);
+      })
+      .catch(() => {});
+  }
+
+  // het typvak precies op de plek, en het knopje 💬 ernaast
+  function plaatsTypen() {
+    const t = staat.typen;
+    if (!t || !t.plek.isConnected) return;
+    // over de hele plek, ook als de tekst over meer regels loopt
+    const r = t.plek.getBoundingClientRect();
+    Object.assign(t.span.style, { left: r.left + "px", top: r.top + "px",
+                                  width: Math.ceil(r.width + 1) + "px", minHeight: r.height + "px" });
+    const v = t.span.getBoundingClientRect();
+    t.praat.style.left = (v.right + 8) + "px";
+    t.praat.style.top = (r.top + r.height / 2 - 12) + "px";
+  }
+
+  /* Klaar met typen: bewaren (Enter, ergens anders klikken) of de oude
+     tekst terugzetten (Esc). Heeft de app de tekst intussen opnieuw
+     getekend, dan wordt wat er getypt was toch bewaard. */
+  function stopTypen(bewaar) {
+    const t = staat.typen;
+    if (!t) return;
+    staat.typen = null;
+    t.praat.remove();
+    t.span.remove();
+
+    const nieuw = (t.laatste || "").replace(/\s+/g, " ").trim();
+    const tonen = bewaar && nieuw ? nieuw : t.huidig;
+    if (t.plek.isConnected) {
+      t.plek.replaceWith(document.createTextNode(tonen));
+      t.el.normalize();                       // weer één tekst, zoals de app hem maakte
+    }
+    window.getSelection().removeAllRanges();
+    if (bewaar && nieuw && nieuw !== t.huidig) registreerTekst(t, nieuw);
+  }
+
+  /* De getypte tekst als aanwijzing: een nieuwe, of bij een bestaande het
+     laatste bericht bijwerken (nog niet verwerkt) of een reactie toevoegen
+     (verwerkt, of Claude had een vraag). */
+  function registreerTekst(t, nieuw) {
+    const nu = new Date().toISOString();
+    let a = aanwijzingVoor(t.el);
+
+    // terug naar de tekst uit de code: de tekstwijziging vervalt
+    if (nieuw === t.oud) {
+      if (a && kanBewerken(a) && laatste(a).tekstwijziging) {
+        const l = laatste(a);
+        delete l.tekstwijziging;
+        delete a.tekstwijziging;
+        if (!l.tekst && !l.stijl) a.gesprek.pop();
+        if (!a.gesprek.length) staat.lijst = staat.lijst.filter(x => x !== a);
+        bewaren();
+      }
+      return;
+    }
+
+    const wijziging = { oud: t.oud, nieuw };
+    if (a && kanBewerken(a)) {
+      laatste(a).tekstwijziging = wijziging;
+      laatste(a).tijd = nu;
+    } else if (a) {
+      a.gesprek.push({ van: "marc", tekst: "", tijd: nu, tekstwijziging: wijziging });
+      a.status = "open";
+    } else {
+      a = t.vooraf;
+      a.nummer = staat.lijst.reduce((m, x) => Math.max(m, x.nummer || 0), 0) + 1;
+      a.tijd = nu;
+      a.gesprek.push({ van: "marc", tekst: "", tijd: nu, tekstwijziging: wijziging });
+      staat.lijst.push(a);
+    }
+    a.tekstwijziging = wijziging;
+    bewaren();
+  }
 
   /* ---------------- inspreken ----------------
      Met de spraakherkenning van de browser (Safari en Chrome). Werkt die
@@ -554,11 +754,6 @@
     venster.innerHTML = `
       <div class="aw-wat"></div>
       <div class="aw-gesprek" hidden></div>
-      <div class="aw-rij aw-tekstrij" hidden>
-        <span>Tekst</span>
-        <input type="text" class="aw-tekstveld">
-      </div>
-      <div class="aw-klein aw-tekstuitleg" hidden></div>
       <div class="aw-invoer">
         <textarea placeholder="Wat moet hier veranderen? Typ, of klik op de microfoon."></textarea>
         <button type="button" class="aw-mic" title="Inspreken (nog eens klikken = stoppen)">🎤</button>
@@ -601,6 +796,16 @@
         tekenGesprek(g, eerder);
       }
       if (soort === "bewerk") {
+        // een getypte tekstwijziging hoort bij dit bericht: laten zien, niet in het tekstvak
+        const tw = laatste(aanwijzing).tekstwijziging;
+        if (tw) {
+          const g = venster.querySelector(".aw-gesprek");
+          g.hidden = false;
+          const r = document.createElement("div");
+          r.className = "aw-bericht aw-klein";
+          r.textContent = `Tekst wijzigen: ‘${tw.oud}’ → ‘${tw.nieuw}’ (typ je in het Zaalboek zelf)`;
+          g.appendChild(r);
+        }
         vak.value = laatste(aanwijzing).tekst || "";
         beginstijl = laatste(aanwijzing).stijl || aanwijzing.stijl || null;
       } else {
@@ -621,7 +826,6 @@
                         : { bereik: "dit", selector: pad, eigenschappen: {} }
     };
     v.stopSpraak = koppelSpraak(venster.querySelector(".aw-mic"), vak);
-    maakTekstveld(v);
 
     // opmaak alleen voor gewone onderdelen van de pagina, niet in de tekening
     const inTekening = el ? el instanceof SVGElement : (aanwijzing && /^(g|svg|rect|path|line|circle|text)$/.test(aanwijzing.onderdeel.tag));
@@ -633,7 +837,7 @@
       maakOpmaak(v);
     }
 
-    venster.querySelector(".aw-annuleer").addEventListener("click", () => sluitVenster());
+    venster.querySelector(".aw-annuleer").addEventListener("click", sluitVenster);
     venster.querySelector(".aw-bewaar").addEventListener("click", bewaarVenster);
     laag.appendChild(venster);
     staat.venster = v;
@@ -655,47 +859,6 @@
     if (el) toonRand(el);
     tekenVoorbeelden();
     vak.focus();
-  }
-
-  /* Het veld "Tekst": de eigen tekst van het onderdeel, direct aan te
-     passen. Wat je typt staat meteen op het scherm. v.tekst onthoudt:
-     oud (de tekst in de code), huidig (wat er stond toen het venster
-     openging) en of het veld gebruikt kan worden. */
-  function maakTekstveld(v) {
-    const el = v.element;
-    const a = v.aanwijzing;
-    const huidig = eigenTekst(el);
-    if (!huidig) return;
-
-    const eerder = v.soort === "bewerk" && laatste(a).tekstwijziging;
-    v.tekst = { oud: eerder ? eerder.oud : huidig, huidig };
-
-    const rij = v.dom.querySelector(".aw-tekstrij");
-    const veld = v.dom.querySelector(".aw-tekstveld");
-    rij.hidden = false;
-    veld.value = huidig;
-    veld.addEventListener("input", () => zetEigenTekst(el, veld.value.trim() || v.tekst.oud));
-
-    // tekst uit de gegevens (zaal-, verenigings- of meubelnaam) hoort niet in de code
-    fetch("/gegevenstekst?tekst=" + encodeURIComponent(v.tekst.oud), { cache: "no-store" })
-      .then(r => r.json())
-      .then(uit => {
-        if (!uit.inGegevens || staat.venster !== v) return;
-        veld.disabled = true;
-        const u = v.dom.querySelector(".aw-tekstuitleg");
-        u.hidden = false;
-        u.textContent = "Deze tekst komt uit de gegevens (bijvoorbeeld een zaal- of verenigingsnaam). Pas hem aan in de app zelf, via Beheer of Wijzigen.";
-      })
-      .catch(() => {});
-  }
-
-  // de nieuwe tekst uit het veld, of null als die niet veranderd is
-  function tekstwijzigingVan(v) {
-    if (!v.tekst) return null;
-    const veld = v.dom.querySelector(".aw-tekstveld");
-    const nieuw = veld.value.trim();
-    if (veld.disabled || !nieuw || nieuw === v.tekst.oud) return null;
-    return { oud: v.tekst.oud, nieuw };
   }
 
   function maakOpmaak(v) {
@@ -784,12 +947,8 @@
     bijwerken();
   }
 
-  /* nieuweTekst: wat er na het sluiten op het scherm hoort te staan. Bij
-     Annuleer is dat de tekst van vóór het venster. */
-  function sluitVenster(nieuweTekst) {
+  function sluitVenster() {
     if (!staat.venster) return;
-    const v = staat.venster;
-    if (v.tekst && v.element) zetEigenTekst(v.element, nieuweTekst || v.tekst.huidig);
     staat.venster.stopSpraak();
     staat.venster.dom.remove();
     staat.venster = null;
@@ -802,7 +961,8 @@
     if (!v) return;
     const tekst = v.dom.querySelector("textarea").value.trim();
     const stijl = heeftStijl(v.stijl) ? v.stijl : null;
-    const wijziging = tekstwijzigingVan(v);
+    // een tekstwijziging (getypt in het Zaalboek zelf) blijft bij het bewerken bewaard
+    const wijziging = v.soort === "bewerk" ? laatste(v.aanwijzing).tekstwijziging : null;
     if (!tekst && !stijl && !wijziging) { sluitVenster(); return; }
 
     const bericht = { van: "marc", tekst, tijd: new Date().toISOString() };
@@ -812,11 +972,6 @@
     let a = v.aanwijzing;
     if (!a) {
       a = vastleggen(v.element);
-      // het onderdeel toont al de nieuwe tekst; vastleggen zoals het in de code staat
-      if (wijziging) {
-        a.onderdeel.tekst = wijziging.oud;
-        a.onderdeel.omschrijving = a.onderdeel.omschrijving.replace(wijziging.nieuw, wijziging.oud);
-      }
       a.gesprek.push(bericht);
       staat.lijst.push(a);
     } else if (v.soort === "bewerk") {
@@ -830,7 +985,7 @@
     // a.tekstwijziging idem: de nieuwe tekst als voorbeeld, tot Claude hem verwerkt
     if (wijziging) a.tekstwijziging = wijziging; else delete a.tekstwijziging;
 
-    sluitVenster(wijziging ? wijziging.nieuw : (v.tekst ? v.tekst.oud : undefined));
+    sluitVenster();
     staat.onderMuis = null;
     if (staat.modus) toonRand(null);
     bewaren();
@@ -1040,7 +1195,8 @@
       const el = zoekElement(a);
       // De app tekent schermen opnieuw: de nieuwe tekst als voorbeeld terugzetten
       // (niet terwijl het venster van deze aanwijzing open is; dat doet het venster zelf).
-      if (el && a.tekstwijziging && isOpen(a) && !(staat.venster && staat.venster.aanwijzing === a) &&
+      if (el && a.tekstwijziging && isOpen(a) && !(staat.typen && staat.typen.el === el) &&
+          !(staat.venster && staat.venster.aanwijzing === a) &&
           eigenTekst(el) === a.tekstwijziging.oud) {
         zetEigenTekst(el, a.tekstwijziging.nieuw);
       }
@@ -1082,7 +1238,12 @@
   });
 
   // De app tekent zichzelf steeds opnieuw; de spelden lopen gewoon mee.
-  setInterval(plaatsSpelden, 300);
+  setInterval(() => {
+    plaatsSpelden();
+    plaatsTypen();
+    // tekende de app de tekst opnieuw terwijl er getypt werd? Dan bewaren wat er stond.
+    if (staat.typen && !staat.typen.plek.isConnected) stopTypen(true);
+  }, 300);
   // de klok bij "Claude is bezig"
   setInterval(() => {
     const klok = laag.querySelector(".aw-klok");
