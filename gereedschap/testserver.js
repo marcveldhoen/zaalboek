@@ -20,7 +20,11 @@
                 van het tooltje. Verwerken en goedkeuren laten Claude Code op
                 de achtergrond het werk doen (het programma `claude`);
                 terugdraaien zet de wijzigingen opzij met `git stash`, zodat
-                ze altijd nog terug te halen zijn.
+                ze altijd nog terug te halen zijn;
+   - /direct, /direct/terug, /goedkeuren/voorstel: tekst en opmaak die
+                Marc zelf aanpaste, zonder Claude in de code zetten en (als
+                alles zo gemaakt is) ook zonder Claude live zetten. Het werk
+                zelf staat in direct.js; getest met zelftest.js.
 
    Alleen ingebouwde onderdelen van Node, geen extra pakketten. testgegevens/
    en aanwijzingen.json staan in .gitignore: ze kunnen echte zaalnamen
@@ -32,6 +36,7 @@ const path   = require("path");
 const os     = require("os");
 const crypto = require("crypto");
 const { spawn, execFile } = require("child_process");
+const Direct = require("./direct.js");
 
 const POORT        = Number(process.env.PORT) || 8745;
 const PROJECTMAP   = path.resolve(__dirname, "..");
@@ -190,93 +195,12 @@ function inGegevens(tekst) {
   return gevonden;
 }
 
-/* ---------------- /tekst: een getypte tekst direct in de code ----------------
-   Marc typte in de testpagina een nieuwe tekst. Staat de oude tekst op
-   precies één plek in de code (in een tekst van JavaScript of in de HTML,
-   niet in commentaar), dan zet de server hem daar meteen om: geen Claude
-   nodig. De wijziging staat dan klaar voor "Goedkeuren en live zetten".
-   Staat hij nergens of op meer plekken, dan gaat de aanwijzing gewoon naar
-   Verwerk, waar Claude uitzoekt welke plek bedoeld is. */
+/* ---------------- /direct: tekst en opmaak zonder Claude ----------------
+   Het werk zelf staat in direct.js. Hier alleen: de aanwijzing erbij zoeken,
+   de uitkomst in het gesprek zetten, en terug als de controle in de browser
+   laat zien dat de opmaak niet overkwam. */
 
-function codebestanden() {
-  const uit = [INDEX];
-  const loop = map => fs.readdirSync(map, { withFileTypes: true }).forEach(d => {
-    const vol = path.join(map, d.name);
-    if (d.isDirectory()) loop(vol);
-    else if (d.name.endsWith(".js")) uit.push(vol);
-  });
-  loop(path.join(PROJECTMAP, "js"));
-  return uit;
-}
-
-/* Waar in een bestand staat "gewone" tekst? Voor JavaScript: binnen '…',
-   "…" of `…` (niet in commentaar). Voor HTML: alles buiten <!-- … -->.
-   Geeft een lijst { begin, eind, soort } met soort het aanhalingsteken,
-   of "html". */
-function tekstgebieden(inhoud, isHtml) {
-  const gebieden = [];
-  if (isHtml) {
-    let i = 0;
-    while (i < inhoud.length) {
-      const c = inhoud.indexOf("<!--", i);
-      gebieden.push({ begin: i, eind: c < 0 ? inhoud.length : c, soort: "html" });
-      if (c < 0) break;
-      const e = inhoud.indexOf("-->", c);
-      i = e < 0 ? inhoud.length : e + 3;
-    }
-    return gebieden;
-  }
-  let i = 0;
-  while (i < inhoud.length) {
-    const c = inhoud[i], d = inhoud[i + 1];
-    if (c === "/" && d === "/") { const e = inhoud.indexOf("\n", i); i = e < 0 ? inhoud.length : e; continue; }
-    if (c === "/" && d === "*") { const e = inhoud.indexOf("*/", i + 2); i = e < 0 ? inhoud.length : e + 2; continue; }
-    if (c === '"' || c === "'" || c === "`") {
-      let j = i + 1;
-      while (j < inhoud.length && inhoud[j] !== c) {
-        if (inhoud[j] === "\\") j++;
-        if (c !== "`" && inhoud[j] === "\n") break;       // geen echte tekst; stoppen
-        j++;
-      }
-      gebieden.push({ begin: i + 1, eind: j, soort: c });
-      i = j + 1;
-      continue;
-    }
-    i++;
-  }
-  return gebieden;
-}
-
-// de nieuwe tekst veilig maken voor de plek waar hij komt te staan
-function veilig(tekst, soort) {
-  if (soort === "html" || soort === "`") {
-    tekst = tekst.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    if (soort === "`") tekst = tekst.replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/\$\{/g, "\\${");
-    return tekst;
-  }
-  return tekst.replace(/\\/g, "\\\\").replace(new RegExp(soort, "g"), "\\" + soort);
-}
-
-function vindPlekken(oud) {
-  const plekken = [];
-  for (const bestand of codebestanden()) {
-    const inhoud = fs.readFileSync(bestand, "utf8");
-    for (const g of tekstgebieden(inhoud, bestand.endsWith(".html"))) {
-      let i = inhoud.indexOf(oud, g.begin);
-      while (i >= 0 && i + oud.length <= g.eind) {
-        plekken.push({ bestand, positie: i, soort: g.soort });
-        i = inhoud.indexOf(oud, i + oud.length);
-      }
-    }
-  }
-  return plekken;
-}
-
-function controleerJs(bestand) {
-  return new Promise(klaar => execFile(process.execPath, ["--check", bestand], fout => klaar(!fout)));
-}
-
-async function tekstDirect(verzoek, antwoord) {
+async function directUitvoeren(verzoek, antwoord) {
   if (verzoek.method !== "POST") return stuur(antwoord, 405, { message: "Niet toegestaan" });
   if (taak.bezig) return stuur(antwoord, 423, { message: "Claude is bezig" });
   let lijf;
@@ -285,39 +209,40 @@ async function tekstDirect(verzoek, antwoord) {
 
   const lijst = leesAanwijzingen();
   const a = lijst.find(x => x.nummer === lijf.nummer);
-  const l = a && a.gesprek[a.gesprek.length - 1];
-  // alleen een kale tekstwijziging; met een wens of opmaak erbij doet Claude het
-  if (!a || a.status !== "open" || !l || l.van !== "marc" || !l.tekstwijziging || l.tekst || l.stijl) {
-    return stuur(antwoord, 200, { direct: false, reden: "niet alleen een tekstwijziging" });
-  }
-  const { oud, nieuw } = l.tekstwijziging;
+  if (!a || a.status !== "open") return stuur(antwoord, 200, { direct: false, stil: true });
+
+  const uit = await Direct.voerUit(a, inGegevens);
   const nu = new Date().toISOString();
-  const naarClaude = reden => {
-    a.gesprek.push({ van: "systeem", tekst: `Niet direct aangepast: ${reden}. Staat klaar voor Verwerk.`, tijd: nu });
-    schrijfAanwijzingen(lijst);
-    return stuur(antwoord, 200, { direct: false, reden });
-  };
-
-  if (inGegevens(oud)) return naarClaude("de tekst komt uit de gegevens");
-  const plekken = vindPlekken(oud);
-  if (!plekken.length) return naarClaude("de tekst staat niet letterlijk in de code (hij wordt misschien samengesteld)");
-  if (plekken.length > 1) return naarClaude(`de tekst staat op ${plekken.length} plekken in de code`);
-
-  const p = plekken[0];
-  const voor = fs.readFileSync(p.bestand, "utf8");
-  const na = voor.slice(0, p.positie) + veilig(nieuw, p.soort) + voor.slice(p.positie + oud.length);
-  fs.writeFileSync(p.bestand, na);
-  if (p.bestand.endsWith(".js") && !(await controleerJs(p.bestand))) {
-    fs.writeFileSync(p.bestand, voor);                 // terugzetten: liever niets dan kapot
-    return naarClaude("de code werd ongeldig na het vervangen");
+  if (uit.direct) {
+    a.gesprek.push({ van: "systeem", tekst: `Direct aangepast (${uit.omschrijvingen.join("; ")}) in ${uit.bestanden.join(", ")}. Klaar om live te zetten.`, tijd: nu });
+    a.status = "verwerkt";
+    a.direct = true;          // de voorbeelden blijven staan tot de pagina herladen is
+  } else if (!uit.stil) {
+    a.gesprek.push({ van: "systeem", tekst: `Niet direct aangepast: ${uit.reden}. Staat klaar voor Verwerk.`, tijd: nu });
   }
-
-  const waar = path.relative(PROJECTMAP, p.bestand);
-  a.gesprek.push({ van: "systeem", tekst: `Direct aangepast in ${waar}. Klaar om live te zetten.`, tijd: nu });
-  a.status = "verwerkt";
-  a.direct = true;            // de tekstwijziging blijft als voorbeeld tot de pagina herladen is
   schrijfAanwijzingen(lijst);
-  stuur(antwoord, 200, { direct: true, bestand: waar });
+  stuur(antwoord, 200, uit);
+}
+
+async function directTerug(verzoek, antwoord) {
+  if (verzoek.method !== "POST") return stuur(antwoord, 405, { message: "Niet toegestaan" });
+  let lijf;
+  try { lijf = JSON.parse(await leesLijf(verzoek)); }
+  catch (e) { return stuur(antwoord, 422, { message: "Onleesbaar verzoek" }); }
+
+  const gelukt = await Direct.terug(lijf.nummer);
+  const lijst = leesAanwijzingen();
+  const a = lijst.find(x => x.nummer === lijf.nummer);
+  if (a && gelukt) {
+    a.status = "open";
+    delete a.direct;
+    // de melding "Direct aangepast" klopt niet meer
+    const laatste = a.gesprek[a.gesprek.length - 1];
+    if (laatste && laatste.van === "systeem" && laatste.tekst.startsWith("Direct aangepast")) a.gesprek.pop();
+    a.gesprek.push({ van: "systeem", tekst: `Niet direct aangepast: ${lijf.reden || "de opmaak kwam in de browser niet over"}. Staat klaar voor Verwerk.`, tijd: new Date().toISOString() });
+    schrijfAanwijzingen(lijst);
+  }
+  stuur(antwoord, 200, { teruggezet: gelukt });
 }
 
 /* ---------------- git ---------------- */
@@ -401,7 +326,7 @@ Verwerk de aanwijzingen in aanwijzingen.json met status "open", volgens de werkw
 Elke aanwijzing is een gesprek: "gesprek" is een lijst berichten, oudste eerst, met "van" ("marc", "claude" of "systeem") en "tekst", en soms "stijl" (opmaak die Marc als voorbeeld al op het scherm zag). Het LAATSTE bericht van Marc is wat je nu moet doen; de eerdere berichten zijn de achtergrond.
 - Staat er al een antwoord van jou ("claude") in het gesprek, dan is dit een reactie van Marc op wat je eerder deed. Die eerdere wijziging staat nog in de code (niet gecommit; zie git diff). Bouw daarop voort en pas die aan; begin niet opnieuw ernaast. Zegt een "systeem"-bericht dat er is teruggedraaid, dan is je eerdere werk weg en begin je wel opnieuw.
 - Een "tekstwijziging" ({"oud", "nieuw"}) betekent: Marc heeft de zichtbare tekst van dit onderdeel zelf aangepast en zag het resultaat al. Vervang die tekst in de code, alleen op deze plek, tenzij Marc in zijn bericht zegt dat het overal moet. Laat iconen en de rest van het onderdeel staan. Blijkt de tekst uit de gegevens te komen, of uit stukjes te zijn samengesteld zodat het niet eenduidig is: stel een vraag.
-- Een "stijl" maak je definitief op de juiste plek in de css: bij bereik "dit" alleen voor dat onderdeel, bij bereik "alle" voor de klasse in "selector". Een kleur als var(--accent) is een bestaande CSS-variabele: gebruik die. Bedenk ook of de wijziging het printblad (css/blad.css) mag raken; meestal niet.
+- Een "stijl" maak je definitief op de juiste plek in de css: bij bereik "dit" alleen voor dat onderdeel, bij bereik "alle" voor de klasse in "selector". Een kleur als var(--accent) is een bestaande CSS-variabele: gebruik die (het stijlbestand gebruikt alleen variabelen, geen losse kleurwaarden; een nieuwe kleur wordt een nieuwe variabele in :root). Het lettertype Geist heeft alleen de gewichten 400, 500 en 600. Bedenk ook of de wijziging het printblad (css/blad.css) mag raken; meestal niet.
 
 Werk daarna aanwijzingen.json bij, en verander daarin verder niets:
 - uitgevoerd: voeg aan "gesprek" een bericht toe {"van": "claude", "tekst": "<één of twee korte Nederlandse zinnen: wat je hebt gedaan>"}, zet "status" op "verwerkt" en haal de velden "stijl" en "tekstwijziging" van de aanwijzing zelf weg (die staan nu in de code; laat ze in de berichten staan). Heb je het onderdeel zelf veranderd zodat het op een andere plek in de pagina staat, werk dan "onderdeel.cssPad" bij, zodat het tooltje het nog terugvindt;
@@ -444,12 +369,40 @@ async function verwerk(verzoek, antwoord) {
   stuur(antwoord, 202, taak);
 }
 
+/* Wat Goedkeuren gaat doen: zonder Claude (alles kwam direct uit het
+   tooltje) of met Claude. Het tooltje toont dit vóórdat Marc akkoord geeft. */
+async function goedkeurVoorstel(verzoek, antwoord) {
+  const v = await Direct.voorstel(leesAanwijzingen());
+  stuur(antwoord, 200, v);
+}
+
+/* Live zetten zonder Claude: commit en push door de server zelf, met de
+   vaste controles uit direct.js. Loopt als taak, net als de taken van
+   Claude, zodat het tooltje hem op dezelfde manier volgt. */
+async function goedkeurenDirect(v) {
+  Object.assign(taak, { soort: "goedkeuren", bezig: true, begin: Date.now(), einde: null, uitkomst: null, samenvatting: "" });
+  let uit;
+  try { uit = await Direct.zetLive(v); }
+  catch (e) { uit = { gelukt: false, reden: e.message }; }
+  if (uit.gelukt) schrijfAanwijzingen(leesAanwijzingen().filter(a => a.status !== "verwerkt"));
+  fs.writeFileSync(TAAKLOG, `${new Date().toISOString()} goedkeuren zonder Claude\n\n${JSON.stringify(uit, null, 2)}`);
+  Object.assign(taak, { bezig: false, einde: Date.now(), uitkomst: uit.gelukt ? "gelukt" : "mislukt",
+    samenvatting: uit.gelukt ? `Live gezet zonder Claude: ${uit.titel}` : `Niet live gezet: ${uit.reden}.` });
+}
+
 async function goedkeuren(verzoek, antwoord) {
   if (verzoek.method !== "POST") return stuur(antwoord, 405, { message: "Niet toegestaan" });
   if (taak.bezig) return stuur(antwoord, 409, { message: "Claude is al bezig" });
-  if (!(await aangemeld())) return stuur(antwoord, 401, { message: NIET_AANGEMELD });
   const nu = await stand();
   if (!nu.bestanden.length && !nu.nietGepusht) return stuur(antwoord, 422, { message: "Er is niets om live te zetten" });
+
+  const v = await Direct.voorstel(leesAanwijzingen());
+  if (v.direct) {
+    goedkeurenDirect(v);
+    return stuur(antwoord, 202, taak);
+  }
+
+  if (!(await aangemeld())) return stuur(antwoord, 401, { message: NIET_AANGEMELD });
 
   const kopVoor = (await git("rev-parse", "HEAD")).uit;
   startClaude("goedkeuren", OPDRACHT_GOEDKEUREN,
@@ -460,6 +413,7 @@ async function goedkeuren(verzoek, antwoord) {
       if (kopNa === kopVoor || na.nietGepusht) return "mislukt";
       // live gezet: de verwerkte aanwijzingen zijn klaar
       schrijfAanwijzingen(leesAanwijzingen().filter(a => a.status !== "verwerkt"));
+      Direct.wisBoek();
       return "gelukt";
     });
   stuur(antwoord, 202, taak);
@@ -477,6 +431,7 @@ async function terugdraaien(verzoek, antwoord) {
   const tijd = new Date().toLocaleString("nl-NL");
   const uit = await git("stash", "push", "--include-untracked", "-m", `Aanwijzer: teruggedraaid op ${tijd}`);
   if (!uit.gelukt) return stuur(antwoord, 500, { message: uit.fout });
+  Direct.wisBoek();
 
   /* Wat Claude deed is weg. Aanwijzingen waar Claude al aan werkte gaan
      weer open, met een melding in hun gesprek, zodat Marc ze kan aanpassen
@@ -511,6 +466,7 @@ function bestand(verzoek, antwoord, pad) {
 /* ---------------- de server ---------------- */
 
 zorgVoorKopie();
+Direct.init({ projectmap: PROJECTMAP, kopie: KOPIE });
 
 http.createServer(async (verzoek, antwoord) => {
   const pad = new URL(verzoek.url, "http://localhost").pathname;
@@ -530,7 +486,9 @@ http.createServer(async (verzoek, antwoord) => {
     if (pad === "/verwerk")      return await verwerk(verzoek, antwoord);
     if (pad === "/goedkeuren")   return await goedkeuren(verzoek, antwoord);
     if (pad === "/terugdraaien") return await terugdraaien(verzoek, antwoord);
-    if (pad === "/tekst")        return await tekstDirect(verzoek, antwoord);
+    if (pad === "/direct")       return await directUitvoeren(verzoek, antwoord);
+    if (pad === "/direct/terug") return await directTerug(verzoek, antwoord);
+    if (pad === "/goedkeuren/voorstel") return await goedkeurVoorstel(verzoek, antwoord);
     if (pad === "/taak")         return stuur(antwoord, 200, taak);
     if (pad === "/gegevenstekst") {
       const tekst = (new URL(verzoek.url, "http://localhost").searchParams.get("tekst") || "").trim();

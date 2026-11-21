@@ -47,7 +47,7 @@
   const KLEUREN = [
     ["accent (groen)", "--accent"], ["donker", "--ink"], ["grijs", "--ink-soft"],
     ["lichtgrijs", "--ink-faint"], ["eiken", "--oak"], ["licht eiken", "--oak-light"],
-    ["hout", "--wood"], ["leisteen", "--slate"], ["vloer", "--floor"]
+    ["hout", "--wood"], ["leisteen", "--slate"], ["vloer", "--floor"], ["wit", "--wit"]
   ];
 
   /* ---------------- de eigen laag ---------------- */
@@ -354,7 +354,7 @@
                     "color": "tekstkleur", "background-color": "vlakkleur" };
     const kleurnaam = v => (KLEUREN.find(([, n]) => v === `var(${n})`) || [v])[0];
     const delen = Object.entries(s.eigenschappen).map(([k, v]) => {
-      if (k === "font-weight") return v === "700" ? "vet" : "niet vet";
+      if (k === "font-weight") return Number(v) >= 600 ? "vet" : "niet vet";
       if (k === "font-style") return v === "italic" ? "cursief" : "niet cursief";
       if (k === "text-decoration") return v === "underline" ? "onderstreept" : "niet onderstreept";
       return `${namen[k] || k} ${kleurnaam(v)}`;
@@ -696,27 +696,91 @@
     if (!staat.nietBewaard) zetDirect(a);
   }
 
-  /* Alleen een tekst veranderd, zonder wens of opmaak erbij? Dan zet de
-     testserver hem meteen in de code, zonder Claude: hij staat daarna klaar
-     voor "Goedkeuren en live zetten". Lukt dat niet (de tekst staat op meer
-     plekken, of nergens letterlijk), dan blijft hij open voor Verwerk. */
+  /* Alleen een getypte tekst en/of opmaak, zonder wens in woorden? Dan zet
+     de testserver het meteen in de code, zonder Claude (direct.js): het
+     staat daarna klaar voor "Goedkeuren en live zetten". Lukt dat niet
+     (de tekst staat op meer plekken, het onderdeel heeft geen vaste naam,
+     een vrije kleur…), dan blijft het open voor Verwerk.
+     Opmaak wordt daarna nog in de browser gecontroleerd: ziet het onderdeel
+     er met het nieuwe stijlbestand echt zo uit als het voorbeeld? Zo niet
+     (een andere stijlregel gaat voor), dan gaat de wijziging terug en naar
+     Verwerk. */
   async function zetDirect(a) {
+    const stijl = a.stijl ? JSON.parse(JSON.stringify(a.stijl)) : null;
     let uit;
     try {
-      const antwoord = await fetch("/tekst", {
+      const antwoord = await fetch("/direct", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nummer: a.nummer })
       });
       uit = await antwoord.json();
     } catch (e) { return; }
-    if (uit.direct) {
-      meld(`Tekst aangepast in de code (${uit.bestand}). Klaar om live te zetten via ‘Goedkeuren en live zetten’ in de Lijst.`, 8);
-    } else if (uit.reden && uit.reden !== "niet alleen een tekstwijziging") {
-      meld(`Klaargezet voor Verwerk: ${uit.reden}.`, 8);
+
+    await ophalen();                       // status verwerkt: het voorbeeld gaat eraf
+    if (uit.direct && uit.stijl && stijl) {
+      await herlaadStijl();
+      const fout = controleerOpmaak(stijl);
+      if (fout) {
+        await fetch("/direct/terug", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nummer: a.nummer, reden: fout })
+        }).catch(() => {});
+        await herlaadStijl();
+        await ophalen();
+        meld(`Klaargezet voor Verwerk: ${fout}.`, 9);
+        haalWijzigingen();
+        return;
+      }
     }
-    await ophalen();
+    if (uit.direct) {
+      meld(`Aangepast in de code (${uit.bestanden.join(", ")}). Klaar om live te zetten via ‘Goedkeuren en live zetten’ in de Lijst.`, 8);
+    } else if (!uit.stil && uit.reden) {
+      meld(`Klaargezet voor Verwerk: ${uit.reden}.`, 9);
+    }
     haalWijzigingen();
+  }
+
+  // het stijlbestand van de app opnieuw laden, zonder de pagina te herladen
+  function herlaadStijl() {
+    const oud = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+      .find(l => /css\/interface\.css/.test(l.getAttribute("href")));
+    if (!oud) return Promise.resolve();
+    return new Promise(klaar => {
+      const nieuw = oud.cloneNode();
+      nieuw.href = "css/interface.css?v=" + Date.now();
+      const af = () => { oud.remove(); klaar(); };
+      nieuw.addEventListener("load", af);
+      nieuw.addEventListener("error", af);
+      setTimeout(af, 3000);
+      oud.after(nieuw);
+    });
+  }
+
+  /* Ziet het onderdeel (of zien alle gelijke onderdelen) er nu uit zoals de
+     opmaak zegt? Geeft null, of wat er niet klopt. */
+  function controleerOpmaak(stijl) {
+    let elementen = [];
+    try { elementen = Array.from(document.querySelectorAll(stijl.selector)).slice(0, 5); } catch (e) {}
+    if (!elementen.length) return null;          // niet op dit scherm: niet te controleren
+    const proef = document.createElement("span");
+    laag.appendChild(proef);
+    let fout = null;
+    for (const [prop, waarde] of Object.entries(stijl.eigenschappen)) {
+      proef.style.setProperty(prop, waarde);
+      const verwacht = getComputedStyle(proef).getPropertyValue(prop);
+      for (const el of elementen) {
+        const cs = getComputedStyle(el);
+        const ok = prop === "font-weight" ? parseInt(cs.fontWeight, 10) === parseInt(waarde, 10)
+                 : prop === "text-decoration" ? (waarde === "underline") === cs.textDecorationLine.includes("underline")
+                 : cs.getPropertyValue(prop) === verwacht;
+        if (!ok) { fout = "de opmaak kwam in de browser niet over (een andere stijlregel gaat voor)"; break; }
+      }
+      if (fout) break;
+    }
+    proef.remove();
+    return fout;
   }
 
   /* ---------------- inspreken ----------------
@@ -902,7 +966,8 @@
 
     // vet, cursief, onderstreept: het tegenovergestelde van wat er nu staat
     const SCHAKELAARS = {
-      vet:          ["font-weight",     cs => parseInt(cs.fontWeight, 10) >= 600 ? "400" : "700"],
+      // 600 is het zwaarste gewicht dat het lettertype Geist heeft
+      vet:          ["font-weight",     cs => parseInt(cs.fontWeight, 10) >= 600 ? "400" : "600"],
       cursief:      ["font-style",      cs => cs.fontStyle === "italic" ? "normal" : "italic"],
       onderstreept: ["text-decoration", cs => cs.textDecorationLine.includes("underline") ? "none" : "underline"]
     };
@@ -921,7 +986,7 @@
     venster.querySelectorAll("[data-kleur]").forEach(rij => {
       const prop = rij.dataset.kleur;
       const opties = KLEUREN.filter(([, n]) => wortel.getPropertyValue(n).trim())
-        .map(([naam, n]) => [naam, `var(${n})`]).concat([["wit", "#ffffff"]]);
+        .map(([naam, n]) => [naam, `var(${n})`]);
       opties.forEach(([naam, waarde]) => {
         const staal = document.createElement("button");
         staal.type = "button";
@@ -980,7 +1045,7 @@
     tekenVoorbeelden();
   }
 
-  function bewaarVenster() {
+  async function bewaarVenster() {
     const v = staat.venster;
     if (!v) return;
     const tekst = v.dom.querySelector("textarea").value.trim();
@@ -1012,7 +1077,9 @@
     sluitVenster();
     staat.onderMuis = null;
     if (staat.modus) toonRand(null);
-    bewaren();
+    await bewaren();
+    // alleen opmaak en/of een getypte tekst, geen wens in woorden: direct, zonder Claude
+    if (!tekst && !staat.nietBewaard) zetDirect(a);
   }
 
   /* ---------------- verwerken, goedkeuren, terugdraaien ---------------- */
@@ -1051,8 +1118,17 @@
 
   async function goedkeuren() {
     const w = staat.wijzigingen;
-    if (!confirm("Deze wijzigingen live zetten op GitHub?\n\n" + w.bestanden.join("\n") +
-                 "\n\nClaude controleert eerst wat er meegaat, en commit en pusht daarna naar main.")) return;
+    let v = {};
+    try { v = await (await fetch("/goedkeuren/voorstel", { cache: "no-store" })).json(); } catch (e) {}
+    const vraag = v.direct
+      ? "Live zetten, zonder Claude:\n\n" +
+        (v.regels.length ? v.regels.map(r => "• " + r).join("\n") : "• " + v.titel) +
+        "\n\nDe server controleert nog op sleutels en op namen uit de gegevens, " +
+        "en commit en pusht dan naar main als:\n“" + v.titel + "”"
+      : "Deze wijzigingen live zetten op GitHub?\n\n" + w.bestanden.join("\n") +
+        (v.reden ? "\n\nDit gaat via Claude, omdat " + v.reden + "." : "") +
+        "\n\nClaude controleert eerst wat er meegaat, en commit en pusht daarna naar main.";
+    if (!confirm(vraag)) return;
     if (await start("/goedkeuren")) volgTaak();
   }
 
