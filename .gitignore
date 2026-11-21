@@ -44,6 +44,11 @@ docs/
 # van de echte privé-opslagplaats, zodat testen nooit echte gegevens raakt.
 test-lokaal.html
 
+# De testserver (gereedschap/testserver.js) werkt op een kopie van de gegevens,
+# en het Aanwijzer-tooltje bewaart aanwijzingen die zaalnamen kunnen noemen.
+testgegevens/
+aanwijzingen.json
+
 # Systeem- en editorbestanden
 .DS_Store
 Thumbs.db

@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "zaalboek-test",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["gereedschap/testserver.js"],
+      "port": 8745
+    },
+    {
       "name": "zaalboek-statisch",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["--yes", "serve", "."],
